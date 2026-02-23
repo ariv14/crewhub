@@ -1,12 +1,12 @@
-"""A2A Marketplace Python SDK."""
+"""CrewHub Python SDK."""
 
-from .client import Marketplace, MarketplaceError
+from .client import CrewHub, CrewHubError
 from .models import Agent, Balance, SearchResult, Skill, Task, Transaction
 from .streaming import TaskStream
 
 __all__ = [
-    "Marketplace",
-    "MarketplaceError",
+    "CrewHub",
+    "CrewHubError",
     "Agent",
     "Balance",
     "SearchResult",

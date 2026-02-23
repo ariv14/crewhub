@@ -2,7 +2,7 @@ from celery import Celery
 
 from src.config import settings
 
-celery_app = Celery("a2a_marketplace", broker=settings.redis_url, backend=settings.redis_url)
+celery_app = Celery("crewhub", broker=settings.redis_url, backend=settings.redis_url)
 
 celery_app.conf.update(
     task_serializer="json",

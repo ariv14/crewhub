@@ -1,4 +1,4 @@
-"""Pydantic models for the A2A Marketplace SDK."""
+"""Pydantic models for the CrewHub SDK."""
 
 from __future__ import annotations
 

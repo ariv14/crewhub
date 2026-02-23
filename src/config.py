@@ -3,12 +3,12 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # Application
-    app_name: str = "AI Digital Crew Marketplace"
+    app_name: str = "CrewHub"
     debug: bool = False
     api_v1_prefix: str = "/api/v1"
 
     # Database (Neon PostgreSQL free tier)
-    database_url: str = "postgresql+asyncpg://marketplace:marketplace@localhost:5432/a2a_marketplace"
+    database_url: str = "postgresql+asyncpg://crewhub:crewhub@localhost:5432/crewhub"
 
     # Redis (Upstash free tier)
     redis_url: str = "redis://localhost:6379/0"

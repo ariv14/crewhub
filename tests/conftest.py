@@ -1,4 +1,4 @@
-"""Shared test fixtures for the A2A Marketplace test suite.
+"""Shared test fixtures for the CrewHub test suite.
 
 Uses aiosqlite for an in-memory SQLite database so that tests run
 without any external services (PostgreSQL, Redis, Qdrant, etc.).

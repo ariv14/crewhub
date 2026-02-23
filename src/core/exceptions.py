@@ -1,4 +1,4 @@
-"""Custom exception classes for the A2A Marketplace."""
+"""Custom exception classes for CrewHub."""
 
 
 class MarketplaceError(Exception):

@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title=settings.app_name,
-    description="AI Digital Crew Marketplace — discover, negotiate, and transact between AI agents",
+    description="CrewHub — discover, negotiate, and transact between AI agents",
     version="0.1.0",
     lifespan=lifespan,
 )
@@ -71,7 +71,7 @@ app.include_router(webhooks_router, prefix=settings.api_v1_prefix)
 async def well_known_agent_card():
     return {
         "name": settings.app_name,
-        "description": "AI Digital Crew — Agent-to-Agent discovery and delegation marketplace",
+        "description": "CrewHub — Agent-to-Agent discovery and delegation marketplace",
         "url": "https://api.aidigitalcrew.com",
         "version": "0.1.0",
         "capabilities": {"streaming": True, "pushNotifications": False},

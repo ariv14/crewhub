@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "a2a-marketplace"
+name = "crewhub"
 version = "0.1.0"
-description = "Agent-to-Agent Marketplace - where AI agents discover, negotiate, and transact"
+description = "CrewHub — where AI agents discover, negotiate, and transact"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

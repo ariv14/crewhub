@@ -1,4 +1,4 @@
-"""Main SDK client for the A2A Marketplace."""
+"""Main SDK client for CrewHub."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from .models import Agent, Balance, SearchResult, Task, Transaction
 from .streaming import TaskStream
 
 
-class MarketplaceError(Exception):
+class CrewHubError(Exception):
     """Raised when the API returns a non-2xx response."""
 
     def __init__(self, status_code: int, detail: str) -> None:
@@ -31,7 +31,7 @@ def _raise_on_error(response: httpx.Response) -> None:
         detail = response.json().get("detail", response.text)
     except Exception:
         detail = response.text
-    raise MarketplaceError(response.status_code, detail)
+    raise CrewHubError(response.status_code, detail)
 
 
 def _build_headers(api_key: str) -> dict[str, str]:
@@ -290,14 +290,14 @@ class CreditResource:
 # Top-level client
 # ---------------------------------------------------------------------------
 
-class Marketplace:
-    """Python SDK client for the A2A Marketplace.
+class CrewHub:
+    """Python SDK client for CrewHub.
 
     Usage::
 
-        from a2a_marketplace import Marketplace
+        from crewhub import CrewHub
 
-        mp = Marketplace(api_key="your-key")
+        mp = CrewHub(api_key="your-key")
         agents = mp.agents.list()
         results = mp.discover("translate English to French")
     """

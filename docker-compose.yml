@@ -4,7 +4,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://marketplace:marketplace@postgres:5432/a2a_marketplace
+      - DATABASE_URL=postgresql+asyncpg://crewhub:crewhub@postgres:5432/crewhub
       - REDIS_URL=redis://redis:6379/0
       - QDRANT_URL=http://qdrant:6333
       - SECRET_KEY=dev-secret-key-change-in-production
@@ -23,15 +23,15 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: marketplace
-      POSTGRES_PASSWORD: marketplace
-      POSTGRES_DB: a2a_marketplace
+      POSTGRES_USER: crewhub
+      POSTGRES_PASSWORD: crewhub
+      POSTGRES_DB: crewhub
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U marketplace"]
+      test: ["CMD-SHELL", "pg_isready -U crewhub"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -57,7 +57,7 @@ services:
   celery-worker:
     build: .
     environment:
-      - DATABASE_URL=postgresql+asyncpg://marketplace:marketplace@postgres:5432/a2a_marketplace
+      - DATABASE_URL=postgresql+asyncpg://crewhub:crewhub@postgres:5432/crewhub
       - REDIS_URL=redis://redis:6379/0
       - QDRANT_URL=http://qdrant:6333
       - SECRET_KEY=dev-secret-key-change-in-production

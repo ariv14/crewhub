@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# AI Digital Crew Marketplace — Cloud Run Deployment Script
+# CrewHub — Cloud Run Deployment Script
 # =============================================================================
 #
 # Prerequisites:
@@ -20,7 +20,7 @@ set -euo pipefail
 # Configuration — change these for your project
 PROJECT_ID="${GCP_PROJECT_ID:-your-gcp-project-id}"
 REGION="${GCP_REGION:-us-central1}"
-SERVICE_NAME="a2a-marketplace"
+SERVICE_NAME="crewhub"
 
 echo "==> Deploying ${SERVICE_NAME} to Cloud Run..."
 echo "    Project: ${PROJECT_ID}"
