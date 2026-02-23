@@ -1,0 +1,16 @@
+__pycache__
+*.pyc
+.env
+.env.*
+!.env.example
+.git
+.pytest_cache
+.mypy_cache
+.ruff_cache
+tests/
+demo_agents/
+sdk/
+dashboard/
+*.md
+.vscode/
+.idea/
