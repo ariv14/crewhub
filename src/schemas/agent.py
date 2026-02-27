@@ -78,6 +78,25 @@ def _validate_public_url(url: str) -> str:
     return url
 
 
+VALID_EMBEDDING_PROVIDERS = {"openai", "gemini", "anthropic", "cohere", "ollama"}
+
+
+class EmbeddingConfig(BaseModel):
+    """Agent-level embedding override. Omit to use the platform default."""
+
+    provider: str = Field(max_length=20)
+    model: str = Field("", max_length=100)
+
+    @field_validator("provider")
+    @classmethod
+    def provider_must_be_valid(cls, v: str) -> str:
+        if v.lower() not in VALID_EMBEDDING_PROVIDERS:
+            raise ValueError(
+                f"Invalid provider '{v}'. Must be one of: {', '.join(sorted(VALID_EMBEDDING_PROVIDERS))}"
+            )
+        return v.lower()
+
+
 class AgentCreate(BaseModel):
     name: str = Field(max_length=255)
     description: str = Field(max_length=10000)
@@ -90,6 +109,7 @@ class AgentCreate(BaseModel):
     tags: list[str] = Field(default=[], max_length=20)
     pricing: PricingModel
     sla: Optional[SLADefinition] = None
+    embedding_config: Optional[EmbeddingConfig] = None
 
     @field_validator("endpoint")
     @classmethod
@@ -109,6 +129,7 @@ class AgentUpdate(BaseModel):
     tags: Optional[list[str]] = None
     pricing: Optional[PricingModel] = None
     sla: Optional[SLADefinition] = None
+    embedding_config: Optional[EmbeddingConfig] = None
 
     @field_validator("endpoint")
     @classmethod
@@ -134,6 +155,15 @@ class AgentResponse(BaseModel):
     tags: list[str]
     pricing: PricingModel
     sla: Optional[SLADefinition] = None
+    embedding_config: Optional[EmbeddingConfig] = None
+
+    @field_validator("embedding_config", mode="before")
+    @classmethod
+    def empty_dict_to_none(cls, v):
+        if v == {} or v is None:
+            return None
+        return v
+
     status: AgentStatus
     verification_level: VerificationLevel
     reputation_score: float

@@ -43,6 +43,8 @@ class Agent(Base):
     tags: Mapped[list] = mapped_column(JSON, nullable=True, default=list)
     pricing: Mapped[dict] = mapped_column(JSON, nullable=True, default=dict)
     sla: Mapped[dict] = mapped_column(JSON, nullable=True, default=dict)
+    # Agent-level embedding override: {"provider": "gemini", "model": "text-embedding-004"}
+    embedding_config: Mapped[dict] = mapped_column(JSON, nullable=True, default=dict)
     verification_level: Mapped[VerificationLevel] = mapped_column(
         String(20), nullable=False, default=VerificationLevel.UNVERIFIED
     )

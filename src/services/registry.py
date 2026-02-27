@@ -7,9 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.core.embeddings import EmbeddingService
+from src.core.encryption import decrypt_value
 from src.core.exceptions import ForbiddenError, NotFoundError
 from src.models.agent import Agent, AgentStatus
 from src.models.skill import AgentSkill
+from src.models.user import User
 from src.schemas.agent import AgentCreate, AgentUpdate
 
 
@@ -18,7 +20,24 @@ class RegistryService:
 
     def __init__(self, db: AsyncSession):
         self.db = db
-        self.embeddings = EmbeddingService()
+
+    async def _resolve_embeddings(
+        self, owner_id: UUID, agent_embedding_config: dict | None = None
+    ) -> EmbeddingService:
+        """Resolve embedding service: agent config → user keys → platform config."""
+        # Get owner's LLM keys
+        owner_keys: dict[str, str] = {}
+        user = await self.db.get(User, owner_id)
+        if user and user.llm_api_keys:
+            for provider, encrypted in user.llm_api_keys.items():
+                decrypted = decrypt_value(encrypted)
+                if decrypted:
+                    owner_keys[provider] = decrypted
+
+        return EmbeddingService.for_agent(
+            agent_embedding_config=agent_embedding_config,
+            owner_llm_keys=owner_keys,
+        )
 
     # ------------------------------------------------------------------
     # Register
@@ -33,6 +52,8 @@ class RegistryService:
             3. Generate embeddings for every skill and store them.
             4. Return the agent with skills loaded.
         """
+        embedding_cfg = data.embedding_config.model_dump() if data.embedding_config else {}
+
         agent = Agent(
             owner_id=owner_id,
             name=data.name,
@@ -45,6 +66,7 @@ class RegistryService:
             tags=data.tags,
             pricing=data.pricing.model_dump(),
             sla=data.sla.model_dump() if data.sla else {},
+            embedding_config=embedding_cfg,
             status=AgentStatus.ACTIVE,
         )
         self.db.add(agent)
@@ -71,9 +93,10 @@ class RegistryService:
 
         await self.db.flush()
 
-        # Generate and store embeddings
+        # Generate and store embeddings (agent → user → platform resolution)
         if embedding_texts:
-            embeddings = await self.embeddings.generate_batch(embedding_texts)
+            embed_svc = await self._resolve_embeddings(owner_id, embedding_cfg or None)
+            embeddings = await embed_svc.generate_batch(embedding_texts)
             for skill, emb in zip(skills, embeddings):
                 skill.embedding = emb
             await self.db.flush()
@@ -149,6 +172,8 @@ class RegistryService:
             update_data["pricing"] = data.pricing.model_dump()
         if "sla" in update_data and update_data["sla"] is not None:
             update_data["sla"] = data.sla.model_dump()
+        if "embedding_config" in update_data and update_data["embedding_config"] is not None:
+            update_data["embedding_config"] = data.embedding_config.model_dump()
 
         # Handle skills separately -- rebuild skill rows and embeddings
         new_skills_data = update_data.pop("skills", None)
@@ -182,7 +207,10 @@ class RegistryService:
             await self.db.flush()
 
             if embedding_texts:
-                embeddings = await self.embeddings.generate_batch(embedding_texts)
+                embed_svc = await self._resolve_embeddings(
+                    owner_id, agent.embedding_config or None
+                )
+                embeddings = await embed_svc.generate_batch(embedding_texts)
                 for skill, emb in zip(skills, embeddings):
                     skill.embedding = emb
                 await self.db.flush()

@@ -218,21 +218,33 @@ _PROVIDER_MAP = {
 }
 
 
-def _build_provider() -> EmbeddingProvider:
-    """Resolve the configured embedding provider, falling back to fake."""
-    name = settings.embedding_provider.lower()
+def _build_provider(
+    provider_name: str | None = None,
+    api_key: str | None = None,
+    model: str | None = None,
+) -> EmbeddingProvider:
+    """Build an embedding provider.
+
+    Resolution order:
+        1. Explicit overrides (provider_name, api_key, model)
+        2. Platform settings (settings.embedding_provider + settings.*_api_key)
+        3. Fake provider (deterministic, for dev/testing)
+    """
+    name = (provider_name or settings.embedding_provider).lower()
+    mdl = model or settings.embedding_model
 
     if name == "ollama":
         return OllamaProvider(
             base_url=settings.ollama_base_url,
-            model=settings.embedding_model,
+            model=mdl,
         )
 
     if name in _PROVIDER_MAP:
         key_attr, cls = _PROVIDER_MAP[name]
-        api_key = getattr(settings, key_attr, "") if key_attr else ""
-        if api_key:
-            return cls(api_key=api_key, model=settings.embedding_model)
+        # Use explicit key first, then platform setting
+        resolved_key = api_key or (getattr(settings, key_attr, "") if key_attr else "")
+        if resolved_key:
+            return cls(api_key=resolved_key, model=mdl)
 
     # No valid provider/key — use fake embeddings
     return FakeProvider(dimension=settings.embedding_dimension)
@@ -241,12 +253,25 @@ def _build_provider() -> EmbeddingProvider:
 class EmbeddingService:
     """Public embedding interface used by registry and discovery services.
 
-    Provider is resolved once from settings. Callers don't need to know
-    which provider is active.
+    Supports three levels of configuration:
+        - Platform level: uses settings.embedding_provider (default)
+        - User level: user's own API keys for a given provider
+        - Agent level: agent's embedding_config overrides provider/model
+
+    Resolution: agent config → user keys → platform config → fake
     """
 
-    def __init__(self):
-        self._provider = _build_provider()
+    def __init__(
+        self,
+        provider_name: str | None = None,
+        api_key: str | None = None,
+        model: str | None = None,
+    ):
+        self._provider = _build_provider(
+            provider_name=provider_name,
+            api_key=api_key,
+            model=model,
+        )
 
     @property
     def provider_name(self) -> str:
@@ -262,3 +287,31 @@ class EmbeddingService:
         if not texts:
             return []
         return await self._provider.embed(texts)
+
+    @classmethod
+    def for_agent(
+        cls,
+        agent_embedding_config: dict | None = None,
+        owner_llm_keys: dict | None = None,
+    ) -> "EmbeddingService":
+        """Create an EmbeddingService resolved from agent → user → platform config.
+
+        Args:
+            agent_embedding_config: Agent's embedding_config ({"provider": ..., "model": ...})
+            owner_llm_keys: User's decrypted LLM API keys ({"openai": "sk-...", ...})
+        """
+        provider_name = None
+        model = None
+        api_key = None
+
+        # Agent-level override
+        if agent_embedding_config:
+            provider_name = agent_embedding_config.get("provider")
+            model = agent_embedding_config.get("model") or None
+
+        # Resolve API key from user's keys for the chosen provider
+        resolved_provider = (provider_name or settings.embedding_provider).lower()
+        if owner_llm_keys and resolved_provider in owner_llm_keys:
+            api_key = owner_llm_keys[resolved_provider]
+
+        return cls(provider_name=provider_name, api_key=api_key, model=model)

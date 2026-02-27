@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, String, Uuid, func
+from sqlalchemy import JSON, Boolean, DateTime, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database import Base
@@ -23,6 +23,9 @@ class User(Base):
     api_key_hash: Mapped[Optional[str]] = mapped_column(
         String(64), unique=True, nullable=True, index=True
     )
+    # User's LLM API keys (encrypted), keyed by provider name.
+    # Format: {"openai": "<encrypted>", "gemini": "<encrypted>", ...}
+    llm_api_keys: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True, default=dict)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

@@ -74,6 +74,7 @@ from src.api.credits import router as credits_router  # noqa: E402
 from src.api.discovery import router as discovery_router  # noqa: E402
 from src.api.health import router as health_router  # noqa: E402
 from src.api.tasks import router as tasks_router  # noqa: E402
+from src.api.llm_keys import router as llm_keys_router  # noqa: E402
 from src.api.webhooks import router as webhooks_router  # noqa: E402
 
 app.include_router(auth_router, prefix=settings.api_v1_prefix)
@@ -81,6 +82,7 @@ app.include_router(agents_router, prefix=settings.api_v1_prefix)
 app.include_router(discovery_router, prefix=settings.api_v1_prefix)
 app.include_router(tasks_router, prefix=settings.api_v1_prefix)
 app.include_router(credits_router, prefix=settings.api_v1_prefix)
+app.include_router(llm_keys_router, prefix=settings.api_v1_prefix)
 app.include_router(health_router)
 app.include_router(webhooks_router, prefix=settings.api_v1_prefix)
 
