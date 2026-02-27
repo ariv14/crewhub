@@ -19,6 +19,7 @@ import {
 import { auth as firebaseAuth, isFirebaseConfigured } from "./firebase";
 import { api } from "./api-client";
 import type { User } from "@/types/auth";
+import { auth as fbAuth } from "./firebase";
 
 interface AuthState {
   user: User | null;
@@ -47,6 +48,19 @@ function setAuthCookie(token: string | null) {
   } else {
     document.cookie = "__auth_token=; path=/; max-age=0; SameSite=Strict";
   }
+}
+
+/**
+ * Force-refresh the current user's Firebase ID token and update storage.
+ * Returns the new token, or null if no user is signed in.
+ */
+export async function refreshToken(): Promise<string | null> {
+  const user = fbAuth?.currentUser;
+  if (!user) return null;
+  const token = await user.getIdToken(true);
+  localStorage.setItem("auth_token", token);
+  setAuthCookie(token);
+  return token;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {

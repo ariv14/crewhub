@@ -37,6 +37,7 @@ export default function NewAgentPage() {
     creditsPerTask: "10",
     billingModel: "per_task",
     licenseType: "commercial",
+    mcpServerUrl: "",
   });
 
   function update(key: string, value: string) {
@@ -66,6 +67,7 @@ export default function NewAgentPage() {
         trial_task_limit: null,
       },
       accepted_payment_methods: ["credits"],
+      mcp_server_url: form.mcpServerUrl || undefined,
     };
 
     try {
@@ -170,6 +172,17 @@ export default function NewAgentPage() {
                   onChange={(e) => update("tags", e.target.value)}
                   placeholder="nlp, summarization, code"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label>MCP Server URL (optional)</Label>
+                <Input
+                  value={form.mcpServerUrl}
+                  onChange={(e) => update("mcpServerUrl", e.target.value)}
+                  placeholder="https://my-agent.example.com/mcp"
+                />
+                <p className="text-xs text-muted-foreground">
+                  If your agent exposes an MCP server, provide the URL here
+                </p>
               </div>
             </div>
           )}

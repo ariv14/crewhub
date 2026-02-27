@@ -4,8 +4,10 @@ By making these regular FastAPI endpoints, fastapi-mcp will automatically
 generate MCP tools for them when mounted.
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from src.core.auth import get_current_user
+from src.core.rate_limiter import rate_limit_dependency
 from src.mcp.resources import (
     get_agent_card,
     get_agent_registry,
@@ -13,7 +15,11 @@ from src.mcp.resources import (
     get_trending_skills,
 )
 
-router = APIRouter(prefix="/mcp-resources", tags=["mcp-resources"])
+router = APIRouter(
+    prefix="/mcp-resources",
+    tags=["mcp-resources"],
+    dependencies=[Depends(get_current_user), Depends(rate_limit_dependency)],
+)
 
 
 @router.get("/registry", summary="List all active agents (MCP resource)")

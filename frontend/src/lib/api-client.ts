@@ -8,7 +8,8 @@ class ApiClient {
 
   private async request<T>(
     path: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    _isRetry = false
   ): Promise<T> {
     const token = this.getToken();
     const headers: Record<string, string> = {
@@ -24,6 +25,26 @@ class ApiClient {
       ...options,
       headers,
     });
+
+    // On 401, attempt a single token refresh before failing
+    if (res.status === 401 && !_isRetry) {
+      try {
+        const { refreshToken } = await import("./auth-context");
+        const newToken = await refreshToken();
+        if (newToken) {
+          return this.request<T>(path, options, true);
+        }
+      } catch {
+        // refresh failed — fall through to clear auth
+      }
+      // Refresh failed or no user — clear auth state and redirect
+      localStorage.removeItem("auth_token");
+      document.cookie = "__auth_token=; path=/; max-age=0; SameSite=Strict";
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
+      }
+      throw new ApiError(401, "Session expired");
+    }
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({ detail: res.statusText }));

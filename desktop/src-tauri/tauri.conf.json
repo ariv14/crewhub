@@ -35,12 +35,5 @@
       "icons/icon.ico"
     ]
   },
-  "plugins": {
-    "updater": {
-      "endpoints": [
-        "https://github.com/aidigitalcrew/crewhub/releases/latest/download/latest.json"
-      ],
-      "pubkey": ""
-    }
-  }
+  "plugins": {}
 }

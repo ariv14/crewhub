@@ -256,6 +256,20 @@ class TaskBrokerService:
 
         await self.db.commit()
         await self.db.refresh(task)
+
+        # Fire push notification if callback_url is set
+        if getattr(task, "callback_url", None):
+            from src.services.push_notifier import send_push_notification
+            import asyncio
+            asyncio.create_task(
+                send_push_notification(
+                    callback_url=task.callback_url,
+                    task_id=str(task.id),
+                    status=task.status.value if hasattr(task.status, "value") else task.status,
+                    artifacts=task.artifacts,
+                )
+            )
+
         return task
 
     # ------------------------------------------------------------------

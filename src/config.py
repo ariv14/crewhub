@@ -1,6 +1,9 @@
+import logging
 import sys
 
 from pydantic_settings import BaseSettings
+
+_config_logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -55,10 +58,30 @@ class Settings(BaseSettings):
     x402_supported_tokens: str = "USDC"
     x402_receipt_timeout_minutes: int = 10
 
+    # Logging
+    log_level: str = "INFO"
+    log_format: str = "json"  # "json" or "text"
+
+    # Security
+    force_https: bool = False
+
     # Cloud Run
     port: int = 8080  # Cloud Run default port
 
     model_config = {"env_file": ".env", "extra": "ignore"}
+
+    def warn_insecure_defaults(self) -> None:
+        """Log warnings for configuration values that are unsafe in production."""
+        if "change" in self.secret_key.lower() or len(self.secret_key) < 32:
+            _config_logger.warning(
+                "SECRET_KEY appears to be a default — change for production"
+            )
+        if self.debug:
+            _config_logger.warning("DEBUG mode is ON — disable for production")
+        if "sqlite" in self.database_url:
+            _config_logger.warning(
+                "Using SQLite — use PostgreSQL for production"
+            )
 
 
 settings = Settings()

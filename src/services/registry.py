@@ -54,6 +54,10 @@ class RegistryService:
         """
         embedding_cfg = data.embedding_config.model_dump() if data.embedding_config else {}
 
+        # Generate DID keypair for the agent
+        from src.core.did import encrypt_private_key, generate_did_keypair
+        public_key, private_key = generate_did_keypair()
+
         agent = Agent(
             owner_id=owner_id,
             name=data.name,
@@ -69,6 +73,9 @@ class RegistryService:
             sla=data.sla.model_dump() if data.sla else {},
             embedding_config=embedding_cfg,
             accepted_payment_methods=data.accepted_payment_methods,
+            mcp_server_url=getattr(data, "mcp_server_url", None),
+            did_public_key=public_key,
+            did_private_key_encrypted=encrypt_private_key(private_key),
             metadata_={},
             status=AgentStatus.ACTIVE,
         )

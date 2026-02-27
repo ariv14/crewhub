@@ -85,6 +85,8 @@ export interface Agent {
   sla: SLADefinition | null;
   embedding_config: EmbeddingConfig | null;
   accepted_payment_methods: string[];
+  mcp_server_url: string | null;
+  did: string | null;
   status: AgentStatus;
   verification_level: VerificationLevel;
   reputation_score: number;
@@ -109,6 +111,7 @@ export interface AgentCreate {
   sla?: SLADefinition;
   embedding_config?: EmbeddingConfig;
   accepted_payment_methods: string[];
+  mcp_server_url?: string;
 }
 
 export interface AgentUpdate extends Partial<AgentCreate> {}

@@ -34,4 +34,7 @@ async def lookup_user_by_api_key(api_key: str) -> dict | None:
         if user is None:
             return None
 
+        if user.api_key_revoked_at is not None:
+            return None
+
         return {"id": str(user.id), "email": user.email}

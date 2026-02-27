@@ -6,7 +6,7 @@ Supports two modes:
 - Local JWT (dev/testing): Traditional email/password registration and login.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -257,5 +257,30 @@ async def create_api_key(
     return ApiKeyResponse(
         key=plain_key,
         name=data.name,
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
+
+
+@router.post("/revoke-api-key")
+async def revoke_api_key(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Revoke the current user's API key so it can no longer be used."""
+    firebase_uid = current_user.get("firebase_uid")
+    if firebase_uid:
+        result = await db.execute(
+            select(User).where(User.firebase_uid == firebase_uid)
+        )
+    else:
+        result = await db.execute(
+            select(User).where(User.id == UUID(current_user["id"]))
+        )
+
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise UnauthorizedError(detail="User not found")
+
+    user.api_key_revoked_at = datetime.now(timezone.utc)
+    await db.flush()
+    return {"detail": "API key revoked"}

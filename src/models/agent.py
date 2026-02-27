@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String, Text, Uuid, func
+from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, LargeBinary, String, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database import Base
@@ -49,6 +49,9 @@ class Agent(Base):
     accepted_payment_methods: Mapped[list] = mapped_column(
         JSON, nullable=False, default=lambda: ["credits"], server_default='["credits"]'
     )
+    mcp_server_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+    did_public_key: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    did_private_key_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
     metadata_: Mapped[dict] = mapped_column(
         "metadata", JSON, nullable=True, default=dict
     )

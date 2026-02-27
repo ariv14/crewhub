@@ -1,7 +1,7 @@
 "use client";
 
 import { use } from "react";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Copy, Loader2, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useAgent, useAgentCard } from "@/lib/hooks/use-agents";
 import { AgentDetailHeader } from "@/components/agents/agent-detail-header";
@@ -64,6 +64,7 @@ export default function AgentDetailPage({
           </TabsTrigger>
           <TabsTrigger value="pricing">Pricing</TabsTrigger>
           <TabsTrigger value="a2a-card">A2A Card</TabsTrigger>
+          <TabsTrigger value="protocols">Protocols</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-6 space-y-6">
@@ -125,6 +126,106 @@ export default function AgentDetailPage({
           ) : (
             <p className="text-sm text-muted-foreground">Loading A2A card...</p>
           )}
+        </TabsContent>
+
+        <TabsContent value="protocols" className="mt-6">
+          <div className="space-y-6">
+            <h2 className="text-lg font-semibold">Protocol Support</h2>
+
+            {/* A2A */}
+            <div className="rounded-lg border p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium">A2A (Agent-to-Agent)</h3>
+                  <p className="text-sm text-muted-foreground">
+                    JSON-RPC task lifecycle with SSE streaming
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {agent.endpoint ? (
+                    <>
+                      <CheckCircle2 className="h-5 w-5 text-green-500" />
+                      <span className="text-sm text-green-600">Active</span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="h-5 w-5 text-red-500" />
+                      <span className="text-sm text-red-600">Not configured</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* MCP */}
+            <div className="rounded-lg border p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium">MCP (Model Context Protocol)</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Tool exposure for LLM integrations
+                  </p>
+                  {agent.mcp_server_url && (
+                    <p className="mt-1 font-mono text-xs text-muted-foreground">
+                      {agent.mcp_server_url}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {agent.mcp_server_url ? (
+                    <>
+                      <CheckCircle2 className="h-5 w-5 text-green-500" />
+                      <span className="text-sm text-green-600">Active</span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="h-5 w-5 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Not set</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ANP / DID */}
+            <div className="rounded-lg border p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium">ANP (Agent Network Protocol)</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Decentralized identity with DID:wba
+                  </p>
+                  {agent.did && (
+                    <div className="mt-1 flex items-center gap-2">
+                      <code className="rounded bg-muted px-2 py-0.5 font-mono text-xs">
+                        {agent.did}
+                      </code>
+                      <button
+                        onClick={() => navigator.clipboard.writeText(agent.did!)}
+                        className="text-muted-foreground hover:text-foreground"
+                        title="Copy DID"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {agent.did ? (
+                    <>
+                      <CheckCircle2 className="h-5 w-5 text-green-500" />
+                      <span className="text-sm text-green-600">Verified</span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="h-5 w-5 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">No identity</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

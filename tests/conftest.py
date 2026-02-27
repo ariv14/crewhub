@@ -75,10 +75,11 @@ async def db_session(engine) -> AsyncGenerator[AsyncSession, None]:
 
 
 @pytest_asyncio.fixture()
-async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
+async def client(engine, db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """httpx AsyncClient wired to the FastAPI application with the database
     dependency overridden to use the test session.
     """
+    import src.database as _db_module
 
     async def _override_get_db():
         try:
@@ -90,10 +91,17 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 
     app.dependency_overrides[get_db] = _override_get_db
 
+    # Also patch the module-level async_session used by _api_key_lookup
+    _original_session = _db_module.async_session
+    _db_module.async_session = async_sessionmaker(
+        engine, class_=AsyncSession, expire_on_commit=False
+    )
+
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
         yield ac
 
+    _db_module.async_session = _original_session
     app.dependency_overrides.clear()
 
 
@@ -112,7 +120,7 @@ async def auth_headers(client: AsyncClient) -> dict[str, str]:
     valid JWT bearer token.
     """
     email = _unique_email()
-    password = "testpassword123"
+    password = "TestPassword123"
 
     # Register
     register_resp = await client.post(

@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -5,19 +6,38 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from sqlalchemy import text
+
 from src.config import settings
 from src.core.exceptions import MarketplaceError
-from src.database import init_db
+from src.core.logging import setup_logging
+from src.database import engine, init_db
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: initialize Firebase and database
+    # Startup
+    setup_logging(settings.log_level, settings.log_format)
     from src.core.auth import _init_firebase
     _init_firebase()
     await init_db()
+
+    # Validate database connectivity (fail fast if unreachable)
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        logger.info("Database connection verified")
+    except Exception:
+        logger.exception("Database connection failed")
+        raise
+
+    settings.warn_insecure_defaults()
+    logger.info("CrewHub startup complete")
     yield
     # Shutdown
+    logger.info("CrewHub shutting down")
 
 
 app = FastAPI(
@@ -44,6 +64,23 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 
 app.add_middleware(SecurityHeadersMiddleware)
+
+# HTTPS redirect (production only)
+if settings.force_https:
+    from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
+    app.add_middleware(HTTPSRedirectMiddleware)
+
+# Request body size limit (10 MB)
+MAX_BODY_SIZE = 10 * 1024 * 1024
+
+
+@app.middleware("http")
+async def limit_body_size(request: Request, call_next):
+    content_length = request.headers.get("content-length")
+    if content_length and int(content_length) > MAX_BODY_SIZE:
+        return JSONResponse(status_code=413, content={"detail": "Request body too large"})
+    return await call_next(request)
+
 
 # CORS — allow the dashboard and existing site
 app.add_middleware(

@@ -29,7 +29,7 @@ async def test_full_marketplace_flow(client: AsyncClient, db_session):
     email = f"e2e-{uuid.uuid4().hex[:8]}@example.com"
     register_resp = await client.post(
         "/api/v1/auth/register",
-        json={"email": email, "password": "securepassword123", "name": "E2E Tester"},
+        json={"email": email, "password": "SecurePassword123", "name": "E2E Tester"},
     )
     assert register_resp.status_code == 201, (
         f"User registration failed: {register_resp.text}"
@@ -41,7 +41,7 @@ async def test_full_marketplace_flow(client: AsyncClient, db_session):
     # Login to get a token
     login_resp = await client.post(
         "/api/v1/auth/login",
-        json={"email": email, "password": "securepassword123", "name": "E2E Tester"},
+        json={"email": email, "password": "SecurePassword123", "name": "E2E Tester"},
     )
     assert login_resp.status_code == 200
     token = login_resp.json()["access_token"]

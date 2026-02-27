@@ -23,6 +23,9 @@ class User(Base):
     api_key_hash: Mapped[Optional[str]] = mapped_column(
         String(64), unique=True, nullable=True, index=True
     )
+    api_key_revoked_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None
+    )
     # User's LLM API keys (encrypted), keyed by provider name.
     # Format: {"openai": "<encrypted>", "gemini": "<encrypted>", ...}
     llm_api_keys: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True, default=dict)
