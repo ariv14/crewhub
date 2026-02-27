@@ -110,6 +110,13 @@ async def register(
     In production, use /auth/firebase instead — users authenticate via
     Firebase Auth (Google/GitHub OAuth) and accounts are auto-created.
     """
+    if is_firebase_enabled():
+        raise HTTPException(
+            status_code=403,
+            detail="Local registration is disabled when Firebase Auth is configured. "
+            "Use /auth/firebase instead.",
+        )
+
     existing = await db.execute(select(User).where(User.email == data.email))
     if existing.scalar_one_or_none() is not None:
         raise ConflictError(detail="A user with this email already exists")
@@ -138,6 +145,13 @@ async def login(
 
     In production, the frontend uses Firebase Auth SDK to get an ID token directly.
     """
+    if is_firebase_enabled():
+        raise HTTPException(
+            status_code=403,
+            detail="Local login is disabled when Firebase Auth is configured. "
+            "Use Firebase Auth SDK instead.",
+        )
+
     result = await db.execute(select(User).where(User.email == data.email))
     user = result.scalar_one_or_none()
 
@@ -162,15 +176,16 @@ async def get_me(
     current_user: dict = Depends(get_current_user),
 ) -> UserResponse:
     """Return the profile of the currently authenticated user."""
-    user_id = current_user["id"]
-
-    # Firebase UID is a string, not UUID — look up by firebase_uid or by id
-    if is_firebase_enabled() and current_user.get("firebase_uid"):
+    # Look up by firebase_uid first (primary in production), then by local UUID
+    firebase_uid = current_user.get("firebase_uid")
+    if firebase_uid:
         result = await db.execute(
-            select(User).where(User.firebase_uid == current_user["firebase_uid"])
+            select(User).where(User.firebase_uid == firebase_uid)
         )
     else:
-        result = await db.execute(select(User).where(User.id == UUID(user_id)))
+        result = await db.execute(
+            select(User).where(User.id == UUID(current_user["id"]))
+        )
 
     user = result.scalar_one_or_none()
     if user is None:
@@ -187,8 +202,28 @@ async def create_api_key(
     """Generate a new API key for the authenticated user.
 
     The plain-text key is returned only once in this response.
+    Replaces any existing API key for this user.
     """
+    from src.core._api_key_lookup import hash_api_key
+
+    # Look up by firebase_uid first, then by local UUID
+    firebase_uid = current_user.get("firebase_uid")
+    if firebase_uid:
+        result = await db.execute(
+            select(User).where(User.firebase_uid == firebase_uid)
+        )
+    else:
+        result = await db.execute(
+            select(User).where(User.id == UUID(current_user["id"]))
+        )
+
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise UnauthorizedError(detail="User not found")
+
     plain_key = generate_api_key()
+    user.api_key_hash = hash_api_key(plain_key)
+    await db.flush()
 
     return ApiKeyResponse(
         key=plain_key,

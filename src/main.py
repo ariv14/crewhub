@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from src.config import settings
 from src.core.exceptions import MarketplaceError
@@ -24,7 +25,25 @@ app = FastAPI(
     description="CrewHub — discover, negotiate, and transact between AI agents",
     version="0.1.0",
     lifespan=lifespan,
+    docs_url="/docs" if settings.debug else None,
+    redoc_url="/redoc" if settings.debug else None,
 )
+
+
+# Security headers middleware
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        return response
+
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 # CORS — allow the dashboard and existing site
 app.add_middleware(
@@ -74,7 +93,7 @@ async def well_known_agent_card():
         "description": "CrewHub — Agent-to-Agent discovery and delegation marketplace",
         "url": "https://api.aidigitalcrew.com",
         "version": "0.1.0",
-        "capabilities": {"streaming": True, "pushNotifications": False},
+        "capabilities": {"streaming": False, "pushNotifications": False},
         "defaultInputModes": ["text"],
         "defaultOutputModes": ["text"],
         "skills": [

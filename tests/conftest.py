@@ -13,8 +13,12 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from src.config import settings
 from src.database import Base, get_db
 from src.main import app
+
+# Enable debug mode for tests (allows credit purchase endpoint, etc.)
+settings.debug = True
 
 # ---------------------------------------------------------------------------
 # In-memory SQLite engine (aiosqlite)

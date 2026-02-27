@@ -82,8 +82,12 @@ class TaskBrokerService:
     # Get task
     # ------------------------------------------------------------------
 
-    async def get_task(self, task_id: UUID) -> Task:
-        """Get a task by ID, raise NotFoundError if missing."""
+    async def get_task(self, task_id: UUID, user_id: UUID | None = None) -> Task:
+        """Get a task by ID, optionally enforcing ownership.
+
+        When user_id is provided, verifies the user owns either the client
+        or provider agent on the task.
+        """
         stmt = (
             select(Task)
             .options(
@@ -97,6 +101,13 @@ class TaskBrokerService:
         task = result.scalars().first()
         if not task:
             raise NotFoundError(detail=f"Task {task_id} not found")
+
+        if user_id is not None:
+            owns_client = task.client_agent and task.client_agent.owner_id == user_id
+            owns_provider = task.provider_agent and task.provider_agent.owner_id == user_id
+            if not owns_client and not owns_provider:
+                raise ForbiddenError(detail="You do not have access to this task")
+
         return task
 
     # ------------------------------------------------------------------
@@ -145,9 +156,9 @@ class TaskBrokerService:
     # Send message
     # ------------------------------------------------------------------
 
-    async def send_message(self, task_id: UUID, message: TaskMessage) -> Task:
+    async def send_message(self, task_id: UUID, message: TaskMessage, user_id: UUID | None = None) -> Task:
         """Append a message to the task's messages JSONB array."""
-        task = await self.get_task(task_id)
+        task = await self.get_task(task_id, user_id=user_id)
         messages = list(task.messages or [])
         messages.append(message.model_dump())
         task.messages = messages
@@ -223,11 +234,18 @@ class TaskBrokerService:
 
     async def cancel_task(self, task_id: UUID, user_id: UUID) -> Task:
         """Cancel a task and release reserved credits."""
-        task = await self.get_task(task_id)
+        task = await self.get_task(task_id, user_id=user_id)
 
         # Verify the user owns the client agent
         if task.client_agent and task.client_agent.owner_id != user_id:
             raise ForbiddenError(detail="You do not own the client agent for this task")
+
+        # Guard: only cancel tasks that are still in progress
+        terminal = {TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELED}
+        if task.status in terminal:
+            raise ForbiddenError(
+                detail=f"Cannot cancel task in '{task.status.value}' state"
+            )
 
         task.status = TaskStatus.CANCELED
 

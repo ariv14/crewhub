@@ -17,28 +17,28 @@ class TaskStatus(str, Enum):
 
 
 class MessagePart(BaseModel):
-    type: str  # text, file, data
-    content: Optional[str] = None
+    type: str = Field(max_length=50)  # text, file, data
+    content: Optional[str] = Field(None, max_length=100_000)
     data: Optional[dict] = None
-    mime_type: Optional[str] = None
+    mime_type: Optional[str] = Field(None, max_length=100)
 
 
 class TaskMessage(BaseModel):
-    role: str
-    parts: list[MessagePart]
+    role: str = Field(max_length=50)
+    parts: list[MessagePart] = Field(max_length=100)
 
 
 class Artifact(BaseModel):
-    name: Optional[str] = None
-    parts: list[MessagePart]
+    name: Optional[str] = Field(None, max_length=255)
+    parts: list[MessagePart] = Field(max_length=100)
     metadata: dict = {}
 
 
 class TaskCreate(BaseModel):
     provider_agent_id: UUID
-    skill_id: str
-    messages: list[TaskMessage]
-    max_credits: Optional[float] = None
+    skill_id: str = Field(max_length=255)
+    messages: list[TaskMessage] = Field(max_length=50)
+    max_credits: Optional[float] = Field(None, ge=0, le=100_000)
 
 
 class TaskResponse(BaseModel):

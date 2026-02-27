@@ -23,12 +23,16 @@ def upgrade() -> None:
         sa.Column("email", sa.String(255), nullable=False),
         sa.Column("hashed_password", sa.String(255), nullable=False),
         sa.Column("name", sa.String(255), nullable=False),
+        sa.Column("firebase_uid", sa.String(128), unique=True, nullable=True),
+        sa.Column("api_key_hash", sa.String(64), unique=True, nullable=True),
         sa.Column("is_active", sa.Boolean(), server_default="true", nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_users_email", "users", ["email"], unique=True)
+    op.create_index("ix_users_firebase_uid", "users", ["firebase_uid"], unique=True)
+    op.create_index("ix_users_api_key_hash", "users", ["api_key_hash"], unique=True)
 
     # Agents
     op.create_table(
@@ -129,22 +133,8 @@ def upgrade() -> None:
     op.create_index("ix_transactions_from_account", "transactions", ["from_account_id"])
     op.create_index("ix_transactions_to_account", "transactions", ["to_account_id"])
 
-    # Event log (append-only audit trail)
-    op.create_table(
-        "event_log",
-        sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("event_type", sa.String(100), nullable=False),
-        sa.Column("entity_type", sa.String(50), nullable=False),
-        sa.Column("entity_id", sa.Uuid(), nullable=True),
-        sa.Column("data", sa.JSON(), server_default="{}"),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.PrimaryKeyConstraint("id"),
-    )
-    op.create_index("ix_event_log_entity", "event_log", ["entity_type", "entity_id"])
-
 
 def downgrade() -> None:
-    op.drop_table("event_log")
     op.drop_table("transactions")
     op.drop_table("tasks")
     op.drop_table("accounts")

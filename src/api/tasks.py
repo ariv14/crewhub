@@ -43,7 +43,7 @@ async def get_task(
 ) -> TaskResponse:
     """Get the current status and details of a task."""
     service = TaskBrokerService(db)
-    task = await service.get_task(task_id=task_id)
+    task = await service.get_task(task_id=task_id, user_id=UUID(current_user["id"]))
     return task
 
 
@@ -63,6 +63,7 @@ async def send_message(
     task = await service.send_message(
         task_id=task_id,
         message=data,
+        user_id=UUID(current_user["id"]),
     )
     return task
 

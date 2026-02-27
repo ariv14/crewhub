@@ -1,10 +1,13 @@
 """Webhook endpoints for receiving A2A protocol callbacks from provider agents."""
 
+import hashlib
+import hmac
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.config import settings
 from src.database import get_db
 from src.schemas.a2a import JsonRpcRequest, JsonRpcResponse
 from src.services.task_broker import TaskBrokerService
@@ -12,11 +15,32 @@ from src.services.task_broker import TaskBrokerService
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 
 
+async def _verify_webhook_signature(
+    request: Request,
+    x_webhook_signature: str | None = Header(None, alias="X-Webhook-Signature"),
+) -> None:
+    """Verify the HMAC-SHA256 webhook signature if a webhook secret is configured."""
+    if not settings.webhook_secret:
+        return  # No secret configured — skip validation (dev mode)
+
+    if x_webhook_signature is None:
+        raise HTTPException(status_code=401, detail="Missing X-Webhook-Signature header")
+
+    body = await request.body()
+    expected = hmac.new(
+        settings.webhook_secret.encode(), body, hashlib.sha256
+    ).hexdigest()
+
+    if not hmac.compare_digest(expected, x_webhook_signature):
+        raise HTTPException(status_code=401, detail="Invalid webhook signature")
+
+
 @router.post("/a2a/{agent_id}", response_model=JsonRpcResponse)
 async def a2a_callback(
     agent_id: UUID,
     payload: JsonRpcRequest,
     db: AsyncSession = Depends(get_db),
+    _sig: None = Depends(_verify_webhook_signature),
 ) -> JsonRpcResponse:
     """Receive A2A JSON-RPC callbacks from provider agents.
 

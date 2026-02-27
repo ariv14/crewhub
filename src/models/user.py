@@ -20,6 +20,9 @@ class User(Base):
     firebase_uid: Mapped[Optional[str]] = mapped_column(
         String(128), unique=True, nullable=True, index=True
     )
+    api_key_hash: Mapped[Optional[str]] = mapped_column(
+        String(64), unique=True, nullable=True, index=True
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

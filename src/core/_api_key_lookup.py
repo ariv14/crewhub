@@ -1,24 +1,37 @@
-"""API key lookup helper.
+"""API key lookup — resolves an API key to a user via HMAC-SHA256 hash."""
 
-This module is separated to avoid circular imports. It provides a database
-lookup for API keys used in authentication. The implementation will be
-connected to the actual database layer once the models and repositories
-are in place.
-"""
+import hashlib
+import hmac
+
+from sqlalchemy import select
+
+from src.config import settings
+from src.database import async_session
+from src.models.user import User
+
+
+def hash_api_key(api_key: str) -> str:
+    """HMAC-SHA256 hash of an API key for storage and lookup."""
+    return hmac.new(
+        settings.secret_key.encode(), api_key.encode(), hashlib.sha256
+    ).hexdigest()
 
 
 async def lookup_user_by_api_key(api_key: str) -> dict | None:
     """Look up a user by their API key.
 
-    This is a placeholder that will be wired to the database once the
-    repository layer is available.
-
-    Args:
-        api_key: The API key string (e.g., 'a2a_...').
-
-    Returns:
-        dict with 'id' and 'email' if found, None otherwise.
+    Hashes the provided key with SHA-256 and matches against stored hashes.
+    Returns dict with 'id' and 'email' if found, None otherwise.
     """
-    # TODO: Wire to actual DB query via repository layer
-    # Example: user = await api_key_repo.get_user_by_key(api_key)
-    return None
+    key_hash = hash_api_key(api_key)
+
+    async with async_session() as session:
+        result = await session.execute(
+            select(User).where(User.api_key_hash == key_hash, User.is_active.is_(True))
+        )
+        user = result.scalar_one_or_none()
+
+        if user is None:
+            return None
+
+        return {"id": str(user.id), "email": user.email}

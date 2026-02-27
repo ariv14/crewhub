@@ -100,20 +100,41 @@ class CreditLedgerService:
     async def reserve_credits(
         self, owner_id: UUID, amount: float, task_id: UUID | None = None
     ) -> None:
-        """Reserve credits for an upcoming task.
+        """Reserve credits for an upcoming task (atomic).
+
+        Uses SELECT FOR UPDATE to prevent race conditions where two
+        concurrent requests could both pass the balance check.
 
         Raises InsufficientCreditsError if available balance is too low.
         """
-        account = await self.get_or_create_account(owner_id)
+        dec_amount = Decimal(str(amount))
+
+        # Lock the row to prevent concurrent over-reservation
+        stmt = (
+            select(Account)
+            .where(Account.owner_id == owner_id)
+            .with_for_update()
+        )
+        result = await self.db.execute(stmt)
+        account = result.scalars().first()
+
+        if not account:
+            account = await self.get_or_create_account(owner_id)
+            # Re-lock after creation
+            result = await self.db.execute(
+                select(Account).where(Account.owner_id == owner_id).with_for_update()
+            )
+            account = result.scalars().first()
+
         available = account.balance - account.reserved
 
-        if available < Decimal(str(amount)):
+        if available < dec_amount:
             raise InsufficientCreditsError(
                 detail=f"Available credits ({float(available)}) insufficient "
                 f"for reservation of {amount}"
             )
 
-        account.reserved += Decimal(str(amount))
+        account.reserved += dec_amount
         await self.db.commit()
 
     # ------------------------------------------------------------------

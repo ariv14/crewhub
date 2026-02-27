@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any, AsyncIterator
+from typing import Any
 
 import httpx
 
 from .models import Agent, Balance, SearchResult, Task, Transaction
-from .streaming import TaskStream
 
 
 class CrewHubError(Exception):
@@ -222,25 +221,6 @@ class TaskResource:
         )
         _raise_on_error(resp)
         return Task.model_validate(resp.json())
-
-    async def stream(self, task_id: str) -> AsyncIterator[Task]:
-        """Stream real-time task updates via WebSocket.
-
-        Returns an async iterator that yields ``Task`` instances as the
-        task progresses on the server.
-
-        Usage::
-
-            async for update in marketplace.tasks.stream("task-123"):
-                print(update.status)
-        """
-        task_stream = TaskStream(
-            base_url=self._base_url,
-            task_id=task_id,
-            api_key=self._api_key,
-        )
-        async for task in task_stream:
-            yield task
 
 
 class CreditResource:

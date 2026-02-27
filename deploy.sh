@@ -40,7 +40,6 @@ gcloud run deploy "${SERVICE_NAME}" \
   --min-instances 0 \
   --max-instances 3 \
   --set-env-vars "DATABASE_URL=${DATABASE_URL}" \
-  --set-env-vars "REDIS_URL=${REDIS_URL}" \
   --set-env-vars "FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}" \
   --set-env-vars "SECRET_KEY=${SECRET_KEY}" \
   --set-env-vars "OPENAI_API_KEY=${OPENAI_API_KEY:-}" \

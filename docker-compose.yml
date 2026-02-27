@@ -4,18 +4,14 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://crewhub:crewhub@postgres:5432/crewhub
-      - REDIS_URL=redis://redis:6379/0
-      - QDRANT_URL=http://qdrant:6333
-      - SECRET_KEY=dev-secret-key-change-in-production
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-crewhub}:${POSTGRES_PASSWORD:-crewhub}@postgres:5432/${POSTGRES_DB:-crewhub}
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - DEBUG=true
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET:-}
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
-      qdrant:
-        condition: service_started
     volumes:
       - ./src:/app/src
     command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
@@ -23,49 +19,18 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: crewhub
-      POSTGRES_PASSWORD: crewhub
-      POSTGRES_DB: crewhub
+      POSTGRES_USER: ${POSTGRES_USER:-crewhub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-crewhub}
+      POSTGRES_DB: ${POSTGRES_DB:-crewhub}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U crewhub"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-crewhub}"]
       interval: 5s
       timeout: 5s
       retries: 5
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  qdrant:
-    image: qdrant/qdrant:v1.12.1
-    ports:
-      - "6333:6333"
-      - "6334:6334"
-    volumes:
-      - qdrant_data:/qdrant/storage
-
-  celery-worker:
-    build: .
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://crewhub:crewhub@postgres:5432/crewhub
-      - REDIS_URL=redis://redis:6379/0
-      - QDRANT_URL=http://qdrant:6333
-      - SECRET_KEY=dev-secret-key-change-in-production
-    depends_on:
-      - redis
-      - postgres
-    command: celery -A src.workers worker --loglevel=info
 
 volumes:
   postgres_data:
-  qdrant_data:

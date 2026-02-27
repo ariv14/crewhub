@@ -1,3 +1,5 @@
+import sys
+
 from pydantic_settings import BaseSettings
 
 
@@ -10,15 +12,15 @@ class Settings(BaseSettings):
     # Database (Neon PostgreSQL free tier)
     database_url: str = "postgresql+asyncpg://crewhub:crewhub@localhost:5432/crewhub"
 
-    # Redis (Upstash free tier)
-    redis_url: str = "redis://localhost:6379/0"
-
     # Firebase Auth
     firebase_credentials_json: str = ""  # Path to service account JSON, or JSON string
     firebase_project_id: str = ""
 
-    # Auth fallback — API keys still use local bcrypt verification
+    # Auth — MUST be overridden via SECRET_KEY env var in production
     secret_key: str = "dev-secret-key-change-in-production"
+
+    # Webhook shared secret for A2A callbacks
+    webhook_secret: str = ""
 
     # OpenAI (for embeddings — optional, uses fake embeddings if empty)
     openai_api_key: str = ""
@@ -45,3 +47,14 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# CRIT-3: Fail loudly if running with the default secret key outside of testing
+_IN_TESTS = "pytest" in sys.modules
+if not _IN_TESTS and settings.secret_key == "dev-secret-key-change-in-production":
+    if settings.firebase_credentials_json or settings.firebase_project_id:
+        print(
+            "FATAL: SECRET_KEY is set to the default value while Firebase is configured. "
+            "Set a strong SECRET_KEY environment variable.",
+            file=sys.stderr,
+        )
+        sys.exit(1)

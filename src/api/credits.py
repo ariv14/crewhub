@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.auth import get_current_user
@@ -41,9 +41,17 @@ async def purchase_credits(
 ) -> TransactionResponse:
     """Purchase additional credits.
 
-    In production this would integrate with a payment provider. For now it
-    directly adds credits to the user's account.
+    Currently disabled until Stripe integration is complete.
+    In dev/debug mode, directly adds credits to the account.
     """
+    from src.config import settings
+
+    if not settings.debug:
+        raise HTTPException(
+            status_code=403,
+            detail="Credit purchases are disabled until payment integration is complete",
+        )
+
     service = CreditLedgerService(db)
     transaction = await service.purchase_credits(
         owner_id=UUID(current_user["id"]),
@@ -74,7 +82,7 @@ async def list_transactions(
 
 @router.get("/usage", response_model=UsageResponse)
 async def get_usage(
-    period: str = Query("30d", description="Usage period: 7d, 30d, 90d, all"),
+    period: str = Query("30d", description="Usage period: 7d, 30d, 90d", pattern="^(7d|30d|90d)$"),
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ) -> UsageResponse:

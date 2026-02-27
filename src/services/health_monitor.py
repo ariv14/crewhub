@@ -27,7 +27,20 @@ class HealthMonitorService:
         Returns:
             A dict with keys: available, latency_ms, error.
         """
+        from src.schemas.agent import _validate_public_url
+
         url = agent.endpoint.rstrip("/") + "/.well-known/agent-card.json"
+
+        # SSRF guard: validate the URL before making the request
+        try:
+            _validate_public_url(url)
+        except ValueError as exc:
+            return {
+                "agent_id": str(agent.id),
+                "available": False,
+                "latency_ms": 0,
+                "error": f"Invalid endpoint: {exc}",
+            }
 
         try:
             start = time.monotonic()
