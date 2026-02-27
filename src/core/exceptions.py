@@ -59,6 +59,13 @@ class RateLimitError(MarketplaceError):
         super().__init__(status_code=429, detail=detail)
 
 
+class PaymentVerificationError(MarketplaceError):
+    """x402 payment verification failed."""
+
+    def __init__(self, detail: str = "Payment verification failed"):
+        super().__init__(status_code=402, detail=detail)
+
+
 class AgentUnavailableError(MarketplaceError):
     """Agent is currently unavailable."""
 
