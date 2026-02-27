@@ -45,6 +45,13 @@ class ConflictError(MarketplaceError):
         super().__init__(status_code=409, detail=detail)
 
 
+class QuotaExceededError(MarketplaceError):
+    """Usage quota exceeded for the pricing tier."""
+
+    def __init__(self, detail: str = "Quota exceeded"):
+        super().__init__(status_code=429, detail=detail)
+
+
 class RateLimitError(MarketplaceError):
     """Rate limit exceeded."""
 

@@ -1,6 +1,6 @@
 """Task broker service -- create, manage, and rate tasks between agents."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import UUID
 
@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.core.exceptions import ForbiddenError, NotFoundError
+from src.core.exceptions import ForbiddenError, NotFoundError, QuotaExceededError
 from src.models.agent import Agent, AgentStatus
 from src.models.skill import AgentSkill
 from src.models.task import Task, TaskStatus
@@ -18,6 +18,9 @@ from src.services.credit_ledger import CreditLedgerService
 
 class TaskBrokerService:
     """Orchestrates task lifecycle between client and provider agents."""
+
+    # Shared rate limiter for quota RPM enforcement (class-level singleton)
+    _quota_limiters: dict[str, "RateLimiter"] = {}
 
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -45,6 +48,16 @@ class TaskBrokerService:
 
         # 2. Verify skill
         skill = await self._get_skill_on_agent(data.skill_id, provider.id)
+
+        # 2b. Resolve tier and enforce quotas
+        tier = self._resolve_tier(provider, data.tier)
+        if tier:
+            await self._enforce_quota(
+                user_id=user_id,
+                provider_agent_id=provider.id,
+                tier=tier,
+                messages=data.messages,
+            )
 
         # 3. Quote credits from pricing tiers or legacy pricing
         credits_quoted = Decimal(str(
@@ -321,6 +334,142 @@ class TaskBrokerService:
                 detail=f"Skill {skill_id} not found on agent {agent_id}"
             )
         return skill
+
+    # ------------------------------------------------------------------
+    # Quota enforcement
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _resolve_tier(provider: Agent, tier_name: str | None = None) -> dict | None:
+        """Find the applicable pricing tier for this request."""
+        pricing = provider.pricing or {}
+        tiers = pricing.get("tiers", [])
+        if not tiers:
+            return None
+
+        if tier_name:
+            selected = next(
+                (t for t in tiers if t.get("name", "").lower() == tier_name.lower()),
+                None,
+            )
+            if selected:
+                return selected
+
+        # Default tier, or first tier
+        return next(
+            (t for t in tiers if t.get("is_default")),
+            tiers[0],
+        )
+
+    async def _enforce_quota(
+        self,
+        user_id: UUID,
+        provider_agent_id: UUID,
+        tier: dict,
+        messages: list | None = None,
+    ) -> None:
+        """Check usage against the tier's quota limits.
+
+        Raises QuotaExceededError if any limit is breached.
+        """
+        quota = tier.get("quota")
+        if not quota:
+            return
+
+        tier_name = tier.get("name", "default")
+        now = datetime.now(timezone.utc)
+
+        # Find agents owned by this user (to count their tasks)
+        owned_agent_ids = await self._get_user_agent_ids(user_id)
+        if not owned_agent_ids:
+            return  # No agents = no prior tasks to count
+
+        # Daily task limit
+        daily_limit = quota.get("daily_tasks")
+        if daily_limit is not None:
+            start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            daily_count = await self._count_tasks(
+                client_agent_ids=owned_agent_ids,
+                provider_agent_id=provider_agent_id,
+                since=start_of_day,
+            )
+            if daily_count >= daily_limit:
+                raise QuotaExceededError(
+                    detail=f"Daily task limit reached for '{tier_name}' tier "
+                    f"({daily_count}/{daily_limit} tasks today)"
+                )
+
+        # Monthly task limit
+        monthly_limit = quota.get("monthly_tasks")
+        if monthly_limit is not None:
+            start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            monthly_count = await self._count_tasks(
+                client_agent_ids=owned_agent_ids,
+                provider_agent_id=provider_agent_id,
+                since=start_of_month,
+            )
+            if monthly_count >= monthly_limit:
+                raise QuotaExceededError(
+                    detail=f"Monthly task limit reached for '{tier_name}' tier "
+                    f"({monthly_count}/{monthly_limit} tasks this month)"
+                )
+
+        # Per-minute rate limit
+        rpm_limit = quota.get("rate_limit_rpm")
+        if rpm_limit is not None:
+            from src.core.rate_limiter import RateLimiter
+            key = f"quota:{user_id}:{provider_agent_id}"
+            if key not in TaskBrokerService._quota_limiters:
+                TaskBrokerService._quota_limiters[key] = RateLimiter(
+                    max_requests=rpm_limit, window_seconds=60
+                )
+            if not TaskBrokerService._quota_limiters[key].check(key):
+                raise QuotaExceededError(
+                    detail=f"Rate limit exceeded for '{tier_name}' tier "
+                    f"({rpm_limit} requests/minute)"
+                )
+
+        # Max tokens per task (rough check on message content length)
+        max_tokens = quota.get("max_tokens_per_task")
+        if max_tokens is not None and messages:
+            total_chars = sum(
+                len(p.content or "")
+                for m in messages
+                for p in m.parts
+            )
+            # Rough estimate: 1 token ≈ 4 characters
+            estimated_tokens = total_chars // 4
+            if estimated_tokens > max_tokens:
+                raise QuotaExceededError(
+                    detail=f"Input exceeds max tokens for '{tier_name}' tier "
+                    f"(~{estimated_tokens} tokens, limit {max_tokens})"
+                )
+
+    async def _get_user_agent_ids(self, user_id: UUID) -> list[UUID]:
+        """Get all agent IDs owned by a user."""
+        stmt = select(Agent.id).where(Agent.owner_id == user_id)
+        result = await self.db.execute(stmt)
+        return list(result.scalars().all())
+
+    async def _count_tasks(
+        self,
+        client_agent_ids: list[UUID],
+        provider_agent_id: UUID,
+        since: datetime,
+    ) -> int:
+        """Count tasks created by any of the client agents against a specific provider."""
+        if not client_agent_ids:
+            return 0
+        stmt = select(func.count()).where(
+            Task.client_agent_id.in_(client_agent_ids),
+            Task.provider_agent_id == provider_agent_id,
+            Task.created_at >= since,
+        )
+        return (await self.db.execute(stmt)).scalar_one()
+
+    # ------------------------------------------------------------------
+    # Credit resolution
+    # ------------------------------------------------------------------
 
     @staticmethod
     def _resolve_credits(
