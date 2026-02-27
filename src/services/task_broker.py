@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.core.exceptions import ForbiddenError, NotFoundError, QuotaExceededError
+from src.core.exceptions import ForbiddenError, MarketplaceError, NotFoundError, QuotaExceededError
 from src.models.agent import Agent, AgentStatus
 from src.models.skill import AgentSkill
 from src.models.task import Task, TaskStatus
@@ -59,28 +59,48 @@ class TaskBrokerService:
                 messages=data.messages,
             )
 
-        # 3. Quote credits from pricing tiers or legacy pricing
+        # 3. Determine payment method
+        payment_method = "credits"
+        if hasattr(data, "payment_method") and data.payment_method is not None:
+            payment_method = data.payment_method.value if hasattr(data.payment_method, "value") else str(data.payment_method)
+
+        # 3a. Validate agent accepts this payment method
+        accepted = provider.accepted_payment_methods or ["credits"]
+        if payment_method not in accepted:
+            raise MarketplaceError(
+                status_code=400,
+                detail=f"Agent does not accept '{payment_method}' payments. "
+                       f"Accepted: {', '.join(accepted)}"
+            )
+
+        # 3b. Quote credits (used as price reference for both payment methods)
         credits_quoted = Decimal(str(
             self._resolve_credits(provider, data.max_credits, skill.avg_credits, data.tier)
         ))
 
-        # 4. Reserve credits
-        if credits_quoted > 0:
-            await self.credit_ledger.reserve_credits(
-                owner_id=user_id,
-                amount=float(credits_quoted),
-                task_id=None,  # task not created yet; updated after creation
-            )
+        # 3c. Handle payment based on method
+        if payment_method == "credits":
+            if credits_quoted > 0:
+                await self.credit_ledger.reserve_credits(
+                    owner_id=user_id,
+                    amount=float(credits_quoted),
+                    task_id=None,  # task not created yet; updated after creation
+                )
+            initial_status = TaskStatus.SUBMITTED
+        else:
+            # x402: no credit reservation, task starts as pending_payment
+            initial_status = TaskStatus.PENDING_PAYMENT
 
-        # 5. Create task
+        # 4. Create task
         task = Task(
             client_agent_id=client_agent_id,
             provider_agent_id=provider.id,
             skill_id=skill.id,
-            status=TaskStatus.SUBMITTED,
+            status=initial_status,
             messages=[m.model_dump() for m in data.messages],
             artifacts=[],
             credits_quoted=credits_quoted,
+            payment_method=payment_method,
         )
         self.db.add(task)
         await self.db.commit()
@@ -209,15 +229,17 @@ class TaskBrokerService:
             # Charge credits
             quoted = float(task.credits_quoted or 0)
             if quoted > 0 and task.client_agent and task.provider_agent:
-                client_agent = task.client_agent
-                provider_agent = task.provider_agent
-                txn = await self.credit_ledger.charge_credits(
-                    client_owner_id=client_agent.owner_id,
-                    provider_owner_id=provider_agent.owner_id,
-                    amount=quoted,
-                    task_id=task.id,
-                )
-                task.credits_charged = Decimal(str(quoted))
+                if task.payment_method == "credits":
+                    txn = await self.credit_ledger.charge_credits(
+                        client_owner_id=task.client_agent.owner_id,
+                        provider_owner_id=task.provider_agent.owner_id,
+                        amount=quoted,
+                        task_id=task.id,
+                    )
+                    task.credits_charged = Decimal(str(quoted))
+                elif task.payment_method == "x402":
+                    # x402: payment already settled on-chain
+                    task.credits_charged = Decimal(str(quoted))
 
             # Update provider stats
             if task.provider_agent:
@@ -227,11 +249,12 @@ class TaskBrokerService:
             # Release reserved credits
             quoted = float(task.credits_quoted or 0)
             if quoted > 0 and task.client_agent:
-                await self.credit_ledger.release_credits(
-                    owner_id=task.client_agent.owner_id,
-                    amount=quoted,
-                    task_id=task.id,
-                )
+                if task.payment_method == "credits":
+                    await self.credit_ledger.release_credits(
+                        owner_id=task.client_agent.owner_id,
+                        amount=quoted,
+                        task_id=task.id,
+                    )
 
         await self.db.commit()
         await self.db.refresh(task)
@@ -260,11 +283,12 @@ class TaskBrokerService:
 
         quoted = float(task.credits_quoted or 0)
         if quoted > 0 and task.client_agent:
-            await self.credit_ledger.release_credits(
-                owner_id=task.client_agent.owner_id,
-                amount=quoted,
-                task_id=task.id,
-            )
+            if task.payment_method == "credits":
+                await self.credit_ledger.release_credits(
+                    owner_id=task.client_agent.owner_id,
+                    amount=quoted,
+                    task_id=task.id,
+                )
 
         await self.db.commit()
         await self.db.refresh(task)

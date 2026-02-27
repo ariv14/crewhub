@@ -195,3 +195,106 @@ async def test_list_tasks(client: AsyncClient, auth_headers: dict):
     assert body["total"] >= 3
     # Per-page limit should cap the returned list
     assert len(body["tasks"]) <= 2
+
+
+# ------------------------------------------------------------------
+# x402 payment path tests
+# ------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_create_task_x402_returns_pending_payment(client: AsyncClient, auth_headers: dict):
+    """Creating a task with payment_method=x402 should return pending_payment status."""
+    client_agent, provider_agent = await _register_two_agents(client, auth_headers)
+
+    # Update provider to accept x402
+    resp = await client.put(
+        f"/api/v1/agents/{provider_agent['id']}",
+        json={"accepted_payment_methods": ["credits", "x402"]},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+
+    skill_key = provider_agent["skills"][0]["skill_key"]
+    task_payload = {
+        "provider_agent_id": provider_agent["id"],
+        "skill_id": skill_key,
+        "messages": [
+            {"role": "user", "parts": [{"type": "text", "content": "Analyze this."}]}
+        ],
+        "max_credits": 10.0,
+        "payment_method": "x402",
+    }
+    resp = await client.post("/api/v1/tasks/", json=task_payload, headers=auth_headers)
+    assert resp.status_code == 201
+
+    data = resp.json()
+    assert data["status"] == "pending_payment"
+    assert data["payment_method"] == "x402"
+
+
+@pytest.mark.asyncio
+async def test_create_task_x402_rejected_if_agent_doesnt_accept(
+    client: AsyncClient, auth_headers: dict
+):
+    """Task creation with x402 should fail if agent only accepts credits."""
+    client_agent, provider_agent = await _register_two_agents(client, auth_headers)
+
+    skill_key = provider_agent["skills"][0]["skill_key"]
+    task_payload = {
+        "provider_agent_id": provider_agent["id"],
+        "skill_id": skill_key,
+        "messages": [
+            {"role": "user", "parts": [{"type": "text", "content": "Analyze this."}]}
+        ],
+        "max_credits": 10.0,
+        "payment_method": "x402",
+    }
+    resp = await client.post("/api/v1/tasks/", json=task_payload, headers=auth_headers)
+    # Should fail because default agent only accepts credits
+    assert resp.status_code == 400 or resp.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_submit_x402_receipt(client: AsyncClient, auth_headers: dict, db_session):
+    """Submitting a valid x402 receipt should move task to submitted."""
+    client_agent, provider_agent = await _register_two_agents(client, auth_headers)
+
+    # Update provider to accept x402
+    await client.put(
+        f"/api/v1/agents/{provider_agent['id']}",
+        json={"accepted_payment_methods": ["credits", "x402"]},
+        headers=auth_headers,
+    )
+
+    skill_key = provider_agent["skills"][0]["skill_key"]
+    resp = await client.post(
+        "/api/v1/tasks/",
+        json={
+            "provider_agent_id": provider_agent["id"],
+            "skill_id": skill_key,
+            "messages": [{"role": "user", "parts": [{"type": "text", "content": "Go"}]}],
+            "max_credits": 10.0,
+            "payment_method": "x402",
+        },
+        headers=auth_headers,
+    )
+    task = resp.json()
+    assert task["status"] == "pending_payment"
+
+    receipt_resp = await client.post(
+        f"/api/v1/tasks/{task['id']}/x402-receipt",
+        json={
+            "tx_hash": "0xabc123def456",
+            "chain": "base",
+            "token": "USDC",
+            "amount": 10.0,
+            "payer": "0xmywallet",
+            "payee": "0xproviderwallet",
+        },
+        headers=auth_headers,
+    )
+    assert receipt_resp.status_code == 200
+
+    data = receipt_resp.json()
+    assert data["verified"] is True
+    assert data["task_status"] == "submitted"
