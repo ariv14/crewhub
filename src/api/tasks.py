@@ -5,8 +5,11 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.config import settings as app_settings
 from src.core.auth import get_current_user
+from src.core.exceptions import PaymentVerificationError
 from src.database import get_db
+from src.models.task import TaskStatus as TaskStatusModel
 from src.schemas.task import (
     TaskCreate,
     TaskListResponse,
@@ -14,7 +17,9 @@ from src.schemas.task import (
     TaskRating,
     TaskResponse,
 )
+from src.schemas.x402 import X402ReceiptResponse, X402ReceiptSubmit
 from src.services.task_broker import TaskBrokerService
+from src.services.x402 import X402PaymentService
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -127,3 +132,66 @@ async def list_tasks(
         per_page=per_page,
     )
     return TaskListResponse(tasks=tasks, total=total)
+
+
+@router.post("/{task_id}/x402-receipt", response_model=X402ReceiptResponse)
+async def submit_x402_receipt(
+    task_id: UUID,
+    receipt: X402ReceiptSubmit,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+) -> X402ReceiptResponse:
+    """Submit an x402 payment receipt for a pending_payment task."""
+    broker = TaskBrokerService(db)
+    task = await broker.get_task(task_id, user_id=UUID(current_user["id"]))
+
+    if task.status != TaskStatusModel.PENDING_PAYMENT:
+        raise PaymentVerificationError(
+            detail=f"Task is not awaiting payment (status: {task.status.value})"
+        )
+
+    if task.payment_method != "x402":
+        raise PaymentVerificationError(detail="Task does not use x402 payment method")
+
+    # Check receipt timeout
+    from datetime import datetime, timezone
+    created = task.created_at
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=timezone.utc)
+    elapsed = (datetime.now(timezone.utc) - created).total_seconds() / 60
+    if elapsed > app_settings.x402_receipt_timeout_minutes:
+        raise PaymentVerificationError(
+            detail=f"Receipt submission timeout ({app_settings.x402_receipt_timeout_minutes} min)"
+        )
+
+    x402_svc = X402PaymentService(db)
+
+    if await x402_svc.check_replay(receipt.tx_hash):
+        raise PaymentVerificationError(detail="Transaction hash already used (replay)")
+
+    required_amount = float(task.credits_quoted or 0)
+    errors = x402_svc.validate_receipt(receipt, required_amount=required_amount)
+    if errors:
+        raise PaymentVerificationError(detail="; ".join(errors))
+
+    verified = await x402_svc.verify_with_facilitator(receipt)
+    if not verified:
+        raise PaymentVerificationError(detail="Facilitator could not verify payment")
+
+    await x402_svc.record_receipt(task_id=task.id, receipt=receipt)
+    task.status = TaskStatusModel.SUBMITTED
+    task.x402_receipt = {
+        "tx_hash": receipt.tx_hash,
+        "chain": receipt.chain,
+        "token": receipt.token,
+        "amount": receipt.amount,
+        "payer": receipt.payer,
+        "payee": receipt.payee,
+    }
+    await db.commit()
+
+    return X402ReceiptResponse(
+        verified=True,
+        tx_hash=receipt.tx_hash,
+        task_status="submitted",
+    )
