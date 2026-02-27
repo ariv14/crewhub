@@ -197,6 +197,15 @@ class AgentCreate(BaseModel):
         description="Payment methods this agent accepts: credits, x402"
     )
 
+    @field_validator("accepted_payment_methods")
+    @classmethod
+    def validate_payment_methods(cls, v: list[str]) -> list[str]:
+        allowed = {"credits", "x402"}
+        invalid = set(v) - allowed
+        if invalid:
+            raise ValueError(f"Invalid payment methods: {invalid}. Allowed: {allowed}")
+        return v
+
     @field_validator("endpoint")
     @classmethod
     def endpoint_must_be_public(cls, v: str) -> str:

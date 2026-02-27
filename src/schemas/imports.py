@@ -16,6 +16,12 @@ ALLOWED_IMPORT_DOMAINS = {
     "clawmart.online",
 }
 
+# GitHub URLs must be scoped to the openclaw org per design spec
+GITHUB_ALLOWED_PATH_PREFIXES = {
+    "github.com": "/openclaw/",
+    "raw.githubusercontent.com": "/openclaw/",
+}
+
 
 class OpenClawImportRequest(BaseModel):
     """Request to import an OpenClaw skill as a CrewHub agent."""
@@ -35,6 +41,12 @@ class OpenClawImportRequest(BaseModel):
         if not any(hostname == d or hostname.endswith(f".{d}") for d in ALLOWED_IMPORT_DOMAINS):
             raise ValueError(
                 f"URL domain '{hostname}' not in allowed list: {', '.join(sorted(ALLOWED_IMPORT_DOMAINS))}"
+            )
+        # GitHub/raw.githubusercontent.com must be scoped to openclaw org
+        required_prefix = GITHUB_ALLOWED_PATH_PREFIXES.get(hostname)
+        if required_prefix and not (parsed.path or "").startswith(required_prefix):
+            raise ValueError(
+                f"Only {hostname}{required_prefix}* URLs are allowed"
             )
         return v
 

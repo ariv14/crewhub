@@ -27,8 +27,11 @@ class OpenClawImporter:
 
     @staticmethod
     def sanitize_text(text: str, max_length: int = 10000) -> str:
-        """Strip HTML tags and truncate to max length."""
-        clean = re.sub(r"<[^>]+>", "", text)
+        """Strip HTML tags, script content, and truncate to max length."""
+        # Remove <script> tags and their content first
+        clean = re.sub(r"<script[^>]*>.*?</script>", "", text, flags=re.IGNORECASE | re.DOTALL)
+        # Remove remaining HTML tags
+        clean = re.sub(r"<[^>]+>", "", clean)
         clean = re.sub(r"javascript:", "", clean, flags=re.IGNORECASE)
         clean = re.sub(r"\s+", " ", clean).strip()
         return clean[:max_length]
@@ -123,19 +126,22 @@ class OpenClawImporter:
             raise ConflictError(detail=f"An agent with endpoint '{endpoint}' already exists")
 
     async def fetch_manifest(self, url: str) -> str:
-        """Fetch skill manifest from allowed registry, with size limit."""
+        """Fetch skill manifest from allowed registry, with streaming size limit."""
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
-                resp = await client.get(url, follow_redirects=True)
-                resp.raise_for_status()
-
-                if len(resp.content) > MAX_MANIFEST_BYTES:
-                    raise MarketplaceError(
-                        status_code=400,
-                        detail=f"Manifest too large ({len(resp.content)} bytes, max {MAX_MANIFEST_BYTES})"
-                    )
-
-                return resp.text
+                async with client.stream("GET", url, follow_redirects=True) as resp:
+                    resp.raise_for_status()
+                    chunks = []
+                    total = 0
+                    async for chunk in resp.aiter_bytes():
+                        total += len(chunk)
+                        if total > MAX_MANIFEST_BYTES:
+                            raise MarketplaceError(
+                                status_code=400,
+                                detail=f"Manifest too large (>{MAX_MANIFEST_BYTES} bytes)"
+                            )
+                        chunks.append(chunk)
+                    return b"".join(chunks).decode()
         except httpx.HTTPError as e:
             raise MarketplaceError(
                 status_code=400,

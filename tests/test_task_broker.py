@@ -251,7 +251,7 @@ async def test_create_task_x402_rejected_if_agent_doesnt_accept(
     }
     resp = await client.post("/api/v1/tasks/", json=task_payload, headers=auth_headers)
     # Should fail because default agent only accepts credits
-    assert resp.status_code == 400 or resp.status_code == 500
+    assert resp.status_code == 400
 
 
 @pytest.mark.asyncio

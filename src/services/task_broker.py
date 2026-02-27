@@ -60,9 +60,7 @@ class TaskBrokerService:
             )
 
         # 3. Determine payment method
-        payment_method = "credits"
-        if hasattr(data, "payment_method") and data.payment_method is not None:
-            payment_method = data.payment_method.value if hasattr(data.payment_method, "value") else str(data.payment_method)
+        payment_method = data.payment_method.value if data.payment_method else "credits"
 
         # 3a. Validate agent accepts this payment method
         accepted = provider.accepted_payment_methods or ["credits"]

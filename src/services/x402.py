@@ -73,6 +73,11 @@ class X402PaymentService:
         Falls back to True (optimistic) if no facilitator is configured (dev mode).
         """
         if not settings.x402_facilitator_url:
+            import logging
+            logging.getLogger(__name__).warning(
+                "X402_FACILITATOR_URL not configured — accepting receipt without on-chain verification. "
+                "Set X402_FACILITATOR_URL in production."
+            )
             return True
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:

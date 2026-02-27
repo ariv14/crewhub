@@ -5,11 +5,16 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from decimal import Decimal
+
+from sqlalchemy.exc import IntegrityError
+
 from src.config import settings as app_settings
 from src.core.auth import get_current_user
 from src.core.exceptions import PaymentVerificationError
 from src.database import get_db
 from src.models.task import TaskStatus as TaskStatusModel
+from src.models.transaction import Transaction, TransactionType
 from src.schemas.task import (
     TaskCreate,
     TaskListResponse,
@@ -178,7 +183,20 @@ async def submit_x402_receipt(
     if not verified:
         raise PaymentVerificationError(detail="Facilitator could not verify payment")
 
-    await x402_svc.record_receipt(task_id=task.id, receipt=receipt)
+    try:
+        await x402_svc.record_receipt(task_id=task.id, receipt=receipt)
+    except IntegrityError:
+        await db.rollback()
+        raise PaymentVerificationError(detail="Transaction hash already used (replay)")
+
+    # Create audit transaction for x402 payment
+    audit_txn = Transaction(
+        type=TransactionType.X402_PAYMENT,
+        amount=Decimal(str(receipt.amount)),
+        description=f"x402 payment verified: {receipt.tx_hash}",
+    )
+    db.add(audit_txn)
+
     task.status = TaskStatusModel.SUBMITTED
     task.x402_receipt = {
         "tx_hash": receipt.tx_hash,

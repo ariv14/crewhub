@@ -8,12 +8,13 @@ from src.services.openclaw_importer import OpenClawImporter
 
 
 def test_sanitize_text_strips_html():
-    """HTML tags should be stripped from imported text."""
+    """HTML tags and script content should be stripped from imported text."""
     raw = '<script>alert("xss")</script><b>Bold text</b> and <a href="#">link</a>'
     clean = OpenClawImporter.sanitize_text(raw)
     assert "<script>" not in clean
     assert "<b>" not in clean
     assert "<a " not in clean
+    assert "alert" not in clean  # script content must be removed, not just tag
     assert "Bold text" in clean
     assert "link" in clean
 
@@ -68,6 +69,22 @@ async def test_import_endpoint_rejects_bad_domain(client: AsyncClient, auth_head
         headers=auth_headers,
     )
     assert resp.status_code == 422  # Pydantic validation error
+
+
+@pytest.mark.asyncio
+async def test_import_endpoint_rejects_non_openclaw_github(client: AsyncClient, auth_headers: dict):
+    """GitHub URLs must be scoped to the openclaw org."""
+    resp = await client.post(
+        "/api/v1/import/openclaw",
+        json={
+            "skill_url": "https://github.com/malicious-user/evil-repo",
+            "pricing": {"model": "per_task", "credits": 0, "license_type": "open"},
+            "category": "general",
+            "tags": ["test"],
+        },
+        headers=auth_headers,
+    )
+    assert resp.status_code == 422  # path prefix validation
 
 
 @pytest.mark.asyncio
