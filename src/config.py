@@ -22,10 +22,19 @@ class Settings(BaseSettings):
     # Webhook shared secret for A2A callbacks
     webhook_secret: str = ""
 
-    # OpenAI (for embeddings — optional, uses fake embeddings if empty)
+    # Embedding provider: "openai", "gemini", "anthropic", "cohere", "ollama"
+    # Falls back to deterministic fake embeddings when no API key is set.
+    embedding_provider: str = "openai"
     openai_api_key: str = ""
+    gemini_api_key: str = ""
+    anthropic_api_key: str = ""
+    cohere_api_key: str = ""
+    ollama_base_url: str = "http://localhost:11434"  # Local Ollama
 
-    # Embedding settings (in-memory vector search, no Qdrant needed)
+    # Embedding model overrides (sensible defaults per provider)
+    embedding_model: str = ""  # Empty = use provider default
+
+    # Embedding dimension (must match the chosen model)
     embedding_dimension: int = 1536
 
     # Platform
