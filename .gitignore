@@ -1,3 +1,4 @@
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -6,13 +7,45 @@ dist/
 build/
 .eggs/
 *.egg
-.env
 .venv/
 venv/
 .mypy_cache/
 .ruff_cache/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Testing
 .pytest_cache/
-htmlcov/
 .coverage
+htmlcov/
+
+# Databases
 *.db
 *.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (SDK/tooling)
+node_modules/
+package-lock.json
+
+# Firebase
+firebase-debug.log
+
+# Workspace/temp
+workspace/
+
+# Office temp files
+~$*
