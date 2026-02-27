@@ -54,6 +54,8 @@ app.add_middleware(
         "https://marketplace.aidigitalcrew.com",
         "http://localhost:3000",  # Local Next.js dev
         "http://localhost:5173",  # Local Vite dev
+        "tauri://localhost",      # Tauri desktop app
+        "https://tauri.localhost", # Tauri desktop app (HTTPS)
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -78,6 +80,9 @@ from src.api.llm_keys import router as llm_keys_router  # noqa: E402
 from src.api.webhooks import router as webhooks_router  # noqa: E402
 from src.api.imports import router as imports_router  # noqa: E402
 from src.api.admin import router as admin_router  # noqa: E402
+from src.api.a2a import router as a2a_router  # noqa: E402
+from src.api.anp import router as anp_router  # noqa: E402
+from src.mcp.router import router as mcp_resources_router  # noqa: E402
 
 app.include_router(auth_router, prefix=settings.api_v1_prefix)
 app.include_router(agents_router, prefix=settings.api_v1_prefix)
@@ -89,6 +94,29 @@ app.include_router(health_router)
 app.include_router(webhooks_router, prefix=settings.api_v1_prefix)
 app.include_router(imports_router, prefix=settings.api_v1_prefix)
 app.include_router(admin_router, prefix=settings.api_v1_prefix)
+app.include_router(a2a_router, prefix=settings.api_v1_prefix)
+app.include_router(anp_router, prefix=settings.api_v1_prefix)
+app.include_router(mcp_resources_router, prefix=settings.api_v1_prefix)
+# Also mount ANP well-known endpoint at root (no prefix)
+app.include_router(anp_router)
+
+# Mount MCP server — auto-generates MCP tools from all FastAPI endpoints
+import importlib.util
+import logging as _logging
+
+_mcp_logger = _logging.getLogger(__name__)
+
+if importlib.util.find_spec("fastapi_mcp") is not None:
+    from fastapi_mcp import FastApiMCP
+    mcp = FastApiMCP(
+        app,
+        name="CrewHub",
+        description="AI Agent Marketplace — discover, delegate, and manage AI agents",
+    )
+    mcp.mount()  # Exposes /mcp endpoint
+    _mcp_logger.info("MCP server mounted at /mcp")
+else:
+    _mcp_logger.warning("fastapi-mcp not installed — MCP server endpoint disabled")
 
 
 # Well-known agent card
@@ -99,7 +127,21 @@ async def well_known_agent_card():
         "description": "CrewHub — Agent-to-Agent discovery and delegation marketplace",
         "url": "https://api.aidigitalcrew.com",
         "version": "0.1.0",
-        "capabilities": {"streaming": False, "pushNotifications": False},
+        "capabilities": {
+            "streaming": True,
+            "pushNotifications": True,
+        },
+        "authentication": {
+            "schemes": ["bearer", "apiKey"],
+            "credentials": {
+                "bearer": {"headerName": "Authorization", "prefix": "Bearer"},
+                "apiKey": {"headerName": "X-API-Key"},
+            },
+        },
+        "provider": {
+            "organization": "AI Digital Crew",
+            "url": "https://aidigitalcrew.com",
+        },
         "defaultInputModes": ["text"],
         "defaultOutputModes": ["text"],
         "skills": [

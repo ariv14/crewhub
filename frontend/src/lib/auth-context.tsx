@@ -12,6 +12,7 @@ import {
   GoogleAuthProvider,
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
   signOut as firebaseSignOut,
   type User as FirebaseUser,
 } from "firebase/auth";
@@ -34,6 +35,19 @@ interface AuthContextType extends AuthState {
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
+
+/**
+ * Sync the auth token to a cookie so Next.js middleware can read it
+ * for server-side route protection. The cookie is httpOnly=false
+ * (needs to be readable by middleware) but SameSite=Strict.
+ */
+function setAuthCookie(token: string | null) {
+  if (token) {
+    document.cookie = `__auth_token=${token}; path=/; max-age=3600; SameSite=Strict`;
+  } else {
+    document.cookie = "__auth_token=; path=/; max-age=0; SameSite=Strict";
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({
@@ -72,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (firebaseUser) {
           const idToken = await firebaseUser.getIdToken();
           localStorage.setItem("auth_token", idToken);
+          setAuthCookie(idToken);
           // Exchange Firebase token with our backend
           try {
             await api.post("/auth/firebase", { id_token: idToken });
@@ -81,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } else {
           localStorage.removeItem("auth_token");
+          setAuthCookie(null);
           setState({ user: null, loading: false, isAdmin: false });
         }
       }
@@ -89,12 +105,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [isFirebaseMode, fetchProfile]);
 
+  const isTauri = typeof window !== "undefined" && !!(window as unknown as Record<string, unknown>).__TAURI__;
+
   const loginWithGoogle = useCallback(async () => {
     if (!firebaseAuth) throw new Error("Firebase not configured");
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(firebaseAuth, provider);
+    // Tauri webview blocks popups — use redirect flow instead
+    if (isTauri) {
+      await signInWithRedirect(firebaseAuth, provider);
+    } else {
+      await signInWithPopup(firebaseAuth, provider);
+    }
     // onAuthStateChanged will handle the rest
-  }, []);
+  }, [isTauri]);
 
   const loginWithEmail = useCallback(
     async (email: string, password: string) => {
@@ -103,6 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         { email, password, name: "" }
       );
       localStorage.setItem("auth_token", access_token);
+      setAuthCookie(access_token);
       await fetchProfile();
     },
     [fetchProfile]
@@ -121,6 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await firebaseSignOut(firebaseAuth);
     }
     localStorage.removeItem("auth_token");
+    setAuthCookie(null);
     setState({ user: null, loading: false, isAdmin: false });
   }, [isFirebaseMode]);
 

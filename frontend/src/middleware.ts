@@ -18,18 +18,16 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check for auth token in cookies (set by client-side auth)
-  // Note: actual auth validation happens server-side via API calls.
-  // This middleware only handles redirects for UX, not security.
-  // The real auth check happens when API calls are made with the token.
-
-  // Protected dashboard routes
+  // Server-side auth guard for protected routes.
+  // The AuthProvider sets an __auth_token cookie when the user logs in.
   if (pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) {
-    // We can't check localStorage from middleware (server-side).
-    // Instead, we let the page render and the AuthProvider will redirect
-    // client-side if not authenticated. This is the standard pattern
-    // for SPA-style auth with Next.js App Router.
-    return NextResponse.next();
+    const token = request.cookies.get("__auth_token")?.value;
+
+    if (!token) {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
   }
 
   return NextResponse.next();

@@ -31,6 +31,7 @@ export const ROUTES = {
   adminTransactions: "/admin/transactions",
   adminGovernance: "/admin/governance",
   adminHealth: "/admin/health",
+  adminMcp: "/admin/mcp",
   adminSettings: "/admin/settings",
 } as const;
 

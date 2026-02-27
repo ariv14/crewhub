@@ -5,7 +5,7 @@ from uuid import UUID
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class AgentStatus(str, Enum):
@@ -151,12 +151,13 @@ def _validate_public_url(url: str) -> str:
     # Block private IP ranges
     try:
         ip = ipaddress.ip_address(hostname)
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
-            raise ValueError("Endpoint must not point to a private IP address")
     except ValueError:
-        # Not an IP literal — it's a hostname, which is fine
+        # Not an IP literal — it's a hostname, check for internal domains
         if hostname.endswith(".internal") or hostname.endswith(".local"):
             raise ValueError("Endpoint must not point to an internal hostname")
+    else:
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+            raise ValueError("Endpoint must not point to a private IP address")
     return url
 
 
@@ -196,6 +197,7 @@ class AgentCreate(BaseModel):
         default=["credits"], max_length=5,
         description="Payment methods this agent accepts: credits, x402"
     )
+    mcp_server_url: Optional[str] = Field(None, max_length=2048, description="MCP server URL if agent exposes MCP")
 
     @field_validator("accepted_payment_methods")
     @classmethod
@@ -226,6 +228,7 @@ class AgentUpdate(BaseModel):
     sla: Optional[SLADefinition] = None
     embedding_config: Optional[EmbeddingConfig] = None
     accepted_payment_methods: Optional[list[str]] = None
+    mcp_server_url: Optional[str] = Field(None, max_length=2048)
 
     @field_validator("endpoint")
     @classmethod
@@ -255,6 +258,8 @@ class AgentResponse(BaseModel):
     embedding_config: Optional[EmbeddingConfig] = None
 
     accepted_payment_methods: list[str] = ["credits"]
+    mcp_server_url: Optional[str] = None
+    did: Optional[str] = None
 
     @field_validator("accepted_payment_methods", mode="before")
     @classmethod
@@ -289,6 +294,13 @@ class AgentResponse(BaseModel):
     avg_latency_ms: float
     created_at: datetime
     updated_at: datetime
+
+    @model_validator(mode="after")
+    def compute_did(self):
+        """Populate the DID field from the agent ID if it has a DID public key."""
+        if self.did is None and self.id:
+            self.did = f"did:wba:api.aidigitalcrew.com:agents:{self.id}"
+        return self
 
 
 class AgentListResponse(BaseModel):
