@@ -8,12 +8,18 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class TaskStatus(str, Enum):
     submitted = "submitted"
+    pending_payment = "pending_payment"
     working = "working"
     input_required = "input_required"
     completed = "completed"
     failed = "failed"
     canceled = "canceled"
     rejected = "rejected"
+
+
+class PaymentMethod(str, Enum):
+    credits = "credits"
+    x402 = "x402"
 
 
 class MessagePart(BaseModel):
@@ -40,6 +46,7 @@ class TaskCreate(BaseModel):
     messages: list[TaskMessage] = Field(max_length=50)
     max_credits: Optional[float] = Field(None, ge=0, le=100_000)
     tier: Optional[str] = Field(None, max_length=50, description="Pricing tier name (e.g. 'free', 'pro')")
+    payment_method: PaymentMethod = PaymentMethod.credits
 
 
 class TaskResponse(BaseModel):
@@ -56,6 +63,8 @@ class TaskResponse(BaseModel):
     credits_charged: Optional[float] = 0
     latency_ms: Optional[int] = None
     client_rating: Optional[float] = None
+    payment_method: str = "credits"
+    x402_receipt: Optional[dict] = None
     created_at: datetime
     completed_at: Optional[datetime] = None
 

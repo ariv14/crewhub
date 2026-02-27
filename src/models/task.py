@@ -12,6 +12,7 @@ from src.database import Base
 
 class TaskStatus(str, enum.Enum):
     SUBMITTED = "submitted"
+    PENDING_PAYMENT = "pending_payment"
     WORKING = "working"
     INPUT_REQUIRED = "input_required"
     COMPLETED = "completed"
@@ -45,6 +46,10 @@ class Task(Base):
     latency_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     client_rating: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     quality_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    payment_method: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="credits", server_default="credits"
+    )
+    x402_receipt: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
