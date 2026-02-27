@@ -49,6 +49,12 @@ class Settings(BaseSettings):
     rate_limit_requests: int = 100
     rate_limit_window_seconds: int = 60
 
+    # x402 Payment
+    x402_facilitator_url: str = ""
+    x402_supported_chains: str = "base"
+    x402_supported_tokens: str = "USDC"
+    x402_receipt_timeout_minutes: int = 10
+
     # Cloud Run
     port: int = 8080  # Cloud Run default port
 

@@ -53,6 +53,8 @@ def upgrade() -> None:
         sa.Column("license_type", sa.String(20), server_default="commercial"),
         sa.Column("sla", sa.JSON(), server_default="{}"),
         sa.Column("embedding_config", sa.JSON(), server_default="{}"),
+        sa.Column("accepted_payment_methods", sa.JSON(), server_default='["credits"]'),
+        sa.Column("metadata", sa.JSON(), server_default="{}"),
         sa.Column("verification_level", sa.String(20), server_default="unverified"),
         sa.Column("reputation_score", sa.Float(), server_default="0.0"),
         sa.Column("total_tasks_completed", sa.Integer(), server_default="0"),
@@ -112,6 +114,8 @@ def upgrade() -> None:
         sa.Column("latency_ms", sa.Integer(), nullable=True),
         sa.Column("client_rating", sa.Float(), nullable=True),
         sa.Column("quality_score", sa.Float(), nullable=True),
+        sa.Column("payment_method", sa.String(20), server_default="credits"),
+        sa.Column("x402_receipt", sa.JSON(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
         sa.PrimaryKeyConstraint("id"),
@@ -136,8 +140,24 @@ def upgrade() -> None:
     op.create_index("ix_transactions_from_account", "transactions", ["from_account_id"])
     op.create_index("ix_transactions_to_account", "transactions", ["to_account_id"])
 
+    # x402 Verified Receipts
+    op.create_table(
+        "x402_verified_receipts",
+        sa.Column("tx_hash", sa.String(128), nullable=False),
+        sa.Column("chain", sa.String(20), nullable=False),
+        sa.Column("token", sa.String(20), nullable=False),
+        sa.Column("amount", sa.Numeric(16, 4), nullable=False),
+        sa.Column("payer", sa.String(128), nullable=False),
+        sa.Column("payee", sa.String(128), nullable=False),
+        sa.Column("task_id", sa.Uuid(), sa.ForeignKey("tasks.id", ondelete="SET NULL"), nullable=True),
+        sa.Column("verified_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.PrimaryKeyConstraint("tx_hash"),
+    )
+    op.create_index("ix_x402_receipts_task_id", "x402_verified_receipts", ["task_id"])
+
 
 def downgrade() -> None:
+    op.drop_table("x402_verified_receipts")
     op.drop_table("transactions")
     op.drop_table("tasks")
     op.drop_table("accounts")

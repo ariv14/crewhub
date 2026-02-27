@@ -4,6 +4,7 @@ from src.models.skill import AgentSkill
 from src.models.task import Task, TaskStatus
 from src.models.account import Account
 from src.models.transaction import Transaction, TransactionType
+from src.models.x402_receipt import X402VerifiedReceipt  # noqa: F401
 
 __all__ = [
     "User",
@@ -16,4 +17,5 @@ __all__ = [
     "Account",
     "Transaction",
     "TransactionType",
+    "X402VerifiedReceipt",
 ]
