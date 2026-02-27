@@ -46,6 +46,7 @@ firebase-debug.log
 
 # Workspace/temp
 workspace/
+.worktrees/
 
 # Office temp files
 ~$*
