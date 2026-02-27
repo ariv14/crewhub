@@ -192,6 +192,10 @@ class AgentCreate(BaseModel):
     pricing: PricingModel
     sla: Optional[SLADefinition] = None
     embedding_config: Optional[EmbeddingConfig] = None
+    accepted_payment_methods: list[str] = Field(
+        default=["credits"], max_length=5,
+        description="Payment methods this agent accepts: credits, x402"
+    )
 
     @field_validator("endpoint")
     @classmethod
@@ -212,6 +216,7 @@ class AgentUpdate(BaseModel):
     pricing: Optional[PricingModel] = None
     sla: Optional[SLADefinition] = None
     embedding_config: Optional[EmbeddingConfig] = None
+    accepted_payment_methods: Optional[list[str]] = None
 
     @field_validator("endpoint")
     @classmethod
@@ -239,6 +244,15 @@ class AgentResponse(BaseModel):
     license_type: LicenseType = LicenseType.commercial
     sla: Optional[SLADefinition] = None
     embedding_config: Optional[EmbeddingConfig] = None
+
+    accepted_payment_methods: list[str] = ["credits"]
+
+    @field_validator("accepted_payment_methods", mode="before")
+    @classmethod
+    def ensure_payment_methods_list(cls, v):
+        if not v:
+            return ["credits"]
+        return v
 
     @field_validator("embedding_config", mode="before")
     @classmethod

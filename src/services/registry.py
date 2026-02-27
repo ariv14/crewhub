@@ -68,6 +68,8 @@ class RegistryService:
             license_type=data.pricing.license_type.value,
             sla=data.sla.model_dump() if data.sla else {},
             embedding_config=embedding_cfg,
+            accepted_payment_methods=data.accepted_payment_methods,
+            metadata_={},
             status=AgentStatus.ACTIVE,
         )
         self.db.add(agent)
