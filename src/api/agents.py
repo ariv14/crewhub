@@ -42,6 +42,7 @@ async def list_agents(
     per_page: int = Query(20, ge=1, le=100, description="Items per page"),
     category: str | None = Query(None, description="Filter by category"),
     status: AgentStatus | None = Query(None, description="Filter by status"),
+    owner_id: str | None = Query(None, description="Filter by owner user ID"),
     db: AsyncSession = Depends(get_db),
 ) -> AgentListResponse:
     """List registered agents with optional filters.
@@ -54,6 +55,7 @@ async def list_agents(
         per_page=per_page,
         category=category,
         status=status.value if status else None,
+        owner_id=owner_id,
     )
     return AgentListResponse(agents=agents, total=total, page=page, per_page=per_page)
 

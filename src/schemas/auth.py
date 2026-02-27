@@ -17,7 +17,13 @@ class UserResponse(BaseModel):
     email: str
     name: str
     is_active: bool
+    is_admin: bool = False
     created_at: datetime
+
+
+class UserUpdate(BaseModel):
+    name: str | None = None
+    email: EmailStr | None = None
 
 
 class Token(BaseModel):

@@ -32,6 +32,7 @@ from src.schemas.auth import (
     Token,
     UserCreate,
     UserResponse,
+    UserUpdate,
 )
 from src.services.credit_ledger import CreditLedgerService
 
@@ -190,6 +191,34 @@ async def get_me(
     user = result.scalar_one_or_none()
     if user is None:
         raise UnauthorizedError(detail="User not found")
+    return UserResponse.model_validate(user)
+
+
+@router.put("/me", response_model=UserResponse)
+async def update_me(
+    data: UserUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+) -> UserResponse:
+    """Update the profile of the currently authenticated user."""
+    firebase_uid = current_user.get("firebase_uid")
+    if firebase_uid:
+        result = await db.execute(
+            select(User).where(User.firebase_uid == firebase_uid)
+        )
+    else:
+        result = await db.execute(
+            select(User).where(User.id == UUID(current_user["id"]))
+        )
+
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise UnauthorizedError(detail="User not found")
+
+    update_data = data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(user, field, value)
+    await db.flush()
     return UserResponse.model_validate(user)
 
 

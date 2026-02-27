@@ -118,14 +118,17 @@ class RegistryService:
         per_page: int = 20,
         category: str | None = None,
         status: str = "active",
+        owner_id: str | None = None,
     ) -> tuple[list[Agent], int]:
-        """Return a paginated list of agents with optional category filter."""
+        """Return a paginated list of agents with optional filters."""
         query = select(Agent).options(selectinload(Agent.skills))
 
         if status:
             query = query.where(Agent.status == status)
         if category:
             query = query.where(Agent.category == category)
+        if owner_id:
+            query = query.where(Agent.owner_id == owner_id)
 
         # Total count
         count_query = select(func.count()).select_from(query.subquery())

@@ -1,0 +1,147 @@
+"use client";
+
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
+import {
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signInWithPopup,
+  signOut as firebaseSignOut,
+  type User as FirebaseUser,
+} from "firebase/auth";
+import { auth as firebaseAuth, isFirebaseConfigured } from "./firebase";
+import { api } from "./api-client";
+import type { User } from "@/types/auth";
+
+interface AuthState {
+  user: User | null;
+  loading: boolean;
+  isAdmin: boolean;
+}
+
+interface AuthContextType extends AuthState {
+  loginWithGoogle: () => Promise<void>;
+  loginWithEmail: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, name: string) => Promise<void>;
+  logout: () => Promise<void>;
+  isFirebaseMode: boolean;
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [state, setState] = useState<AuthState>({
+    user: null,
+    loading: true,
+    isAdmin: false,
+  });
+
+  const isFirebaseMode = isFirebaseConfigured();
+
+  const fetchProfile = useCallback(async () => {
+    try {
+      const user = await api.get<User>("/auth/me");
+      setState({ user, loading: false, isAdmin: user.is_admin ?? false });
+    } catch {
+      setState({ user: null, loading: false, isAdmin: false });
+    }
+  }, []);
+
+  // Firebase auth state listener
+  useEffect(() => {
+    if (!isFirebaseMode || !firebaseAuth) {
+      // Local JWT mode: check for stored token
+      const token = localStorage.getItem("auth_token");
+      if (token) {
+        fetchProfile();
+      } else {
+        setState((s) => ({ ...s, loading: false }));
+      }
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(
+      firebaseAuth,
+      async (firebaseUser: FirebaseUser | null) => {
+        if (firebaseUser) {
+          const idToken = await firebaseUser.getIdToken();
+          localStorage.setItem("auth_token", idToken);
+          // Exchange Firebase token with our backend
+          try {
+            await api.post("/auth/firebase", { id_token: idToken });
+            await fetchProfile();
+          } catch {
+            setState({ user: null, loading: false, isAdmin: false });
+          }
+        } else {
+          localStorage.removeItem("auth_token");
+          setState({ user: null, loading: false, isAdmin: false });
+        }
+      }
+    );
+
+    return () => unsubscribe();
+  }, [isFirebaseMode, fetchProfile]);
+
+  const loginWithGoogle = useCallback(async () => {
+    if (!firebaseAuth) throw new Error("Firebase not configured");
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(firebaseAuth, provider);
+    // onAuthStateChanged will handle the rest
+  }, []);
+
+  const loginWithEmail = useCallback(
+    async (email: string, password: string) => {
+      const { access_token } = await api.post<{ access_token: string }>(
+        "/auth/login",
+        { email, password, name: "" }
+      );
+      localStorage.setItem("auth_token", access_token);
+      await fetchProfile();
+    },
+    [fetchProfile]
+  );
+
+  const register = useCallback(
+    async (email: string, password: string, name: string) => {
+      await api.post("/auth/register", { email, password, name });
+      await loginWithEmail(email, password);
+    },
+    [loginWithEmail]
+  );
+
+  const logout = useCallback(async () => {
+    if (isFirebaseMode && firebaseAuth) {
+      await firebaseSignOut(firebaseAuth);
+    }
+    localStorage.removeItem("auth_token");
+    setState({ user: null, loading: false, isAdmin: false });
+  }, [isFirebaseMode]);
+
+  return (
+    <AuthContext.Provider
+      value={{
+        ...state,
+        loginWithGoogle,
+        loginWithEmail,
+        register,
+        logout,
+        isFirebaseMode,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
+}
