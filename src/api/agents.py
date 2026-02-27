@@ -14,6 +14,7 @@ from src.schemas.agent import (
     AgentResponse,
     AgentStatus,
     AgentUpdate,
+    LicenseType,
 )
 from src.services.registry import RegistryService
 
@@ -122,6 +123,31 @@ async def get_agent_card(
     service = RegistryService(db)
     card = await service.get_agent_card(agent_id=agent_id)
     return card
+
+
+@router.get("/{agent_id}/pricing")
+async def get_agent_pricing(
+    agent_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Return the full pricing and licensing details for an agent.
+
+    Public endpoint. Shows license type, available tiers, quotas, and trial info.
+    """
+    service = RegistryService(db)
+    agent = await service.get_agent(agent_id=agent_id)
+    pricing = agent.pricing or {}
+    return {
+        "agent_id": str(agent.id),
+        "agent_name": agent.name,
+        "license_type": agent.license_type,
+        "pricing": pricing,
+        "tiers": pricing.get("tiers", []),
+        "trial": {
+            "days": pricing.get("trial_days"),
+            "task_limit": pricing.get("trial_task_limit"),
+        } if pricing.get("trial_days") else None,
+    }
 
 
 @router.post("/{agent_id}/verify", response_model=AgentResponse)

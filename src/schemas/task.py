@@ -39,6 +39,7 @@ class TaskCreate(BaseModel):
     skill_id: str = Field(max_length=255)
     messages: list[TaskMessage] = Field(max_length=50)
     max_credits: Optional[float] = Field(None, ge=0, le=100_000)
+    tier: Optional[str] = Field(None, max_length=50, description="Pricing tier name (e.g. 'free', 'pro')")
 
 
 class TaskResponse(BaseModel):

@@ -65,6 +65,7 @@ class RegistryService:
             category=data.category,
             tags=data.tags,
             pricing=data.pricing.model_dump(),
+            license_type=data.pricing.license_type.value,
             sla=data.sla.model_dump() if data.sla else {},
             embedding_config=embedding_cfg,
             status=AgentStatus.ACTIVE,

@@ -46,13 +46,9 @@ class TaskBrokerService:
         # 2. Verify skill
         skill = await self._get_skill_on_agent(data.skill_id, provider.id)
 
-        # 3. Quote credits from pricing or skill average
-        pricing = provider.pricing or {}
+        # 3. Quote credits from pricing tiers or legacy pricing
         credits_quoted = Decimal(str(
-            data.max_credits
-            or pricing.get("credits")
-            or skill.avg_credits
-            or 0
+            self._resolve_credits(provider, data.max_credits, skill.avg_credits, data.tier)
         ))
 
         # 4. Reserve credits
@@ -325,6 +321,62 @@ class TaskBrokerService:
                 detail=f"Skill {skill_id} not found on agent {agent_id}"
             )
         return skill
+
+    @staticmethod
+    def _resolve_credits(
+        provider: Agent,
+        max_credits: float | None,
+        skill_avg_credits: float,
+        tier_name: str | None = None,
+    ) -> float:
+        """Resolve the credit cost for a task.
+
+        Resolution order:
+            1. Client's explicit max_credits
+            2. Requested tier's credits_per_unit (if tier_name given)
+            3. Default pricing tier's credits_per_unit
+            4. Legacy pricing.credits field
+            5. Skill average credits
+            6. Zero (free / open license)
+        """
+        if max_credits is not None and max_credits > 0:
+            return max_credits
+
+        pricing = provider.pricing or {}
+
+        # Open license = always free
+        if pricing.get("license_type") == "open":
+            return 0
+
+        # Try tiered pricing
+        tiers = pricing.get("tiers", [])
+        if tiers:
+            selected = None
+            if tier_name:
+                selected = next(
+                    (t for t in tiers if t.get("name", "").lower() == tier_name.lower()),
+                    None,
+                )
+            if not selected:
+                # Fall back to default tier, then first tier
+                selected = next(
+                    (t for t in tiers if t.get("is_default")),
+                    tiers[0],
+                )
+            credits = selected.get("credits_per_unit", 0)
+            if credits > 0:
+                return credits
+
+        # Legacy flat pricing
+        legacy_credits = pricing.get("credits", 0)
+        if legacy_credits > 0:
+            return legacy_credits
+
+        # Skill average
+        if skill_avg_credits > 0:
+            return skill_avg_credits
+
+        return 0
 
     async def _update_provider_stats(self, provider: Agent) -> None:
         """Recalculate total_tasks_completed, success_rate, and avg_latency_ms."""

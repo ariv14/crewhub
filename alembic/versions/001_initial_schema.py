@@ -50,6 +50,7 @@ def upgrade() -> None:
         sa.Column("category", sa.String(100), server_default="general"),
         sa.Column("tags", sa.JSON(), server_default="[]"),
         sa.Column("pricing", sa.JSON(), server_default="{}"),
+        sa.Column("license_type", sa.String(20), server_default="commercial"),
         sa.Column("sla", sa.JSON(), server_default="{}"),
         sa.Column("embedding_config", sa.JSON(), server_default="{}"),
         sa.Column("verification_level", sa.String(20), server_default="unverified"),

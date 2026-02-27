@@ -21,9 +21,91 @@ class VerificationLevel(str, Enum):
     audit = "audit"
 
 
+# ---------------------------------------------------------------------------
+# License types
+# ---------------------------------------------------------------------------
+
+
+class LicenseType(str, Enum):
+    """How the agent is licensed on the marketplace."""
+
+    open = "open"                  # Free, no restrictions
+    freemium = "freemium"          # Free tier with paid upgrades
+    commercial = "commercial"      # Paid per-use or subscription
+    subscription = "subscription"  # Recurring access fee
+    trial = "trial"                # Time-limited free access
+
+
+class BillingModel(str, Enum):
+    """How credits are calculated for each task."""
+
+    per_task = "per_task"          # Fixed credits per task
+    per_token = "per_token"        # Credits based on token usage
+    per_minute = "per_minute"      # Credits based on processing time
+    tiered = "tiered"              # Different rate per tier
+
+
+# ---------------------------------------------------------------------------
+# Pricing tier (agents can define multiple tiers)
+# ---------------------------------------------------------------------------
+
+
+class UsageQuota(BaseModel):
+    """Usage limits for a pricing tier."""
+
+    daily_tasks: Optional[int] = Field(None, ge=0, description="Max tasks per day (null=unlimited)")
+    monthly_tasks: Optional[int] = Field(None, ge=0, description="Max tasks per month (null=unlimited)")
+    max_tokens_per_task: Optional[int] = Field(None, ge=0, description="Max input tokens per task")
+    rate_limit_rpm: Optional[int] = Field(None, ge=0, description="Requests per minute")
+
+
+class PricingTier(BaseModel):
+    """A single pricing tier for an agent."""
+
+    name: str = Field(max_length=50)             # e.g. "free", "pro", "enterprise"
+    billing_model: BillingModel = BillingModel.per_task
+    credits_per_unit: float = Field(ge=0)        # Cost per task/token/minute
+    monthly_fee: float = Field(0, ge=0)          # Recurring subscription fee (0 = none)
+    quota: Optional[UsageQuota] = None
+    features: list[str] = Field(default=[], max_length=20)  # e.g. ["priority_queue", "sla_guarantee"]
+    is_default: bool = False                     # Applied when no tier is selected
+
+
 class PricingModel(BaseModel):
-    model: str = Field(max_length=50)  # per_task, per_token, flat
-    credits: float = Field(ge=0)
+    """Complete pricing and licensing configuration for an agent."""
+
+    license_type: LicenseType = LicenseType.commercial
+    tiers: list[PricingTier] = Field(default=[], max_length=10)
+
+    # Legacy / simple mode — used when tiers is empty
+    model: str = Field("per_task", max_length=50)
+    credits: float = Field(0, ge=0)
+
+    # Trial settings
+    trial_days: Optional[int] = Field(None, ge=1, le=365)
+    trial_task_limit: Optional[int] = Field(None, ge=1)
+
+    @field_validator("tiers")
+    @classmethod
+    def at_most_one_default(cls, v: list[PricingTier]) -> list[PricingTier]:
+        defaults = [t for t in v if t.is_default]
+        if len(defaults) > 1:
+            raise ValueError("Only one tier can be marked as default")
+        return v
+
+    def get_default_tier(self) -> PricingTier | None:
+        """Return the default tier, or the first tier, or None."""
+        for t in self.tiers:
+            if t.is_default:
+                return t
+        return self.tiers[0] if self.tiers else None
+
+    def get_tier(self, name: str) -> PricingTier | None:
+        """Look up a tier by name."""
+        for t in self.tiers:
+            if t.name.lower() == name.lower():
+                return t
+        return None
 
 
 class SLADefinition(BaseModel):
@@ -154,6 +236,7 @@ class AgentResponse(BaseModel):
     category: str
     tags: list[str]
     pricing: PricingModel
+    license_type: LicenseType = LicenseType.commercial
     sla: Optional[SLADefinition] = None
     embedding_config: Optional[EmbeddingConfig] = None
 
@@ -162,6 +245,17 @@ class AgentResponse(BaseModel):
     def empty_dict_to_none(cls, v):
         if v == {} or v is None:
             return None
+        return v
+
+    @field_validator("pricing", mode="before")
+    @classmethod
+    def ensure_pricing_has_defaults(cls, v):
+        """Ensure legacy pricing dicts get defaults for new fields."""
+        if isinstance(v, dict):
+            v.setdefault("license_type", "commercial")
+            v.setdefault("tiers", [])
+            v.setdefault("model", "per_task")
+            v.setdefault("credits", 0)
         return v
 
     status: AgentStatus
