@@ -158,7 +158,7 @@ async def a2a_jsonrpc(
     elif method == "tasks/get":
         return await _handle_tasks_get(rpc_id, params, db)
     elif method == "tasks/cancel":
-        return await _handle_tasks_cancel(rpc_id, params, db)
+        return await _handle_tasks_cancel(rpc_id, params, db, caller)
     elif method == "tasks/sendSubscribe":
         return await _handle_tasks_send_subscribe(rpc_id, params, db, caller)
     else:
@@ -227,7 +227,7 @@ async def _handle_tasks_send(
 
     except Exception as e:
         logger.exception("tasks/send failed")
-        return _error_response(rpc_id, JSONRPC_INTERNAL_ERROR, str(e))
+        return _error_response(rpc_id, JSONRPC_INTERNAL_ERROR, "Internal error processing task")
 
 
 # ---------------------------------------------------------------------------
@@ -246,9 +246,9 @@ async def _handle_tasks_get(rpc_id, params: dict, db: AsyncSession) -> JsonRpcRe
         return _success_response(rpc_id, _task_to_dict(task))
     except Exception as e:
         if "not found" in str(e).lower():
-            return _error_response(rpc_id, JSONRPC_TASK_NOT_FOUND, str(e))
+            return _error_response(rpc_id, JSONRPC_TASK_NOT_FOUND, "Task not found")
         logger.exception("tasks/get failed")
-        return _error_response(rpc_id, JSONRPC_INTERNAL_ERROR, str(e))
+        return _error_response(rpc_id, JSONRPC_INTERNAL_ERROR, "Internal error retrieving task")
 
 
 # ---------------------------------------------------------------------------
@@ -256,30 +256,31 @@ async def _handle_tasks_get(rpc_id, params: dict, db: AsyncSession) -> JsonRpcRe
 # ---------------------------------------------------------------------------
 
 
-async def _handle_tasks_cancel(rpc_id, params: dict, db: AsyncSession) -> JsonRpcResponse:
+async def _handle_tasks_cancel(rpc_id, params: dict, db: AsyncSession, caller: dict) -> JsonRpcResponse:
     task_id = params.get("id")
     if not task_id:
         return _error_response(rpc_id, JSONRPC_INVALID_PARAMS, "Required: id")
 
     try:
+        caller_id = caller["id"]
+        try:
+            user_id = UUID(caller_id)
+        except (ValueError, AttributeError):
+            import hashlib
+            user_id = UUID(hashlib.md5(str(caller_id).encode()).hexdigest())
+
         broker = TaskBrokerService(db)
-        # Cancel without user_id check for A2A server-to-server calls
-        task = await broker.get_task(UUID(task_id))
-
-        terminal = {TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELED}
-        if task.status in terminal:
-            return _error_response(
-                rpc_id, JSONRPC_TASK_NOT_CANCELABLE,
-                f"Task in '{task.status.value}' state cannot be canceled"
-            )
-
-        task = await broker.update_task_status(UUID(task_id), TaskStatus.CANCELED)
+        task = await broker.cancel_task(UUID(task_id), user_id=user_id)
         return _success_response(rpc_id, _task_to_dict(task))
     except Exception as e:
         if "not found" in str(e).lower():
-            return _error_response(rpc_id, JSONRPC_TASK_NOT_FOUND, str(e))
+            return _error_response(rpc_id, JSONRPC_TASK_NOT_FOUND, "Task not found")
+        if "cannot cancel" in str(e).lower() or "not cancelable" in str(e).lower():
+            return _error_response(rpc_id, JSONRPC_TASK_NOT_CANCELABLE, "Task cannot be canceled")
+        if "forbidden" in str(e).lower() or "do not own" in str(e).lower():
+            return _error_response(rpc_id, JSONRPC_INVALID_PARAMS, "Not authorized to cancel this task")
         logger.exception("tasks/cancel failed")
-        return _error_response(rpc_id, JSONRPC_INTERNAL_ERROR, str(e))
+        return _error_response(rpc_id, JSONRPC_INTERNAL_ERROR, "Internal error canceling task")
 
 
 # ---------------------------------------------------------------------------
@@ -308,7 +309,8 @@ async def _handle_tasks_send_subscribe(
                 # Yield initial creation event
                 yield f"data: {json.dumps(response.result)}\n\n"
             except Exception as e:
-                yield f"data: {json.dumps({'error': {'code': -32603, 'message': str(e)}})}\n\n"
+                logger.exception("tasks/sendSubscribe creation failed")
+                yield f"data: {json.dumps({'error': {'code': -32603, 'message': 'Internal error'}})}\n\n"
                 return
 
         # Poll for status changes and stream them
@@ -352,8 +354,8 @@ async def _handle_tasks_send_subscribe(
                         last_artifact_count = len(current_artifacts)
 
             except Exception as e:
-                logger.error(f"SSE poll error for task {task_id}: {e}")
-                yield f"event: error\ndata: {json.dumps({'message': str(e)})}\n\n"
+                logger.exception(f"SSE poll error for task {task_id}")
+                yield f"event: error\ndata: {json.dumps({'message': 'Internal error'})}\n\n"
                 return
 
             await asyncio.sleep(SSE_POLL_INTERVAL)

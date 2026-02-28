@@ -12,6 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from src.config import settings as app_settings
 from src.core.auth import get_current_user
 from src.core.exceptions import PaymentVerificationError
+from src.core.rate_limiter import rate_limit_dependency
 from src.database import get_db
 from src.models.task import TaskStatus as TaskStatusModel
 from src.models.transaction import Transaction, TransactionType
@@ -29,7 +30,8 @@ from src.services.x402 import X402PaymentService
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
-@router.post("/", response_model=TaskResponse, status_code=201)
+@router.post("/", response_model=TaskResponse, status_code=201,
+               dependencies=[Depends(rate_limit_dependency)])
 async def create_task(
     data: TaskCreate,
     db: AsyncSession = Depends(get_db),

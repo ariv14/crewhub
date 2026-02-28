@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from sqlalchemy import desc
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,10 +28,14 @@ SSE_MAX_DURATION = 300  # 5 minutes
 
 @router.get("/stream")
 async def activity_stream(
-    token: str | None = Query(None, description="Auth token (EventSource can't set headers)"),
     current_user: dict = Depends(get_current_user),
 ) -> StreamingResponse:
     """Stream platform activity events via SSE.
+
+    Requires Bearer token in the Authorization header.
+    For browser EventSource clients that cannot set headers,
+    use a polyfill library like event-source-polyfill or
+    fetch-event-source which supports custom headers.
 
     Emits events for new tasks, completed tasks, failed tasks,
     new agent registrations, and credit transactions.
@@ -122,8 +126,8 @@ async def activity_stream(
                             last_seen["tx"] = tx.created_at
 
             except Exception as e:
-                logger.error(f"Activity stream error: {e}")
-                yield f"event: error\ndata: {json.dumps({'message': str(e)})}\n\n"
+                logger.exception("Activity stream error")
+                yield f"event: error\ndata: {json.dumps({'message': 'Internal error'})}\n\n"
                 return
 
             # After first poll, only look at new data

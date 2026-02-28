@@ -11,7 +11,7 @@ from sqlalchemy import text
 from src.config import settings
 from src.core.exceptions import MarketplaceError
 from src.core.logging import setup_logging
-from src.database import engine, init_db
+from src.database import engine
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +22,9 @@ async def lifespan(app: FastAPI):
     setup_logging(settings.log_level, settings.log_format)
     from src.core.auth import _init_firebase
     _init_firebase()
-    await init_db()
 
     # Validate database connectivity (fail fast if unreachable)
+    # Schema management is handled by Alembic migrations (alembic upgrade head)
     try:
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
@@ -58,7 +58,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+        if settings.force_https:
+            response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
         return response
 
@@ -100,10 +101,20 @@ app.add_middleware(
 )
 
 
-# Global exception handler
+# Exception handlers
 @app.exception_handler(MarketplaceError)
 async def marketplace_error_handler(request: Request, exc: MarketplaceError):
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Catch-all for unhandled exceptions — log details, return sanitized 500."""
+    logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An internal error occurred. Please try again later."},
+    )
 
 
 # Import and include routers

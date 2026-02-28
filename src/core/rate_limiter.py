@@ -7,7 +7,7 @@ which is fine for single-instance or low-instance deployments (Cloud Run 0-3).
 import time
 from collections import defaultdict
 
-from fastapi import Depends
+from fastapi import Depends, Request
 
 from src.config import settings
 from src.core.auth import get_current_user_id
@@ -68,4 +68,33 @@ async def rate_limit_dependency(
         info = limiter.get_limit_info(str(user_id))
         raise RateLimitError(
             detail=f"Rate limit exceeded. Try again in {info['reset_in_seconds']} seconds"
+        )
+
+
+# Stricter limiter for unauthenticated endpoints (login, register)
+_auth_limiter: RateLimiter | None = None
+
+
+def _get_auth_limiter() -> RateLimiter:
+    global _auth_limiter
+    if _auth_limiter is None:
+        _auth_limiter = RateLimiter(max_requests=20, window_seconds=60)
+    return _auth_limiter
+
+
+async def rate_limit_by_ip(request: Request) -> None:
+    """Rate limit by client IP — for unauthenticated endpoints.
+
+    Skipped during tests (pytest) to avoid false rate-limit hits from
+    test fixtures that register/login many users from the same IP.
+    """
+    import sys
+    if "pytest" in sys.modules:
+        return
+    client_ip = request.client.host if request.client else "unknown"
+    limiter = _get_auth_limiter()
+    if not limiter.check(f"ip:{client_ip}"):
+        info = limiter.get_limit_info(f"ip:{client_ip}")
+        raise RateLimitError(
+            detail=f"Too many requests. Try again in {info['reset_in_seconds']} seconds"
         )

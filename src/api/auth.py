@@ -24,6 +24,7 @@ from src.core.auth import (
     verify_password,
 )
 from src.core.exceptions import ConflictError, UnauthorizedError
+from src.core.rate_limiter import rate_limit_by_ip
 from src.database import get_db
 from src.models.user import User
 from src.schemas.auth import (
@@ -52,7 +53,8 @@ class FirebaseTokenRequest(BaseModel):
     id_token: str
 
 
-@router.post("/firebase", response_model=UserResponse, status_code=200)
+@router.post("/firebase", response_model=UserResponse, status_code=200,
+               dependencies=[Depends(rate_limit_by_ip)])
 async def firebase_auth(
     data: FirebaseTokenRequest,
     db: AsyncSession = Depends(get_db),
@@ -102,7 +104,8 @@ async def firebase_auth(
 # ---------------------------------------------------------------------------
 
 
-@router.post("/register", response_model=UserResponse, status_code=201)
+@router.post("/register", response_model=UserResponse, status_code=201,
+               dependencies=[Depends(rate_limit_by_ip)])
 async def register(
     data: UserCreate,
     db: AsyncSession = Depends(get_db),
@@ -138,7 +141,8 @@ async def register(
     return UserResponse.model_validate(user)
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=Token,
+               dependencies=[Depends(rate_limit_by_ip)])
 async def login(
     data: UserCreate,
     db: AsyncSession = Depends(get_db),
