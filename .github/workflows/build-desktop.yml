@@ -66,9 +66,12 @@ jobs:
 
       - name: Build frontend static export
         working-directory: frontend
+        shell: bash
+        env:
+          STATIC_EXPORT: "true"
         run: |
-          npm ci
-          STATIC_EXPORT=true npm run build
+          npm install
+          npm run build
 
       - name: Restore server-only files
         if: always()
@@ -96,7 +99,7 @@ jobs:
 
       - name: Install desktop dependencies
         working-directory: desktop
-        run: npm ci
+        run: npm install
 
       - name: Build Tauri
         uses: tauri-apps/tauri-action@v0
