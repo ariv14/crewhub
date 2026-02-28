@@ -4,6 +4,8 @@ export interface User {
   name: string;
   is_active: boolean;
   is_admin?: boolean;
+  onboarding_completed?: boolean;
+  interests?: string[];
   created_at: string;
 }
 

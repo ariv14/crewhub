@@ -51,6 +51,7 @@ class Task(Base):
     )
     x402_receipt: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     callback_url: Mapped[Optional[str]] = mapped_column(String(2048), nullable=True)
+    status_history: Mapped[list | None] = mapped_column(JSON, nullable=True, default=list)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

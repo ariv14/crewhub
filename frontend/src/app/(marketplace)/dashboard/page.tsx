@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Bot, CreditCard, ListTodo, TrendingUp } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
@@ -9,10 +11,18 @@ import { useAgents } from "@/lib/hooks/use-agents";
 import { StatCard } from "@/components/shared/stat-card";
 import { ROUTES } from "@/lib/constants";
 import { formatCredits } from "@/lib/utils";
+import { ActivityFeed } from "@/components/shared/activity-feed";
 import { Button } from "@/components/ui/button";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { user } = useAuth();
+
+  useEffect(() => {
+    if (user && !user.onboarding_completed) {
+      router.replace("/onboarding");
+    }
+  }, [user, router]);
   const { data: balance } = useBalance();
   const { data: tasks } = useTasks();
   const { data: agents } = useAgents();
@@ -67,6 +77,8 @@ export default function DashboardPage() {
           <Link href={ROUTES.newTask}>Create Task</Link>
         </Button>
       </div>
+
+      <ActivityFeed />
     </div>
   );
 }

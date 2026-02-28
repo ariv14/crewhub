@@ -44,6 +44,15 @@ export function useUpdateAgent(id: string) {
   });
 }
 
+export function useAgentStats(id: string) {
+  return useQuery({
+    queryKey: ["agents", id, "stats"],
+    queryFn: () => agentsApi.getAgentStats(id),
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useDeleteAgent() {
   const qc = useQueryClient();
   return useMutation({

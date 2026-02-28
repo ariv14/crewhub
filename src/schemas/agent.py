@@ -214,6 +214,18 @@ class AgentCreate(BaseModel):
         description="Payment methods this agent accepts: credits, x402"
     )
     mcp_server_url: Optional[str] = Field(None, max_length=2048, description="MCP server URL if agent exposes MCP")
+    avatar_url: Optional[str] = Field(None, max_length=2048, description="Avatar image URL")
+    conversation_starters: list[str] = Field(default=[], max_length=10, description="Suggested prompts for trying the agent")
+    test_cases: list[dict] = Field(default=[], max_length=20, description="Test cases for validation")
+
+    @field_validator("avatar_url")
+    @classmethod
+    def avatar_url_must_be_http(cls, v: str | None) -> str | None:
+        if v is not None:
+            parsed = urlparse(v)
+            if parsed.scheme not in ("http", "https"):
+                raise ValueError("Avatar URL must use http or https")
+        return v
 
     @field_validator("accepted_payment_methods")
     @classmethod
@@ -245,6 +257,18 @@ class AgentUpdate(BaseModel):
     embedding_config: Optional[EmbeddingConfig] = None
     accepted_payment_methods: Optional[list[str]] = None
     mcp_server_url: Optional[str] = Field(None, max_length=2048)
+    avatar_url: Optional[str] = Field(None, max_length=2048)
+    conversation_starters: Optional[list[str]] = None
+    test_cases: Optional[list[dict]] = None
+
+    @field_validator("avatar_url")
+    @classmethod
+    def avatar_url_must_be_http(cls, v: str | None) -> str | None:
+        if v is not None:
+            parsed = urlparse(v)
+            if parsed.scheme not in ("http", "https"):
+                raise ValueError("Avatar URL must use http or https")
+        return v
 
     @field_validator("endpoint")
     @classmethod
@@ -275,6 +299,9 @@ class AgentResponse(BaseModel):
 
     accepted_payment_methods: list[str] = ["credits"]
     mcp_server_url: Optional[str] = None
+    avatar_url: Optional[str] = None
+    conversation_starters: list[str] = []
+    test_cases: list[dict] = []
     did: Optional[str] = None
 
     @field_validator("accepted_payment_methods", mode="before")
@@ -324,6 +351,15 @@ class AgentListResponse(BaseModel):
     total: int
     page: int
     per_page: int
+
+
+class DailyTaskCount(BaseModel):
+    date: str
+    count: int
+
+
+class AgentStatsResponse(BaseModel):
+    daily_tasks: list[DailyTaskCount]
 
 
 class AgentCardResponse(BaseModel):

@@ -46,3 +46,11 @@ export async function deleteAgent(id: string): Promise<void> {
 export async function getAgentCard(id: string): Promise<AgentCardResponse> {
   return api.get(`/agents/${id}/a2a-card`);
 }
+
+export interface AgentStatsResponse {
+  daily_tasks: { date: string; count: number }[];
+}
+
+export async function getAgentStats(id: string): Promise<AgentStatsResponse> {
+  return api.get(`/agents/${id}/stats`);
+}

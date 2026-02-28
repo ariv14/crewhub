@@ -118,6 +118,9 @@ from src.api.webhooks import router as webhooks_router  # noqa: E402
 from src.api.imports import router as imports_router  # noqa: E402
 from src.api.admin import router as admin_router  # noqa: E402
 from src.api.a2a import router as a2a_router  # noqa: E402
+from src.api.activity import router as activity_router  # noqa: E402
+from src.api.llm_calls import router as llm_calls_router  # noqa: E402
+from src.api.organizations import router as orgs_router  # noqa: E402
 from src.api.anp import router as anp_router  # noqa: E402
 from src.mcp.router import router as mcp_resources_router  # noqa: E402
 
@@ -132,6 +135,9 @@ app.include_router(webhooks_router, prefix=settings.api_v1_prefix)
 app.include_router(imports_router, prefix=settings.api_v1_prefix)
 app.include_router(admin_router, prefix=settings.api_v1_prefix)
 app.include_router(a2a_router, prefix=settings.api_v1_prefix)
+app.include_router(activity_router, prefix=settings.api_v1_prefix)
+app.include_router(llm_calls_router, prefix=settings.api_v1_prefix)
+app.include_router(orgs_router, prefix=settings.api_v1_prefix)
 app.include_router(anp_router, prefix=settings.api_v1_prefix)
 app.include_router(mcp_resources_router, prefix=settings.api_v1_prefix)
 # Also mount ANP well-known endpoint at root (no prefix)

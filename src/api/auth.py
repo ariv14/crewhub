@@ -29,6 +29,7 @@ from src.models.user import User
 from src.schemas.auth import (
     ApiKeyCreate,
     ApiKeyResponse,
+    OnboardingComplete,
     Token,
     UserCreate,
     UserResponse,
@@ -218,6 +219,35 @@ async def update_me(
     update_data = data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(user, field, value)
+    await db.flush()
+    return UserResponse.model_validate(user)
+
+
+@router.post("/onboarding", response_model=UserResponse)
+async def complete_onboarding(
+    data: OnboardingComplete,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+) -> UserResponse:
+    """Complete the onboarding flow for a new user."""
+    firebase_uid = current_user.get("firebase_uid")
+    if firebase_uid:
+        result = await db.execute(
+            select(User).where(User.firebase_uid == firebase_uid)
+        )
+    else:
+        result = await db.execute(
+            select(User).where(User.id == UUID(current_user["id"]))
+        )
+
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise UnauthorizedError(detail="User not found")
+
+    if data.name:
+        user.name = data.name
+    user.interests = data.interests
+    user.onboarding_completed = True
     await db.flush()
     return UserResponse.model_validate(user)
 

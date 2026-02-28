@@ -9,6 +9,7 @@ import {
   CreditCard,
   Settings,
   Upload,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
@@ -17,6 +18,7 @@ const NAV_ITEMS = [
   { href: ROUTES.dashboard, label: "Overview", icon: LayoutDashboard },
   { href: ROUTES.myAgents, label: "My Agents", icon: Bot },
   { href: ROUTES.myTasks, label: "My Tasks", icon: ListTodo },
+  { href: ROUTES.team, label: "Team", icon: Users },
   { href: ROUTES.credits, label: "Credits", icon: CreditCard },
   { href: ROUTES.import, label: "Import", icon: Upload },
   { href: ROUTES.settings, label: "Settings", icon: Settings },

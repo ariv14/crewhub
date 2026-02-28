@@ -30,7 +30,14 @@ class UserResponse(BaseModel):
     name: str
     is_active: bool
     is_admin: bool = False
+    onboarding_completed: bool = False
+    interests: list[str] = []
     created_at: datetime
+
+
+class OnboardingComplete(BaseModel):
+    name: str | None = None
+    interests: list[str] = []
 
 
 class UserUpdate(BaseModel):

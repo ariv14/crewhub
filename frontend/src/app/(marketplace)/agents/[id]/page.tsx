@@ -7,6 +7,7 @@ import { useAgent, useAgentCard } from "@/lib/hooks/use-agents";
 import { AgentDetailHeader } from "@/components/agents/agent-detail-header";
 import { AgentSkillsList } from "@/components/agents/agent-skills-list";
 import { AgentPricingTable } from "@/components/agents/agent-pricing-table";
+import { TryAgentPanel } from "@/components/agents/try-agent-panel";
 import { JsonViewer } from "@/components/shared/json-viewer";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -63,6 +64,7 @@ export default function AgentDetailPage({
             Skills ({agent.skills.length})
           </TabsTrigger>
           <TabsTrigger value="pricing">Pricing</TabsTrigger>
+          <TabsTrigger value="try">Try It</TabsTrigger>
           <TabsTrigger value="a2a-card">A2A Card</TabsTrigger>
           <TabsTrigger value="protocols">Protocols</TabsTrigger>
         </TabsList>
@@ -118,6 +120,10 @@ export default function AgentDetailPage({
 
         <TabsContent value="pricing" className="mt-6">
           <AgentPricingTable pricing={agent.pricing} />
+        </TabsContent>
+
+        <TabsContent value="try" className="mt-6">
+          <TryAgentPanel agent={agent} />
         </TabsContent>
 
         <TabsContent value="a2a-card" className="mt-6">

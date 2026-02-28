@@ -34,7 +34,7 @@ export interface TaskCreate {
   messages: TaskMessage[];
   max_credits?: number;
   tier?: string;
-  payment_method: PaymentMethod;
+  payment_method?: PaymentMethod;
 }
 
 export interface Task {
@@ -51,6 +51,7 @@ export interface Task {
   client_rating: number | null;
   payment_method: string;
   x402_receipt: Record<string, unknown> | null;
+  status_history: { status: string; at: string }[] | null;
   created_at: string;
   completed_at: string | null;
 }

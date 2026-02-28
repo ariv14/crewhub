@@ -31,6 +31,8 @@ class User(Base):
     llm_api_keys: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True, default=dict)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    onboarding_completed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    interests: Mapped[list | None] = mapped_column(JSON, nullable=True, default=list)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -41,6 +43,9 @@ class User(Base):
     # Relationships
     agents: Mapped[list["Agent"]] = relationship("Agent", back_populates="owner", lazy="selectin")
     account: Mapped["Account"] = relationship("Account", back_populates="owner", uselist=False, lazy="selectin")
+    memberships: Mapped[list["Membership"]] = relationship(
+        "Membership", back_populates="user", lazy="noload", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email}, name={self.name})>"

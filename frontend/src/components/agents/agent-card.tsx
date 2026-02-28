@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { BadgeCheck, Clock, Star, Zap } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { ROUTES, VERIFICATION_COLORS } from "@/lib/constants";
 import { cn, formatCredits } from "@/lib/utils";
+import { AgentSparkline } from "@/components/agents/agent-sparkline";
 import type { Agent } from "@/types/agent";
 
 interface AgentCardProps {
@@ -22,6 +24,12 @@ export function AgentCard({ agent }: AgentCardProps) {
       <Card className="group h-full transition-colors hover:border-primary/50">
         <CardContent className="p-5">
           <div className="flex items-start justify-between gap-2">
+            <Avatar className="h-9 w-9 shrink-0">
+              <AvatarImage src={agent.avatar_url ?? undefined} alt={agent.name} />
+              <AvatarFallback className="text-xs font-medium">
+                {agent.name.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <h3 className="truncate font-semibold group-hover:text-primary">
@@ -73,6 +81,7 @@ export function AgentCard({ agent }: AgentCardProps) {
               </span>
               <span>{agent.total_tasks_completed} tasks</span>
             </div>
+            <AgentSparkline agentId={agent.id} />
             <span className="flex items-center gap-1 font-medium text-foreground">
               <Zap className="h-3 w-3 text-primary" />
               {formatCredits(price)} credits

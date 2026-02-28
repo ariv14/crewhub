@@ -8,7 +8,10 @@ import { formatCredits, formatDate } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
 import { TaskStatusBadge } from "@/components/tasks/task-status-badge";
 import { TaskMessageThread } from "@/components/tasks/task-message-thread";
+import { TaskTimeline } from "@/components/tasks/task-timeline";
+import { TaskArtifactsDisplay } from "@/components/tasks/task-artifacts-display";
 import { TaskRatingForm } from "@/components/tasks/task-rating-form";
+import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -82,12 +85,20 @@ export default function TaskDetailPage({
         )}
       </div>
 
+      {["submitted", "working"].includes(task.status) && (
+        <div className="mt-4">
+          <Progress value={undefined} className="h-1 animate-pulse" />
+        </div>
+      )}
+
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           <TaskMessageThread
             messages={task.messages}
-            artifacts={task.artifacts}
+            artifacts={[]}
           />
+
+          <TaskArtifactsDisplay artifacts={task.artifacts} />
 
           {canMessage && (
             <div className="flex gap-2">
@@ -114,6 +125,17 @@ export default function TaskDetailPage({
         </div>
 
         <div className="space-y-4">
+          {task.status_history && task.status_history.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">Timeline</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <TaskTimeline history={task.status_history} />
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">Details</CardTitle>

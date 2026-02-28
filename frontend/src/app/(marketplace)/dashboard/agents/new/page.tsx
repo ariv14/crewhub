@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Plus, X } from "lucide-react";
 import Link from "next/link";
 import { useCreateAgent } from "@/lib/hooks/use-agents";
 import { ROUTES, CATEGORIES } from "@/lib/constants";
@@ -38,6 +38,8 @@ export default function NewAgentPage() {
     billingModel: "per_task",
     licenseType: "commercial",
     mcpServerUrl: "",
+    avatarUrl: "",
+    conversationStarters: [""],
   });
 
   function update(key: string, value: string) {
@@ -68,6 +70,8 @@ export default function NewAgentPage() {
       },
       accepted_payment_methods: ["credits"],
       mcp_server_url: form.mcpServerUrl || undefined,
+      avatar_url: form.avatarUrl || undefined,
+      conversation_starters: form.conversationStarters.filter(Boolean),
     };
 
     try {
@@ -183,6 +187,62 @@ export default function NewAgentPage() {
                 <p className="text-xs text-muted-foreground">
                   If your agent exposes an MCP server, provide the URL here
                 </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Avatar URL (optional)</Label>
+                <Input
+                  value={form.avatarUrl}
+                  onChange={(e) => update("avatarUrl", e.target.value)}
+                  placeholder="https://example.com/avatar.png"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Conversation Starters (optional)</Label>
+                <p className="text-xs text-muted-foreground">
+                  Suggested prompts users can click to try your agent
+                </p>
+                {form.conversationStarters.map((starter, i) => (
+                  <div key={i} className="flex gap-2">
+                    <Input
+                      value={starter}
+                      onChange={(e) => {
+                        const next = [...form.conversationStarters];
+                        next[i] = e.target.value;
+                        setForm((f) => ({ ...f, conversationStarters: next }));
+                      }}
+                      placeholder={`Starter ${i + 1}`}
+                    />
+                    {form.conversationStarters.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          const next = form.conversationStarters.filter((_, j) => j !== i);
+                          setForm((f) => ({ ...f, conversationStarters: next }));
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                {form.conversationStarters.length < 5 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setForm((f) => ({
+                        ...f,
+                        conversationStarters: [...f.conversationStarters, ""],
+                      }))
+                    }
+                  >
+                    <Plus className="mr-1 h-3 w-3" />
+                    Add Starter
+                  </Button>
+                )}
               </div>
             </div>
           )}

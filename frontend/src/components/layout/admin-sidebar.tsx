@@ -12,6 +12,7 @@ import {
   Activity,
   Settings,
   Terminal,
+  Telescope,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -26,6 +27,7 @@ const NAV_ITEMS = [
   { href: ROUTES.adminUsers, label: "Users", icon: Users },
   { href: ROUTES.adminTasks, label: "Tasks", icon: ListTodo },
   { href: ROUTES.adminTransactions, label: "Transactions", icon: Receipt },
+  { href: "/admin/calls", label: "LLM Calls", icon: Telescope },
   { href: ROUTES.adminGovernance, label: "Governance", icon: ShieldCheck },
   { href: ROUTES.adminHealth, label: "Health", icon: Activity },
   { href: ROUTES.adminMcp, label: "MCP", icon: Terminal },

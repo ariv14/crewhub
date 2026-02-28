@@ -5,6 +5,7 @@ import {
   Star,
   Zap,
 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,7 +30,14 @@ export function AgentDetailHeader({ agent }: AgentDetailHeaderProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1 gap-4">
+          <Avatar className="h-14 w-14 shrink-0">
+            <AvatarImage src={agent.avatar_url ?? undefined} alt={agent.name} />
+            <AvatarFallback className="text-lg font-semibold">
+              {agent.name.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold">{agent.name}</h1>
             {agent.verification_level !== "unverified" && (
@@ -59,6 +67,7 @@ export function AgentDetailHeader({ agent }: AgentDetailHeaderProps) {
                 {tag}
               </Badge>
             ))}
+          </div>
           </div>
         </div>
 

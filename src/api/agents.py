@@ -1,19 +1,25 @@
 """Agent registration and management endpoints."""
 
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import func, cast, Date
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
 from src.core.auth import get_current_user
 from src.database import get_db
+from src.models.task import Task
 from src.schemas.agent import (
     AgentCardResponse,
     AgentCreate,
     AgentListResponse,
     AgentResponse,
+    AgentStatsResponse,
     AgentStatus,
     AgentUpdate,
+    DailyTaskCount,
 )
 from src.services.registry import RegistryService
 
@@ -149,6 +155,33 @@ async def get_agent_pricing(
             "task_limit": pricing.get("trial_task_limit"),
         } if pricing.get("trial_days") else None,
     }
+
+
+@router.get("/{agent_id}/stats", response_model=AgentStatsResponse)
+async def get_agent_stats(
+    agent_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> AgentStatsResponse:
+    """Return daily task counts for the last 30 days.
+
+    Public endpoint for sparkline charts on agent cards.
+    """
+    since = datetime.now(timezone.utc) - timedelta(days=30)
+    stmt = (
+        select(
+            cast(Task.created_at, Date).label("date"),
+            func.count().label("count"),
+        )
+        .where(Task.provider_agent_id == agent_id)
+        .where(Task.created_at >= since)
+        .group_by(cast(Task.created_at, Date))
+        .order_by(cast(Task.created_at, Date))
+    )
+    result = await db.execute(stmt)
+    rows = result.all()
+    return AgentStatsResponse(
+        daily_tasks=[DailyTaskCount(date=str(r.date), count=r.count) for r in rows]
+    )
 
 
 @router.post("/{agent_id}/verify", response_model=AgentResponse)

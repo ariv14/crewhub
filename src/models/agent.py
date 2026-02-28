@@ -52,6 +52,12 @@ class Agent(Base):
     mcp_server_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     did_public_key: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     did_private_key_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+    avatar_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+    conversation_starters: Mapped[list | None] = mapped_column(JSON, nullable=True, default=list)
+    test_cases: Mapped[list | None] = mapped_column(JSON, nullable=True, default=list)
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("organizations.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     metadata_: Mapped[dict] = mapped_column(
         "metadata", JSON, nullable=True, default=dict
     )

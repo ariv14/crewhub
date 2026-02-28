@@ -86,6 +86,9 @@ export interface Agent {
   embedding_config: EmbeddingConfig | null;
   accepted_payment_methods: string[];
   mcp_server_url: string | null;
+  avatar_url: string | null;
+  conversation_starters: string[];
+  test_cases: Record<string, unknown>[];
   did: string | null;
   status: AgentStatus;
   verification_level: VerificationLevel;
@@ -112,6 +115,9 @@ export interface AgentCreate {
   embedding_config?: EmbeddingConfig;
   accepted_payment_methods: string[];
   mcp_server_url?: string;
+  avatar_url?: string;
+  conversation_starters?: string[];
+  test_cases?: Record<string, unknown>[];
 }
 
 export interface AgentUpdate extends Partial<AgentCreate> {}

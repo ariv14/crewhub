@@ -65,6 +65,7 @@ class TaskResponse(BaseModel):
     client_rating: Optional[float] = None
     payment_method: str = "credits"
     x402_receipt: Optional[dict] = None
+    status_history: list[dict] = []
     created_at: datetime
     completed_at: Optional[datetime] = None
 

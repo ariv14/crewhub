@@ -90,6 +90,7 @@ class TaskBrokerService:
             initial_status = TaskStatus.PENDING_PAYMENT
 
         # 4. Create task
+        now = datetime.now(timezone.utc)
         task = Task(
             client_agent_id=client_agent_id,
             provider_agent_id=provider.id,
@@ -99,6 +100,7 @@ class TaskBrokerService:
             artifacts=[],
             credits_quoted=credits_quoted,
             payment_method=payment_method,
+            status_history=[{"status": initial_status.value, "at": now.isoformat()}],
         )
         self.db.add(task)
         await self.db.commit()
@@ -210,6 +212,13 @@ class TaskBrokerService:
     ) -> Task:
         """Update task status. Handle credit settlement on completion or failure."""
         task = await self.get_task(task_id)
+
+        # Append to status history
+        now_iso = datetime.now(timezone.utc).isoformat()
+        history = list(task.status_history or [])
+        history.append({"status": status.value, "at": now_iso})
+        task.status_history = history
+
         task.status = status
 
         if artifacts:

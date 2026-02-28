@@ -18,6 +18,7 @@ export const ROUTES = {
   myTasks: "/dashboard/tasks",
   taskDetail: (id: string) => `/dashboard/tasks/${id}`,
   newTask: "/dashboard/tasks/new",
+  team: "/dashboard/team",
   credits: "/dashboard/credits",
   settings: "/dashboard/settings",
   import: "/dashboard/import",
