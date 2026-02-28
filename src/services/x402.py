@@ -73,11 +73,11 @@ class X402PaymentService:
         """
         if not settings.x402_facilitator_url:
             import logging
-            logging.getLogger(__name__).warning(
-                "X402_FACILITATOR_URL not configured — accepting receipt without on-chain verification. "
-                "Set X402_FACILITATOR_URL in production."
+            logging.getLogger(__name__).error(
+                "X402_FACILITATOR_URL not configured — rejecting receipt. "
+                "On-chain verification is required. Set X402_FACILITATOR_URL."
             )
-            return True
+            return False
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
                 resp = await client.post(

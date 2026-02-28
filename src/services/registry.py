@@ -37,6 +37,7 @@ class RegistryService:
         return EmbeddingService.for_agent(
             agent_embedding_config=agent_embedding_config,
             owner_llm_keys=owner_keys,
+            user_id=str(owner_id),
         )
 
     # ------------------------------------------------------------------

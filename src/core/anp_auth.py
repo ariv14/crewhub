@@ -64,11 +64,43 @@ async def _resolve_did_public_key(did: str) -> bytes | None:
     DID format: did:wba:<domain>:agents:<agent_id>
     Resolves to: https://<domain>/api/v1/agents/<agent_id>/did.json
     """
+    import ipaddress
+    import socket
+
     parts = did.split(":")
     if len(parts) < 5 or parts[0] != "did" or parts[1] != "wba":
         return None
 
     domain = parts[2]
+
+    # SSRF protection: block internal/private domains and IPs
+    blocked_hosts = {"localhost", "127.0.0.1", "0.0.0.0", "[::1]", "metadata.google.internal"}
+    if domain.lower() in blocked_hosts:
+        logger.warning("DID resolution blocked: internal hostname %s", domain)
+        return None
+    if domain.endswith(".internal") or domain.endswith(".local"):
+        logger.warning("DID resolution blocked: internal domain %s", domain)
+        return None
+
+    # Resolve hostname to IP and check for private ranges
+    try:
+        ip = ipaddress.ip_address(domain)
+    except ValueError:
+        # It's a hostname — resolve it and check
+        try:
+            resolved = socket.getaddrinfo(domain, 443, proto=socket.IPPROTO_TCP)
+            for _, _, _, _, addr in resolved:
+                ip = ipaddress.ip_address(addr[0])
+                if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                    logger.warning("DID resolution blocked: %s resolves to private IP %s", domain, ip)
+                    return None
+        except socket.gaierror:
+            pass  # Let httpx handle DNS failure
+    else:
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+            logger.warning("DID resolution blocked: private IP %s", domain)
+            return None
+
     # Remaining parts form the path: agents/<agent_id>
     path = "/".join(parts[3:])
     url = f"https://{domain}/api/v1/{path}/did.json"

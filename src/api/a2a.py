@@ -156,7 +156,7 @@ async def a2a_jsonrpc(
     if method == "tasks/send":
         return await _handle_tasks_send(rpc_id, params, db, caller)
     elif method == "tasks/get":
-        return await _handle_tasks_get(rpc_id, params, db)
+        return await _handle_tasks_get(rpc_id, params, db, caller)
     elif method == "tasks/cancel":
         return await _handle_tasks_cancel(rpc_id, params, db, caller)
     elif method == "tasks/sendSubscribe":
@@ -235,18 +235,27 @@ async def _handle_tasks_send(
 # ---------------------------------------------------------------------------
 
 
-async def _handle_tasks_get(rpc_id, params: dict, db: AsyncSession) -> JsonRpcResponse:
+async def _handle_tasks_get(rpc_id, params: dict, db: AsyncSession, caller: dict) -> JsonRpcResponse:
     task_id = params.get("id")
     if not task_id:
         return _error_response(rpc_id, JSONRPC_INVALID_PARAMS, "Required: id")
 
     try:
+        caller_id = caller["id"]
+        try:
+            user_id = UUID(caller_id)
+        except (ValueError, AttributeError):
+            import hashlib
+            user_id = UUID(hashlib.md5(str(caller_id).encode()).hexdigest())
+
         broker = TaskBrokerService(db)
-        task = await broker.get_task(UUID(task_id))
+        task = await broker.get_task(UUID(task_id), user_id=user_id)
         return _success_response(rpc_id, _task_to_dict(task))
     except Exception as e:
         if "not found" in str(e).lower():
             return _error_response(rpc_id, JSONRPC_TASK_NOT_FOUND, "Task not found")
+        if "forbidden" in str(e).lower() or "do not have access" in str(e).lower():
+            return _error_response(rpc_id, JSONRPC_INVALID_PARAMS, "Not authorized to view this task")
         logger.exception("tasks/get failed")
         return _error_response(rpc_id, JSONRPC_INTERNAL_ERROR, "Internal error retrieving task")
 

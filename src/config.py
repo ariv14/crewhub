@@ -104,3 +104,13 @@ if not _IN_TESTS and settings.secret_key == _DEFAULT_SECRET:
             file=sys.stderr,
         )
         sys.exit(1)
+
+# CRIT-SEC: Fail if WEBHOOK_SECRET is unset in production mode
+if not _IN_TESTS and not settings.debug and not settings.webhook_secret:
+    print(
+        "FATAL: WEBHOOK_SECRET is not set in production mode. "
+        "Without it, webhook endpoints accept unauthenticated requests. "
+        "Set the WEBHOOK_SECRET environment variable.",
+        file=sys.stderr,
+    )
+    sys.exit(1)

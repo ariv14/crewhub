@@ -281,6 +281,7 @@ async def test_submit_x402_receipt(client: AsyncClient, auth_headers: dict, db_s
     task = resp.json()
     assert task["status"] == "pending_payment"
 
+    # Without X402_FACILITATOR_URL configured, receipts are rejected (fail-closed)
     receipt_resp = await client.post(
         f"/api/v1/tasks/{task['id']}/x402-receipt",
         json={
@@ -293,8 +294,4 @@ async def test_submit_x402_receipt(client: AsyncClient, auth_headers: dict, db_s
         },
         headers=auth_headers,
     )
-    assert receipt_resp.status_code == 200
-
-    data = receipt_resp.json()
-    assert data["verified"] is True
-    assert data["task_status"] == "submitted"
+    assert receipt_resp.status_code == 402

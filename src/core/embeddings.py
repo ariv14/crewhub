@@ -5,12 +5,43 @@ Falls back to deterministic fake embeddings when no API key is configured.
 """
 
 import hashlib
+import logging
 import struct
+import time
 from abc import ABC, abstractmethod
 
 import httpx
 
 from src.config import settings
+
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Platform-key usage rate limiter (prevent abuse of shared API keys)
+# ---------------------------------------------------------------------------
+
+# Max embedding calls per user using the platform key, per hour
+_PLATFORM_KEY_MAX_PER_HOUR = 50
+_platform_key_usage: dict[str, list[float]] = {}
+
+
+def _check_platform_key_rate_limit(user_id: str) -> None:
+    """Rate-limit embedding calls that fall back to the platform API key."""
+    now = time.time()
+    hour_ago = now - 3600
+
+    if user_id not in _platform_key_usage:
+        _platform_key_usage[user_id] = []
+
+    _platform_key_usage[user_id] = [t for t in _platform_key_usage[user_id] if t > hour_ago]
+
+    if len(_platform_key_usage[user_id]) >= _PLATFORM_KEY_MAX_PER_HOUR:
+        raise RuntimeError(
+            f"Platform embedding rate limit exceeded ({_PLATFORM_KEY_MAX_PER_HOUR}/hour). "
+            "Please configure your own API key via PUT /api/v1/llm-keys/{{provider}}."
+        )
+
+    _platform_key_usage[user_id].append(now)
 
 # ---------------------------------------------------------------------------
 # Provider base class
@@ -222,6 +253,7 @@ def _build_provider(
     provider_name: str | None = None,
     api_key: str | None = None,
     model: str | None = None,
+    _using_platform_key: list | None = None,
 ) -> EmbeddingProvider:
     """Build an embedding provider.
 
@@ -229,6 +261,9 @@ def _build_provider(
         1. Explicit overrides (provider_name, api_key, model)
         2. Platform settings (settings.embedding_provider + settings.*_api_key)
         3. Fake provider (deterministic, for dev/testing)
+
+    If _using_platform_key is provided (a list), it will be set to [True]
+    when the platform key is used as fallback (for rate-limit enforcement).
     """
     name = (provider_name or settings.embedding_provider).lower()
     mdl = model or settings.embedding_model
@@ -241,10 +276,20 @@ def _build_provider(
 
     if name in _PROVIDER_MAP:
         key_attr, cls = _PROVIDER_MAP[name]
-        # Use explicit key first, then platform setting
-        resolved_key = api_key or (getattr(settings, key_attr, "") if key_attr else "")
-        if resolved_key:
-            return cls(api_key=resolved_key, model=mdl)
+        if api_key:
+            # User/agent provided their own key — no platform cost
+            return cls(api_key=api_key, model=mdl)
+        # Fall back to platform key
+        platform_key = (getattr(settings, key_attr, "") if key_attr else "")
+        if platform_key:
+            logger.warning(
+                "Embedding request using platform %s API key (no user key provided). "
+                "This consumes the platform's API quota.",
+                name,
+            )
+            if _using_platform_key is not None:
+                _using_platform_key.append(True)
+            return cls(api_key=platform_key, model=mdl)
 
     # No valid provider/key — use fake embeddings
     return FakeProvider(dimension=settings.embedding_dimension)
@@ -266,19 +311,30 @@ class EmbeddingService:
         provider_name: str | None = None,
         api_key: str | None = None,
         model: str | None = None,
+        user_id: str | None = None,
     ):
+        platform_flag: list = []
         self._provider = _build_provider(
             provider_name=provider_name,
             api_key=api_key,
             model=model,
+            _using_platform_key=platform_flag,
         )
+        self._uses_platform_key = bool(platform_flag)
+        self._user_id = user_id
 
     @property
     def provider_name(self) -> str:
         return type(self._provider).__name__.replace("Provider", "").lower()
 
+    def _enforce_platform_key_limit(self) -> None:
+        """If using the platform key, enforce per-user rate limit."""
+        if self._uses_platform_key and self._user_id:
+            _check_platform_key_rate_limit(self._user_id)
+
     async def generate(self, text: str) -> list[float]:
         """Generate an embedding for a single text."""
+        self._enforce_platform_key_limit()
         results = await self._provider.embed([text])
         return results[0]
 
@@ -286,6 +342,7 @@ class EmbeddingService:
         """Generate embeddings for multiple texts."""
         if not texts:
             return []
+        self._enforce_platform_key_limit()
         return await self._provider.embed(texts)
 
     @classmethod
@@ -293,12 +350,14 @@ class EmbeddingService:
         cls,
         agent_embedding_config: dict | None = None,
         owner_llm_keys: dict | None = None,
+        user_id: str | None = None,
     ) -> "EmbeddingService":
         """Create an EmbeddingService resolved from agent → user → platform config.
 
         Args:
             agent_embedding_config: Agent's embedding_config ({"provider": ..., "model": ...})
             owner_llm_keys: User's decrypted LLM API keys ({"openai": "sk-...", ...})
+            user_id: User ID for rate-limiting platform key usage.
         """
         provider_name = None
         model = None
@@ -314,4 +373,4 @@ class EmbeddingService:
         if owner_llm_keys and resolved_provider in owner_llm_keys:
             api_key = owner_llm_keys[resolved_provider]
 
-        return cls(provider_name=provider_name, api_key=api_key, model=model)
+        return cls(provider_name=provider_name, api_key=api_key, model=model, user_id=user_id)

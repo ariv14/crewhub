@@ -29,9 +29,9 @@ class DiscoveryService:
     W_LATENCY = 0.10
     W_COST = 0.10
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession, user_id: str | None = None):
         self.db = db
-        self.embeddings = EmbeddingService()
+        self.embeddings = EmbeddingService(user_id=user_id or "anonymous")
 
     # ------------------------------------------------------------------
     # Search

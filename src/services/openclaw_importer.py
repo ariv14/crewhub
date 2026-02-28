@@ -127,6 +127,9 @@ class OpenClawImporter:
 
     async def fetch_manifest(self, url: str) -> str:
         """Fetch skill manifest from allowed registry, with streaming size limit."""
+        from src.schemas.agent import _validate_public_url
+        _validate_public_url(url, allow_debug_bypass=False)
+
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
                 async with client.stream("GET", url, follow_redirects=True) as resp:
