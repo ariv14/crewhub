@@ -57,7 +57,7 @@ async def test_create_and_list_llm_call(
     client: AsyncClient, admin_headers: dict, db_session: AsyncSession
 ):
     """Insert LLM call via DB, verify it appears in the list."""
-    call = await _insert_llm_call(db_session, provider="anthropic", model="claude-opus")
+    await _insert_llm_call(db_session, provider="anthropic", model="claude-opus")
 
     resp = await client.get("/api/v1/admin/llm-calls/", headers=admin_headers)
     assert resp.status_code == 200

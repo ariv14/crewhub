@@ -1,7 +1,6 @@
 """LLM Call logger service for tracking outbound LLM/A2A calls."""
 
 import logging
-import time
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession

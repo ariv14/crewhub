@@ -4,12 +4,10 @@ import asyncio
 import json
 import logging
 from datetime import datetime, timedelta, timezone
-from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from sqlalchemy import desc
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from src.core.auth import get_current_user
@@ -125,7 +123,7 @@ async def activity_stream(
                         if not last_seen.get("tx") or tx.created_at > last_seen["tx"]:
                             last_seen["tx"] = tx.created_at
 
-            except Exception as e:
+            except Exception:
                 logger.exception("Activity stream error")
                 yield f"event: error\ndata: {json.dumps({'message': 'Internal error'})}\n\n"
                 return

@@ -225,7 +225,7 @@ async def _handle_tasks_send(
 
         return _success_response(rpc_id, _task_to_dict(task))
 
-    except Exception as e:
+    except Exception:
         logger.exception("tasks/send failed")
         return _error_response(rpc_id, JSONRPC_INTERNAL_ERROR, "Internal error processing task")
 
@@ -308,7 +308,7 @@ async def _handle_tasks_send_subscribe(
                 task_id = response.result["id"]
                 # Yield initial creation event
                 yield f"data: {json.dumps(response.result)}\n\n"
-            except Exception as e:
+            except Exception:
                 logger.exception("tasks/sendSubscribe creation failed")
                 yield f"data: {json.dumps({'error': {'code': -32603, 'message': 'Internal error'}})}\n\n"
                 return
@@ -353,7 +353,7 @@ async def _handle_tasks_send_subscribe(
                             yield f"event: artifact\ndata: {event.model_dump_json()}\n\n"
                         last_artifact_count = len(current_artifacts)
 
-            except Exception as e:
+            except Exception:
                 logger.exception(f"SSE poll error for task {task_id}")
                 yield f"event: error\ndata: {json.dumps({'message': 'Internal error'})}\n\n"
                 return
