@@ -8,9 +8,9 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import settings
-from src.core.exceptions import InsufficientCreditsError, NotFoundError
+from src.core.exceptions import InsufficientCreditsError
 from src.models.account import Account
-from src.models.task import Task, TaskStatus
+from src.models.task import Task
 from src.models.transaction import Transaction, TransactionType
 
 

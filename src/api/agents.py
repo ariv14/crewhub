@@ -14,7 +14,6 @@ from src.schemas.agent import (
     AgentResponse,
     AgentStatus,
     AgentUpdate,
-    LicenseType,
 )
 from src.services.registry import RegistryService
 

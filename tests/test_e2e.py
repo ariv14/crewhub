@@ -55,7 +55,7 @@ async def test_full_marketplace_flow(client: AsyncClient, db_session):
     balance = balance_resp.json()
     assert balance["balance"] >= 100.0, "Expected signup bonus of at least 100 credits"
     assert balance["currency"] == "CREDITS"
-    initial_balance = balance["balance"]
+    _ = balance["balance"]  # Captured for potential future assertions
 
     # ------------------------------------------------------------------
     # Step 3: Register a provider agent with skills

@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.auth import get_current_user, is_firebase_enabled
+from src.core.auth import get_current_user
 from src.core.encryption import decrypt_value, encrypt_value
 from src.database import get_db
 from src.models.user import User

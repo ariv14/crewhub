@@ -1,6 +1,6 @@
 """Task broker service -- create, manage, and rate tasks between agents."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import UUID
 
@@ -228,7 +228,7 @@ class TaskBrokerService:
             quoted = float(task.credits_quoted or 0)
             if quoted > 0 and task.client_agent and task.provider_agent:
                 if task.payment_method == "credits":
-                    txn = await self.credit_ledger.charge_credits(
+                    await self.credit_ledger.charge_credits(
                         client_owner_id=task.client_agent.owner_id,
                         provider_owner_id=task.provider_agent.owner_id,
                         amount=quoted,

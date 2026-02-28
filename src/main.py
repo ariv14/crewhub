@@ -150,8 +150,8 @@ if importlib.util.find_spec("fastapi_mcp") is not None:
         name="CrewHub",
         description="AI Agent Marketplace — discover, delegate, and manage AI agents",
     )
-    mcp.mount()  # Exposes /mcp endpoint
-    _mcp_logger.info("MCP server mounted at /mcp")
+    mcp.mount_http()  # Streamable HTTP transport at /mcp (recommended, replaces deprecated mount())
+    _mcp_logger.info("MCP server mounted at /mcp (HTTP transport)")
 else:
     _mcp_logger.warning("fastapi-mcp not installed — MCP server endpoint disabled")
 

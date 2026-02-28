@@ -1,6 +1,5 @@
 """x402 payment verification service."""
 
-from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import UUID
 
