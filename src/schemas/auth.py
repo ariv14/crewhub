@@ -31,6 +31,7 @@ class UserResponse(BaseModel):
     is_active: bool
     is_admin: bool = False
     onboarding_completed: bool = False
+    account_tier: str = "free"
     interests: list[str] = []
     created_at: datetime
 

@@ -9,6 +9,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy import text
 
 from src.config import settings
+from src.core.embeddings import MissingAPIKeyError
 from src.core.exceptions import MarketplaceError
 from src.core.logging import setup_logging
 from src.database import engine
@@ -105,6 +106,18 @@ app.add_middleware(
 @app.exception_handler(MarketplaceError)
 async def marketplace_error_handler(request: Request, exc: MarketplaceError):
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+
+@app.exception_handler(MissingAPIKeyError)
+async def missing_api_key_handler(request: Request, exc: MissingAPIKeyError):
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": str(exc),
+            "error_type": "missing_api_key",
+            "provider": exc.provider,
+        },
+    )
 
 
 @app.exception_handler(Exception)

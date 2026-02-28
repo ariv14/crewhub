@@ -1,7 +1,12 @@
-"""Multi-provider embedding service.
+"""Multi-provider embedding service with tiered rate limiting.
 
 Supports: OpenAI, Google Gemini, Anthropic (via Voyager), Cohere, Ollama.
-Falls back to deterministic fake embeddings when no API key is configured.
+
+Tiered model:
+  - Free tier: user provides any API key, rate limited to 50 requests/day
+  - Premium tier: user provides any API key, no rate limit
+  - Ollama: always allowed (local, no API key needed)
+  - Debug mode: FakeProvider when no key is configured
 """
 
 import hashlib
@@ -13,35 +18,53 @@ from abc import ABC, abstractmethod
 import httpx
 
 from src.config import settings
+from src.core.exceptions import RateLimitError
 
 logger = logging.getLogger(__name__)
 
+
 # ---------------------------------------------------------------------------
-# Platform-key usage rate limiter (prevent abuse of shared API keys)
+# MissingAPIKeyError — raised when no user key is configured
 # ---------------------------------------------------------------------------
 
-# Max embedding calls per user using the platform key, per hour
-_PLATFORM_KEY_MAX_PER_HOUR = 50
-_platform_key_usage: dict[str, list[float]] = {}
 
+class MissingAPIKeyError(Exception):
+    """Raised when an embedding provider requires an API key but none is configured."""
 
-def _check_platform_key_rate_limit(user_id: str) -> None:
-    """Rate-limit embedding calls that fall back to the platform API key."""
-    now = time.time()
-    hour_ago = now - 3600
-
-    if user_id not in _platform_key_usage:
-        _platform_key_usage[user_id] = []
-
-    _platform_key_usage[user_id] = [t for t in _platform_key_usage[user_id] if t > hour_ago]
-
-    if len(_platform_key_usage[user_id]) >= _PLATFORM_KEY_MAX_PER_HOUR:
-        raise RuntimeError(
-            f"Platform embedding rate limit exceeded ({_PLATFORM_KEY_MAX_PER_HOUR}/hour). "
-            "Please configure your own API key via PUT /api/v1/llm-keys/{{provider}}."
+    def __init__(self, provider: str):
+        self.provider = provider
+        super().__init__(
+            f"No API key configured for '{provider}'. "
+            "Please add your key via Settings > LLM Keys."
         )
 
-    _platform_key_usage[user_id].append(now)
+
+# ---------------------------------------------------------------------------
+# Free-tier daily rate limiter (50 requests/day per user)
+# ---------------------------------------------------------------------------
+
+_FREE_TIER_MAX_PER_DAY = 50
+_free_tier_usage: dict[str, list[float]] = {}
+
+
+def _check_free_tier_rate_limit(user_id: str) -> None:
+    """Rate-limit free-tier users to 50 embedding requests per day."""
+    now = time.time()
+    day_ago = now - 86400
+
+    if user_id not in _free_tier_usage:
+        _free_tier_usage[user_id] = []
+
+    _free_tier_usage[user_id] = [t for t in _free_tier_usage[user_id] if t > day_ago]
+
+    if len(_free_tier_usage[user_id]) >= _FREE_TIER_MAX_PER_DAY:
+        raise RateLimitError(
+            f"Free tier embedding limit reached ({_FREE_TIER_MAX_PER_DAY}/day). "
+            "Upgrade to premium for unlimited usage, or wait until tomorrow."
+        )
+
+    _free_tier_usage[user_id].append(now)
+
 
 # ---------------------------------------------------------------------------
 # Provider base class
@@ -239,13 +262,13 @@ class FakeProvider(EmbeddingProvider):
 # Factory + public service class
 # ---------------------------------------------------------------------------
 
-# Provider name → (api_key_setting, ProviderClass)
-_PROVIDER_MAP = {
-    "openai": ("openai_api_key", OpenAIProvider),
-    "gemini": ("gemini_api_key", GeminiProvider),
-    "anthropic": ("anthropic_api_key", AnthropicProvider),
-    "cohere": ("cohere_api_key", CohereProvider),
-    "ollama": (None, OllamaProvider),
+# Provider name → ProviderClass (all require user-supplied API key)
+_PROVIDER_MAP: dict[str, type[EmbeddingProvider]] = {
+    "openai": OpenAIProvider,
+    "gemini": GeminiProvider,
+    "anthropic": AnthropicProvider,
+    "cohere": CohereProvider,
+    "ollama": OllamaProvider,
 }
 
 
@@ -253,57 +276,43 @@ def _build_provider(
     provider_name: str | None = None,
     api_key: str | None = None,
     model: str | None = None,
-    _using_platform_key: list | None = None,
 ) -> EmbeddingProvider:
-    """Build an embedding provider.
+    """Build an embedding provider using the user's own API key.
 
-    Resolution order:
-        1. Explicit overrides (provider_name, api_key, model)
-        2. Platform settings (settings.embedding_provider + settings.*_api_key)
-        3. Fake provider (deterministic, for dev/testing)
-
-    If _using_platform_key is provided (a list), it will be set to [True]
-    when the platform key is used as fallback (for rate-limit enforcement).
+    Resolution:
+        1. Ollama: always allowed (local, no API key)
+        2. Other providers: require user API key
+        3. Debug mode: fall back to FakeProvider when no key is configured
+        4. Production: raise MissingAPIKeyError
     """
     name = (provider_name or settings.embedding_provider).lower()
     mdl = model or settings.embedding_model
 
     if name == "ollama":
-        return OllamaProvider(
-            base_url=settings.ollama_base_url,
-            model=mdl,
-        )
+        return OllamaProvider(base_url=settings.ollama_base_url, model=mdl)
 
     if name in _PROVIDER_MAP:
-        key_attr, cls = _PROVIDER_MAP[name]
         if api_key:
-            # User/agent provided their own key — no platform cost
-            return cls(api_key=api_key, model=mdl)
-        # Fall back to platform key
-        platform_key = (getattr(settings, key_attr, "") if key_attr else "")
-        if platform_key:
-            logger.warning(
-                "Embedding request using platform %s API key (no user key provided). "
-                "This consumes the platform's API quota.",
-                name,
-            )
-            if _using_platform_key is not None:
-                _using_platform_key.append(True)
-            return cls(api_key=platform_key, model=mdl)
+            return _PROVIDER_MAP[name](api_key=api_key, model=mdl)
+        # No user key — debug gets FakeProvider, production gets error
+        if settings.debug:
+            logger.info("No API key for '%s' in debug mode — using FakeProvider", name)
+            return FakeProvider(dimension=settings.embedding_dimension)
+        raise MissingAPIKeyError(name)
 
-    # No valid provider/key — use fake embeddings
-    return FakeProvider(dimension=settings.embedding_dimension)
+    # Unknown provider — debug gets FakeProvider, production gets error
+    if settings.debug:
+        return FakeProvider(dimension=settings.embedding_dimension)
+    raise MissingAPIKeyError(name)
 
 
 class EmbeddingService:
-    """Public embedding interface used by registry and discovery services.
+    """Public embedding interface with tiered rate limiting.
 
-    Supports three levels of configuration:
-        - Platform level: uses settings.embedding_provider (default)
-        - User level: user's own API keys for a given provider
-        - Agent level: agent's embedding_config overrides provider/model
-
-    Resolution: agent config → user keys → platform config → fake
+    Tier behaviour:
+        - Free tier: 50 embedding requests/day (all providers)
+        - Premium tier: unlimited
+        - Ollama: no rate limit (local)
     """
 
     def __init__(
@@ -312,29 +321,30 @@ class EmbeddingService:
         api_key: str | None = None,
         model: str | None = None,
         user_id: str | None = None,
+        account_tier: str = "free",
     ):
-        platform_flag: list = []
         self._provider = _build_provider(
             provider_name=provider_name,
             api_key=api_key,
             model=model,
-            _using_platform_key=platform_flag,
         )
-        self._uses_platform_key = bool(platform_flag)
         self._user_id = user_id
+        self._account_tier = account_tier
+        self._is_local = isinstance(self._provider, (OllamaProvider, FakeProvider))
 
     @property
     def provider_name(self) -> str:
         return type(self._provider).__name__.replace("Provider", "").lower()
 
-    def _enforce_platform_key_limit(self) -> None:
-        """If using the platform key, enforce per-user rate limit."""
-        if self._uses_platform_key and self._user_id:
-            _check_platform_key_rate_limit(self._user_id)
+    def _check_rate_limit(self) -> None:
+        """Enforce free-tier daily rate limit (skip for premium, local, or no user)."""
+        if self._is_local or self._account_tier == "premium" or not self._user_id:
+            return
+        _check_free_tier_rate_limit(self._user_id)
 
     async def generate(self, text: str) -> list[float]:
         """Generate an embedding for a single text."""
-        self._enforce_platform_key_limit()
+        self._check_rate_limit()
         results = await self._provider.embed([text])
         return results[0]
 
@@ -342,7 +352,7 @@ class EmbeddingService:
         """Generate embeddings for multiple texts."""
         if not texts:
             return []
-        self._enforce_platform_key_limit()
+        self._check_rate_limit()
         return await self._provider.embed(texts)
 
     @classmethod
@@ -350,27 +360,27 @@ class EmbeddingService:
         cls,
         agent_embedding_config: dict | None = None,
         owner_llm_keys: dict | None = None,
-        user_id: str | None = None,
     ) -> "EmbeddingService":
-        """Create an EmbeddingService resolved from agent → user → platform config.
+        """Create an EmbeddingService for agent registration (no rate limiting).
 
-        Args:
-            agent_embedding_config: Agent's embedding_config ({"provider": ..., "model": ...})
-            owner_llm_keys: User's decrypted LLM API keys ({"openai": "sk-...", ...})
-            user_id: User ID for rate-limiting platform key usage.
+        Used during agent registration/update where the owner's keys are resolved
+        but rate limiting is not applied (agent ops are admin-level).
         """
         provider_name = None
         model = None
         api_key = None
 
-        # Agent-level override
         if agent_embedding_config:
             provider_name = agent_embedding_config.get("provider")
             model = agent_embedding_config.get("model") or None
 
-        # Resolve API key from user's keys for the chosen provider
         resolved_provider = (provider_name or settings.embedding_provider).lower()
         if owner_llm_keys and resolved_provider in owner_llm_keys:
             api_key = owner_llm_keys[resolved_provider]
 
-        return cls(provider_name=provider_name, api_key=api_key, model=model, user_id=user_id)
+        return cls(
+            provider_name=provider_name,
+            api_key=api_key,
+            model=model,
+            account_tier="premium",  # agent registration bypasses rate limits
+        )

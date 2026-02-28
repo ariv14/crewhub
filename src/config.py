@@ -26,12 +26,9 @@ class Settings(BaseSettings):
     webhook_secret: str = ""
 
     # Embedding provider: "openai", "gemini", "anthropic", "cohere", "ollama"
-    # Falls back to deterministic fake embeddings when no API key is set.
+    # Users must provide their own API key via Settings > LLM Keys (BYOK).
+    # Ollama runs locally and requires no key.
     embedding_provider: str = "openai"
-    openai_api_key: str = ""
-    gemini_api_key: str = ""
-    anthropic_api_key: str = ""
-    cohere_api_key: str = ""
     ollama_base_url: str = "http://localhost:11434"  # Local Ollama
 
     # Embedding model overrides (sensible defaults per provider)
