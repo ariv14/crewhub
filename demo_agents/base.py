@@ -11,6 +11,10 @@ from __future__ import annotations
 import logging
 import os
 import uuid
+
+# Ensure Ollama uses 127.0.0.1 to avoid DNS/async resolution issues with litellm
+if not os.environ.get("OLLAMA_API_BASE"):
+    os.environ["OLLAMA_API_BASE"] = "http://127.0.0.1:11434"
 from datetime import datetime, timezone
 from typing import Any, Callable, Awaitable
 
@@ -25,9 +29,10 @@ from fastapi.responses import JSONResponse
 class MessagePart:
     """Lightweight mirror of the marketplace MessagePart schema."""
 
-    def __init__(self, type: str, content: str | None = None, data: dict | None = None, mime_type: str | None = None):
+    def __init__(self, type: str, content: str | None = None, data: dict | None = None, mime_type: str | None = None, text: str | None = None):
         self.type = type
-        self.content = content
+        # A2A spec uses "text"; our internal convention uses "content". Accept both.
+        self.content = content or text
         self.data = data
         self.mime_type = mime_type
 
@@ -77,21 +82,48 @@ HandlerFunc = Callable[[str, list[TaskMessage]], Awaitable[list[Artifact]]]
 logger = logging.getLogger(__name__)
 
 
+async def _ollama_call(
+    model_name: str,
+    system_prompt: str,
+    user_message: str,
+) -> str:
+    """Call Ollama directly via httpx (bypasses LiteLLM async issues)."""
+    import httpx
+
+    base = os.environ.get("OLLAMA_API_BASE", "http://127.0.0.1:11434")
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_message},
+    ]
+    # connect quickly, but allow up to 5min for generation on slow hardware
+    timeout = httpx.Timeout(connect=10.0, read=300.0, write=10.0, pool=10.0)
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        resp = await client.post(
+            f"{base}/api/chat",
+            json={"model": model_name, "messages": messages, "stream": False},
+        )
+        resp.raise_for_status()
+        return resp.json()["message"]["content"]
+
+
 async def llm_call(
     system_prompt: str,
     user_message: str,
     model: str | None = None,
 ) -> str:
-    """Call an LLM via LiteLLM. Falls back to echo if LLM unavailable.
+    """Call an LLM. Falls back to echo if unavailable.
 
-    Reads MODEL env var (default: ollama/llama3.2). Supports any LiteLLM
-    provider: ollama/*, gpt-*, claude-*, etc.
+    Reads MODEL env var (default: ollama/llama3.2). For Ollama models, uses
+    direct httpx calls. For other providers, uses LiteLLM.
     """
-    import litellm
-
     model = model or os.environ.get("MODEL", "ollama/llama3.2")
 
     try:
+        if model.lower().startswith("ollama/"):
+            ollama_model = model.split("/", 1)[1]
+            return await _ollama_call(ollama_model, system_prompt, user_message)
+
+        import litellm
         response = await litellm.acompletion(
             model=model,
             messages=[
@@ -102,7 +134,7 @@ async def llm_call(
         )
         return response.choices[0].message.content
     except Exception as exc:
-        logger.warning("LLM call failed (%s), using fallback: %s", model, exc)
+        logger.warning("LLM call failed (%s), using fallback: %s: %s", model, type(exc).__name__, exc)
         return f"[LLM unavailable — echoing input]\n\n{user_message}"
 
 
@@ -196,7 +228,8 @@ def create_a2a_app(
     async def _handle_send(params: dict, req_id: Any, jsonrpc: str):
         try:
             task_id = params.get("id") or str(uuid.uuid4())
-            skill_id = params.get("skill_id") or _default_skill_id()
+            metadata = params.get("metadata", {})
+            skill_id = params.get("skill_id") or metadata.get("skill_id") or _default_skill_id()
             raw_messages = params.get("message", params.get("messages", []))
 
             # Accept a single message dict or a list of messages

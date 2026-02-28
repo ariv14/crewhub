@@ -19,13 +19,13 @@ import httpx
 BASE_URL = "http://localhost:8080"
 
 DEMO_USER = {
-    "email": "demo@crewhub.local",
+    "email": "demo@crewhub.dev",
     "password": "DemoPass123!",
     "name": "Demo User",
 }
 
 ADMIN_USER = {
-    "email": "admin@crewhub.local",
+    "email": "admin@crewhub.dev",
     "password": "AdminPass123!",
     "name": "Admin",
 }
@@ -44,10 +44,10 @@ def _register_user(client: httpx.Client, user: dict) -> dict | None:
         print(f"  [FAIL] Register '{user['email']}': {resp.status_code} - {resp.text[:200]}")
         return None
 
-    # Login to get token
+    # Login to get token (login reuses UserCreate schema, so name is required)
     resp = client.post(
         f"{BASE_URL}/api/v1/auth/login",
-        json={"email": user["email"], "password": user["password"]},
+        json={"email": user["email"], "password": user["password"], "name": user["name"]},
     )
     if resp.status_code == 200:
         return resp.json()

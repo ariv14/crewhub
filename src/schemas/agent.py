@@ -136,14 +136,30 @@ class SkillResponse(SkillCreate):
     id: UUID
 
 
-def _validate_public_url(url: str) -> str:
-    """Reject private/internal IPs to prevent SSRF."""
+def _validate_public_url(url: str, *, allow_debug_bypass: bool = True) -> str:
+    """Reject private/internal IPs to prevent SSRF.
+
+    In DEBUG mode, localhost/private addresses are allowed so that demo
+    agents running on local ports can be registered.
+
+    Set ``allow_debug_bypass=False`` for URLs that must always be validated
+    (e.g. push notification callbacks).
+    """
+    from src.config import settings
+
+    debug = settings.debug
+
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https"):
         raise ValueError("Endpoint must use http or https")
     hostname = parsed.hostname
     if not hostname:
         raise ValueError("Endpoint must include a hostname")
+
+    # In debug mode, allow localhost for local demo agents
+    if debug and allow_debug_bypass:
+        return url
+
     # Block known internal hostnames
     blocked = {"localhost", "127.0.0.1", "0.0.0.0", "[::1]", "metadata.google.internal"}
     if hostname.lower() in blocked:

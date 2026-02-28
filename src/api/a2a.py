@@ -213,7 +213,7 @@ async def _handle_tasks_send(
         push_config = params.get("pushNotification")
         if push_config and push_config.get("url"):
             try:
-                _validate_public_url(push_config["url"])
+                _validate_public_url(push_config["url"], allow_debug_bypass=False)
             except ValueError as e:
                 return _error_response(
                     rpc_id, JSONRPC_INVALID_PARAMS,
