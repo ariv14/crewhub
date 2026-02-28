@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.auth import get_current_user
 from src.database import get_db
 from src.models.membership import MembershipRole
-from src.models.user import User
 from src.schemas.organization import (
     MembershipCreate,
     MembershipListResponse,
@@ -44,33 +43,38 @@ from src.services.org_service import (
 router = APIRouter(prefix="/organizations", tags=["organizations"])
 
 
+def _user_id(user: dict) -> UUID:
+    """Extract typed UUID from the current_user dict."""
+    return UUID(user["id"])
+
+
 # ── Organization CRUD ─────────────────────────────────────────
 
 @router.post("/", response_model=OrganizationResponse, status_code=201)
 async def create_org(
     body: OrganizationCreate,
-    user: User = Depends(get_current_user),
+    user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    return await create_organization(db, body.name, body.slug, user.id, body.avatar_url)
+    return await create_organization(db, body.name, body.slug, _user_id(user), body.avatar_url)
 
 
 @router.get("/", response_model=OrganizationListResponse)
 async def list_orgs(
-    user: User = Depends(get_current_user),
+    user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    orgs, total = await list_user_organizations(db, user.id)
+    orgs, total = await list_user_organizations(db, _user_id(user))
     return OrganizationListResponse(organizations=orgs, total=total)
 
 
 @router.get("/{org_id}", response_model=OrganizationResponse)
 async def get_org(
     org_id: UUID,
-    user: User = Depends(get_current_user),
+    user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await require_org_role(db, user.id, org_id, MembershipRole.VIEWER)
+    await require_org_role(db, _user_id(user), org_id, MembershipRole.VIEWER)
     return await get_organization(db, org_id)
 
 
@@ -78,20 +82,20 @@ async def get_org(
 async def patch_org(
     org_id: UUID,
     body: OrganizationUpdate,
-    user: User = Depends(get_current_user),
+    user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await require_org_role(db, user.id, org_id, MembershipRole.ADMIN)
+    await require_org_role(db, _user_id(user), org_id, MembershipRole.ADMIN)
     return await update_organization(db, org_id, **body.model_dump(exclude_unset=True))
 
 
 @router.delete("/{org_id}", status_code=204)
 async def delete_org(
     org_id: UUID,
-    user: User = Depends(get_current_user),
+    user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await require_org_role(db, user.id, org_id, MembershipRole.OWNER)
+    await require_org_role(db, _user_id(user), org_id, MembershipRole.OWNER)
     await delete_organization(db, org_id)
 
 
@@ -101,20 +105,20 @@ async def delete_org(
 async def create_org_team(
     org_id: UUID,
     body: TeamCreate,
-    user: User = Depends(get_current_user),
+    user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await require_org_role(db, user.id, org_id, MembershipRole.ADMIN)
+    await require_org_role(db, _user_id(user), org_id, MembershipRole.ADMIN)
     return await create_team(db, org_id, body.name, body.description)
 
 
 @router.get("/{org_id}/teams", response_model=TeamListResponse)
 async def list_org_teams(
     org_id: UUID,
-    user: User = Depends(get_current_user),
+    user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await require_org_role(db, user.id, org_id, MembershipRole.VIEWER)
+    await require_org_role(db, _user_id(user), org_id, MembershipRole.VIEWER)
     teams, total = await list_teams(db, org_id)
     return TeamListResponse(teams=teams, total=total)
 
@@ -123,10 +127,10 @@ async def list_org_teams(
 async def get_org_team(
     org_id: UUID,
     team_id: UUID,
-    user: User = Depends(get_current_user),
+    user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await require_org_role(db, user.id, org_id, MembershipRole.VIEWER)
+    await require_org_role(db, _user_id(user), org_id, MembershipRole.VIEWER)
     return await get_team(db, team_id)
 
 
@@ -135,10 +139,10 @@ async def patch_org_team(
     org_id: UUID,
     team_id: UUID,
     body: TeamUpdate,
-    user: User = Depends(get_current_user),
+    user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await require_org_role(db, user.id, org_id, MembershipRole.ADMIN)
+    await require_org_role(db, _user_id(user), org_id, MembershipRole.ADMIN)
     return await update_team(db, team_id, **body.model_dump(exclude_unset=True))
 
 
@@ -146,10 +150,10 @@ async def patch_org_team(
 async def delete_org_team(
     org_id: UUID,
     team_id: UUID,
-    user: User = Depends(get_current_user),
+    user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await require_org_role(db, user.id, org_id, MembershipRole.ADMIN)
+    await require_org_role(db, _user_id(user), org_id, MembershipRole.ADMIN)
     await delete_team(db, team_id)
 
 
@@ -159,10 +163,10 @@ async def delete_org_team(
 async def invite_member(
     org_id: UUID,
     body: MembershipCreate,
-    user: User = Depends(get_current_user),
+    user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await require_org_role(db, user.id, org_id, MembershipRole.ADMIN)
+    await require_org_role(db, _user_id(user), org_id, MembershipRole.ADMIN)
     membership = await add_member(db, org_id, body.user_email, body.role, body.team_id)
     return MembershipResponse(
         id=membership.id,
@@ -178,10 +182,10 @@ async def invite_member(
 @router.get("/{org_id}/members", response_model=MembershipListResponse)
 async def list_org_members(
     org_id: UUID,
-    user: User = Depends(get_current_user),
+    user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await require_org_role(db, user.id, org_id, MembershipRole.VIEWER)
+    await require_org_role(db, _user_id(user), org_id, MembershipRole.VIEWER)
     members, total = await list_members(db, org_id)
     responses = []
     for m in members:
@@ -201,10 +205,10 @@ async def update_member(
     org_id: UUID,
     membership_id: UUID,
     body: MembershipUpdate,
-    user: User = Depends(get_current_user),
+    user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await require_org_role(db, user.id, org_id, MembershipRole.ADMIN)
+    await require_org_role(db, _user_id(user), org_id, MembershipRole.ADMIN)
     membership = await update_member_role(db, membership_id, body.role)
     return MembershipResponse(
         id=membership.id,
@@ -220,8 +224,8 @@ async def update_member(
 async def remove_org_member(
     org_id: UUID,
     membership_id: UUID,
-    user: User = Depends(get_current_user),
+    user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await require_org_role(db, user.id, org_id, MembershipRole.OWNER)
+    await require_org_role(db, _user_id(user), org_id, MembershipRole.OWNER)
     await remove_member(db, membership_id)

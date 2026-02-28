@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, cast, Date
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -167,15 +167,16 @@ async def get_agent_stats(
     Public endpoint for sparkline charts on agent cards.
     """
     since = datetime.now(timezone.utc) - timedelta(days=30)
+    date_col = func.date(Task.created_at).label("date")
     stmt = (
         select(
-            cast(Task.created_at, Date).label("date"),
+            date_col,
             func.count().label("count"),
         )
         .where(Task.provider_agent_id == agent_id)
         .where(Task.created_at >= since)
-        .group_by(cast(Task.created_at, Date))
-        .order_by(cast(Task.created_at, Date))
+        .group_by(func.date(Task.created_at))
+        .order_by(func.date(Task.created_at))
     )
     result = await db.execute(stmt)
     rows = result.all()

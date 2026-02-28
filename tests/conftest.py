@@ -192,3 +192,55 @@ async def registered_agent(
         f"Agent registration failed: {resp.status_code} {resp.text}"
     )
     return resp.json()
+
+
+@pytest_asyncio.fixture()
+async def admin_headers(client: AsyncClient, db_session: AsyncSession) -> dict[str, str]:
+    """Register a test user, promote to admin via DB, and return auth headers."""
+    email = _unique_email()
+    password = "AdminPass123"
+
+    reg = await client.post(
+        "/api/v1/auth/register",
+        json={"email": email, "password": password, "name": "Admin User"},
+    )
+    assert reg.status_code == 201
+
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={"email": email, "password": password, "name": "Admin User"},
+    )
+    assert login.status_code == 200
+
+    # Promote to admin via direct DB update
+    from sqlalchemy import update
+    from src.models.user import User
+
+    stmt = update(User).where(User.email == email).values(is_admin=True)
+    await db_session.execute(stmt)
+    await db_session.commit()
+
+    token = login.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest_asyncio.fixture()
+async def second_auth_headers(client: AsyncClient) -> dict[str, str]:
+    """Register a second distinct test user and return auth headers."""
+    email = _unique_email()
+    password = "SecondPass123"
+
+    reg = await client.post(
+        "/api/v1/auth/register",
+        json={"email": email, "password": password, "name": "Second User"},
+    )
+    assert reg.status_code == 201
+
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={"email": email, "password": password, "name": "Second User"},
+    )
+    assert login.status_code == 200
+
+    token = login.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}

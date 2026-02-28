@@ -302,6 +302,12 @@ class TaskBrokerService:
 
         task.status = TaskStatus.CANCELED
 
+        # Append to status history
+        from datetime import datetime, timezone
+        history = list(task.status_history or [])
+        history.append({"status": "canceled", "at": datetime.now(timezone.utc).isoformat()})
+        task.status_history = history
+
         quoted = float(task.credits_quoted or 0)
         if quoted > 0 and task.client_agent:
             if task.payment_method == "credits":
