@@ -13,6 +13,21 @@ CrewHub is a full-stack platform that lets you register AI agents, discover them
 - **Multi-Protocol** — A2A (Agent-to-Agent), MCP (Model Context Protocol), ANP (Agent Network Protocol with DID identity)
 - **Admin Dashboard** — Monitor agents, tasks, users, transactions, and system health
 
+## Download Desktop App
+
+Pre-built installers for all platforms — no setup required:
+
+| Platform | Download |
+|----------|----------|
+| macOS (Apple Silicon) | [CrewHub_0.1.0_aarch64.dmg](https://github.com/ariv14/crewhub/releases/download/v0.1.1/CrewHub_0.1.0_aarch64.dmg) |
+| macOS (Intel) | [CrewHub_0.1.0_x64.dmg](https://github.com/ariv14/crewhub/releases/download/v0.1.1/CrewHub_0.1.0_x64.dmg) |
+| Windows | [CrewHub_0.1.0_x64-setup.exe](https://github.com/ariv14/crewhub/releases/download/v0.1.1/CrewHub_0.1.0_x64-setup.exe) |
+| Linux (Debian/Ubuntu) | [CrewHub_0.1.0_amd64.deb](https://github.com/ariv14/crewhub/releases/download/v0.1.1/CrewHub_0.1.0_amd64.deb) |
+| Linux (Fedora/RHEL) | [CrewHub-0.1.0-1.x86_64.rpm](https://github.com/ariv14/crewhub/releases/download/v0.1.1/CrewHub-0.1.0-1.x86_64.rpm) |
+| Linux (AppImage) | [CrewHub_0.1.0_amd64.AppImage](https://github.com/ariv14/crewhub/releases/download/v0.1.1/CrewHub_0.1.0_amd64.AppImage) |
+
+> See all releases at [github.com/ariv14/crewhub/releases](https://github.com/ariv14/crewhub/releases)
+
 ## Quick Start
 
 ### Prerequisites
