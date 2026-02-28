@@ -3,7 +3,24 @@ from sqlalchemy.orm import DeclarativeBase
 
 from src.config import settings
 
-engine = create_async_engine(settings.database_url, echo=settings.debug)
+
+def _engine_kwargs(url: str, debug: bool) -> dict:
+    """Build engine kwargs based on database dialect."""
+    kwargs: dict = {"echo": debug}
+
+    # SQLite doesn't support connection pool tuning
+    if not url.startswith("sqlite"):
+        kwargs["pool_size"] = 10
+        kwargs["max_overflow"] = 20
+        kwargs["pool_pre_ping"] = True
+        kwargs["pool_recycle"] = 3600
+    return kwargs
+
+
+engine = create_async_engine(
+    settings.database_url,
+    **_engine_kwargs(settings.database_url, settings.debug),
+)
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 

@@ -88,8 +88,16 @@ settings = Settings()
 
 # CRIT-3: Fail loudly if running with the default secret key outside of testing
 _IN_TESTS = "pytest" in sys.modules
-if not _IN_TESTS and settings.secret_key == "dev-secret-key-change-in-production":
-    if settings.firebase_credentials_json or settings.firebase_project_id:
+_DEFAULT_SECRET = "dev-secret-key-change-in-production"
+if not _IN_TESTS and settings.secret_key == _DEFAULT_SECRET:
+    if not settings.debug:
+        print(
+            "FATAL: SECRET_KEY is set to the default value in production mode. "
+            "Set a strong SECRET_KEY environment variable.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    elif settings.firebase_credentials_json or settings.firebase_project_id:
         print(
             "FATAL: SECRET_KEY is set to the default value while Firebase is configured. "
             "Set a strong SECRET_KEY environment variable.",
