@@ -1,7 +1,7 @@
-"""Text Summarizer -- demo A2A agent.
+"""Text Summarizer -- demo A2A agent (LLM-powered).
 
 Skills:
-  - summarize        Extract the most important sentences from a text.
+  - summarize        Produce a concise summary of text.
   - extract-key-points   Return bullet-point key takeaways.
 
 Port: 8001
@@ -13,10 +13,7 @@ Run standalone:
 
 from __future__ import annotations
 
-import re
-from collections import Counter
-
-from demo_agents.base import Artifact, MessagePart, TaskMessage, create_a2a_app
+from demo_agents.base import Artifact, MessagePart, TaskMessage, create_a2a_app, llm_call
 
 PORT = 8001
 CREDITS = 1
@@ -25,7 +22,7 @@ SKILLS = [
     {
         "id": "summarize",
         "name": "Summarize Text",
-        "description": "Produce a concise extractive summary of the input text by selecting the most representative sentences.",
+        "description": "Produce a concise summary of the input text.",
         "inputModes": ["text"],
         "outputModes": ["text"],
         "examples": [
@@ -52,99 +49,19 @@ SKILLS = [
     },
 ]
 
-# ---------------------------------------------------------------------------
-# Stop-words used for sentence scoring
-# ---------------------------------------------------------------------------
+SYSTEM_PROMPTS = {
+    "summarize": (
+        "You are a text summarizer. Produce a concise summary of the input text. "
+        "Focus on the most important information. Keep the summary to 2-4 sentences."
+    ),
+    "extract-key-points": (
+        "You are a text analyst. Extract the most important takeaways from the input text. "
+        "Return them as a bullet-point list (using - prefix). Keep each point to one sentence."
+    ),
+}
 
-STOP_WORDS = set(
-    "a an the and or but in on at to for of is it this that was were be been "
-    "being have has had do does did will would shall should may might can could "
-    "i me my we our you your he him his she her they them their its with from by "
-    "as not no so if then else than too very just about also back been before "
-    "between both each few more most other some such only over same through "
-    "during into after above below up down out off again further once here there "
-    "when where why how all any many much which what who whom".split()
-)
-
-# Indicators that a sentence carries a key point
-KEY_POINT_INDICATORS = re.compile(
-    r"^\s*[-*]\s|"
-    r"\b(important|key|critical|must|should|note|conclusion|result|finding|"
-    r"recommend|significant|essential|action|decision|target|goal|deadline)\b",
-    re.IGNORECASE,
-)
-
-
-# ---------------------------------------------------------------------------
-# Helper functions
-# ---------------------------------------------------------------------------
-
-def _split_sentences(text: str) -> list[str]:
-    """Naive sentence splitter."""
-    sentences = re.split(r'(?<=[.!?])\s+', text.strip())
-    return [s.strip() for s in sentences if len(s.strip()) > 10]
-
-
-def _word_frequencies(text: str) -> Counter:
-    words = re.findall(r"[a-z']+", text.lower())
-    return Counter(w for w in words if w not in STOP_WORDS)
-
-
-def _score_sentences(sentences: list[str], freq: Counter) -> list[tuple[float, int, str]]:
-    scored: list[tuple[float, int, str]] = []
-    for idx, sent in enumerate(sentences):
-        words = re.findall(r"[a-z']+", sent.lower())
-        if not words:
-            continue
-        score = sum(freq.get(w, 0) for w in words) / len(words)
-        scored.append((score, idx, sent))
-    return scored
-
-
-def summarize(text: str, ratio: float = 0.3) -> str:
-    sentences = _split_sentences(text)
-    if len(sentences) <= 3:
-        return text
-
-    freq = _word_frequencies(text)
-    scored = _score_sentences(sentences, freq)
-    n = max(2, int(len(sentences) * ratio))
-    top = sorted(scored, key=lambda x: x[0], reverse=True)[:n]
-    # Return in original order
-    top_ordered = sorted(top, key=lambda x: x[1])
-    return " ".join(s for _, _, s in top_ordered)
-
-
-def extract_key_points(text: str) -> str:
-    sentences = _split_sentences(text)
-    if not sentences:
-        return "- No key points found."
-
-    freq = _word_frequencies(text)
-    scored = _score_sentences(sentences, freq)
-
-    # First pass: sentences matching key-point indicators
-    key = [s for s in sentences if KEY_POINT_INDICATORS.search(s)]
-
-    # Second pass: if not enough, take highest scored sentences
-    if len(key) < 3:
-        top = sorted(scored, key=lambda x: x[0], reverse=True)
-        for score, idx, sent in top:
-            if sent not in key:
-                key.append(sent)
-            if len(key) >= 5:
-                break
-
-    bullets = "\n".join(f"- {s}" for s in key[:7])
-    return bullets
-
-
-# ---------------------------------------------------------------------------
-# A2A handler
-# ---------------------------------------------------------------------------
 
 async def handle(skill_id: str, messages: list[TaskMessage]) -> list[Artifact]:
-    # Collect all text content from user messages
     text = ""
     for msg in messages:
         for part in msg.parts:
@@ -158,12 +75,9 @@ async def handle(skill_id: str, messages: list[TaskMessage]) -> list[Artifact]:
             parts=[MessagePart(type="text", content="No text provided to summarize.")],
         )]
 
-    if skill_id == "extract-key-points":
-        result = extract_key_points(text)
-        artifact_name = "key-points"
-    else:
-        result = summarize(text)
-        artifact_name = "summary"
+    system_prompt = SYSTEM_PROMPTS.get(skill_id, SYSTEM_PROMPTS["summarize"])
+    result = await llm_call(system_prompt, text)
+    artifact_name = "key-points" if skill_id == "extract-key-points" else "summary"
 
     return [Artifact(
         name=artifact_name,
@@ -172,13 +86,9 @@ async def handle(skill_id: str, messages: list[TaskMessage]) -> list[Artifact]:
     )]
 
 
-# ---------------------------------------------------------------------------
-# App
-# ---------------------------------------------------------------------------
-
 app = create_a2a_app(
     name="Text Summarizer",
-    description="Extracts concise summaries and key points from text using frequency-based extractive methods.",
+    description="Summarizes text and extracts key points using an LLM.",
     version="1.0.0",
     skills=SKILLS,
     handler_func=handle,

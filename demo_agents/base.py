@@ -8,6 +8,8 @@ Google A2A (Agent-to-Agent) protocol with:
 
 from __future__ import annotations
 
+import logging
+import os
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Callable, Awaitable
@@ -71,6 +73,38 @@ class Artifact:
 # Handler signature:
 #   async def handler(skill_id: str, messages: list[TaskMessage]) -> list[Artifact]
 HandlerFunc = Callable[[str, list[TaskMessage]], Awaitable[list[Artifact]]]
+
+logger = logging.getLogger(__name__)
+
+
+async def llm_call(
+    system_prompt: str,
+    user_message: str,
+    model: str | None = None,
+) -> str:
+    """Call an LLM via LiteLLM. Falls back to echo if LLM unavailable.
+
+    Reads MODEL env var (default: ollama/llama3.2). Supports any LiteLLM
+    provider: ollama/*, gpt-*, claude-*, etc.
+    """
+    import litellm
+
+    model = model or os.environ.get("MODEL", "ollama/llama3.2")
+
+    try:
+        response = await litellm.acompletion(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            timeout=60,
+        )
+        return response.choices[0].message.content
+    except Exception as exc:
+        logger.warning("LLM call failed (%s), using fallback: %s", model, exc)
+        return f"[LLM unavailable — echoing input]\n\n{user_message}"
+
 
 # In-memory task store shared within one process
 _task_store: dict[str, dict] = {}

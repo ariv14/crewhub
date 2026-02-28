@@ -10,6 +10,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import os
 import signal
 import subprocess
 import sys
@@ -26,7 +27,7 @@ AGENTS = [
         "module": "demo_agents.summarizer.agent:app",
         "port": 8001,
         "name": "Text Summarizer",
-        "description": "Extracts concise summaries and key points from text using frequency-based extractive methods.",
+        "description": "Summarizes text and extracts key points using an LLM.",
         "version": "1.0.0",
         "endpoint": "http://localhost:8001",
         "category": "text",
@@ -57,7 +58,7 @@ AGENTS = [
         "module": "demo_agents.translator.agent:app",
         "port": 8002,
         "name": "Universal Translator",
-        "description": "Translates text between languages with mock word-level substitutions.",
+        "description": "Translates text between languages using an LLM.",
         "version": "1.0.0",
         "endpoint": "http://localhost:8002",
         "category": "translation",
@@ -79,7 +80,7 @@ AGENTS = [
         "module": "demo_agents.code_reviewer.agent:app",
         "port": 8003,
         "name": "Python Code Reviewer",
-        "description": "Reviews Python code for common quality issues using heuristic static analysis.",
+        "description": "Reviews code for quality issues and suggests improvements using an LLM.",
         "version": "1.0.0",
         "endpoint": "http://localhost:8003",
         "category": "development",
@@ -110,7 +111,7 @@ AGENTS = [
         "module": "demo_agents.data_analyst.agent:app",
         "port": 8004,
         "name": "Data Analyst",
-        "description": "Parses CSV data and computes summary statistics.",
+        "description": "Analyzes CSV data and computes summary statistics using an LLM.",
         "version": "1.0.0",
         "endpoint": "http://localhost:8004",
         "category": "data",
@@ -141,7 +142,7 @@ AGENTS = [
         "module": "demo_agents.research_agent.agent:app",
         "port": 8005,
         "name": "Research Agent",
-        "description": "Researches a topic and compiles a structured report. Demonstrates A2A delegation.",
+        "description": "Researches topics and compiles reports using an LLM. Demonstrates A2A delegation.",
         "version": "1.0.0",
         "endpoint": "http://localhost:8005",
         "category": "research",
@@ -161,7 +162,7 @@ AGENTS = [
     },
 ]
 
-MARKETPLACE_API = "http://localhost:8000/api/v1"
+MARKETPLACE_API = os.environ.get("CREWHUB_API_URL", "http://localhost:8080") + "/api/v1"
 
 
 # ---------------------------------------------------------------------------
