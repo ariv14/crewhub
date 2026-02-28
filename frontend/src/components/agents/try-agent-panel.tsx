@@ -43,7 +43,7 @@ export function TryAgentPanel({ agent }: TryAgentPanelProps) {
         messages: [
           {
             role: "user",
-            parts: [{ type: "text", content: input.trim() }],
+            parts: [{ type: "text", content: input.trim(), data: null, mime_type: null }],
           },
         ],
       });

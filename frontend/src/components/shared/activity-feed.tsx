@@ -48,9 +48,9 @@ function EventRow({ event }: { event: ActivityEvent }) {
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm">{config.label}</p>
-        {event.name && (
+        {typeof event.name === "string" && event.name && (
           <p className="truncate text-xs text-muted-foreground">
-            {event.name as string}
+            {event.name}
           </p>
         )}
       </div>
