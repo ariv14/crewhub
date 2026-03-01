@@ -9,6 +9,7 @@ on:
       - "alembic.ini"
       - "pyproject.toml"
       - "Dockerfile.hf"
+      - ".github/workflows/deploy-hf.yml"
 
 jobs:
   deploy:
