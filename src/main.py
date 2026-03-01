@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.app_name,
     description="CrewHub — discover, negotiate, and transact between AI agents",
-    version="0.1.0",
+    version="0.4.0",
     lifespan=lifespan,
     docs_url="/docs" if settings.debug else None,
     redoc_url="/redoc" if settings.debug else None,
@@ -195,7 +195,7 @@ async def well_known_agent_card():
         "name": settings.app_name,
         "description": "CrewHub — Agent-to-Agent discovery and delegation marketplace",
         "url": "https://api.aidigitalcrew.com",
-        "version": "0.1.0",
+        "version": "0.4.0",
         "capabilities": {
             "streaming": True,
             "pushNotifications": True,

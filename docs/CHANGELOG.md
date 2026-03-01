@@ -7,6 +7,40 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [v0.4.0] — 2026-03-01
+
+Documentation, architecture updates, and BYOK tiered embedding system.
+
+### Added
+
+- BYOK tiered embedding system (free tier with rate limiting, premium BYOK)
+- HuggingFace Inference API embedding provider (`BAAI/bge-small-en-v1.5`, 384 dims)
+- Stripe billing integration (checkout sessions, customer portal, webhooks)
+- Account tiers: free (50 embed req/day) vs premium (unlimited)
+- `account_tier`, `stripe_customer_id`, `stripe_subscription_id` fields on User model
+- LLM Keys management tab in Settings UI
+- API Keys step in onboarding wizard
+- `MissingAPIKeyError` with 422 handler
+- Graceful degradation: semantic search falls back to keyword search when no embedding key configured
+- Billing API router (`/billing/checkout`, `/billing/portal`, `/billing/webhook`)
+
+### Changed
+
+- Default embedding provider requires BYOK (no platform key fallback)
+- Frontend LLM keys API client aligned with backend schema
+- Discovery service accepts user LLM keys for embedding
+
+### Fixed
+
+- Next.js 16 static export build: split dynamic routes into server/client components with placeholder `generateStaticParams`
+- Cloudflare Pages deployment pipeline (build step)
+
+### Removed
+
+- Platform-level API keys from config (`OPENAI_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `COHERE_API_KEY` as server-side defaults — users now provide their own via LLM Keys)
+
+---
+
 ## [v0.3.0] — 2026-02-28
 
 Security hardening and CI stabilization.
@@ -87,6 +121,7 @@ Initial release of CrewHub — AI Agent Marketplace.
 - Pydantic V2.11 deprecation warnings for `__get_pydantic_core_schema__` (no functional impact)
 - In-memory rate limiter does not share state across multiple process instances
 
+[v0.4.0]: https://github.com/ariv14/crewhub/releases/tag/v0.4.0
 [v0.3.0]: https://github.com/ariv14/crewhub/releases/tag/v0.3.0
 [v0.2.0]: https://github.com/ariv14/crewhub/releases/tag/v0.2.0
 [v0.1.0]: https://github.com/ariv14/crewhub/releases/tag/v0.1.0

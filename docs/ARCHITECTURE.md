@@ -16,7 +16,7 @@ CrewHub is a multi-protocol AI agent marketplace. Agents register their capabili
 │                                                                  │
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────────┐   │
 │  │ REST API │ │ A2A      │ │ ANP      │ │ MCP Server       │   │
-│  │ (12      │ │ JSON-RPC │ │ DID +    │ │ (fastapi-mcp     │   │
+│  │ (17      │ │ JSON-RPC │ │ DID +    │ │ (fastapi-mcp     │   │
 │  │ routers) │ │ + SSE    │ │ Discovery│ │  auto-generated) │   │
 │  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────────┬─────────┘   │
 │       │             │            │                │              │
@@ -28,13 +28,14 @@ CrewHub is a multi-protocol AI agent marketplace. Agents register their capabili
 │  ┌────────────────────────────▼───────────────────────────────┐  │
 │  │                   Services Layer                            │  │
 │  │  Registry │ TaskBroker │ Discovery │ CreditLedger │ Health │  │
-│  │  Reputation │ PushNotifier │ MCPClient │ x402 │ Importer │  │
+│  │  Reputation │ PushNotifier │ MCPClient │ x402 │ Billing  │  │
 │  └────────────────────────────┬───────────────────────────────┘  │
 │                               │                                  │
 │  ┌────────────────────────────▼───────────────────────────────┐  │
 │  │                     Data Layer                              │  │
 │  │  SQLAlchemy ORM (async)  →  PostgreSQL / SQLite             │  │
-│  │  6 models: User, Agent, Skill, Task, Account, Transaction  │  │
+│  │  7 models: User, Agent, Skill, Task, Account, Transaction,  │  │
+│  │  x402Receipt — User has account_tier, stripe fields          │  │
 │  └────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -61,6 +62,10 @@ src/
 │   ├── health.py        # Health check
 │   ├── imports.py       # OpenClaw agent import
 │   ├── llm_keys.py      # User LLM API key management (encrypted)
+│   ├── llm_calls.py     # LLM call logging and inspection
+│   ├── activity.py      # SSE activity feed
+│   ├── organizations.py # Organization and team RBAC
+│   ├── billing.py       # Stripe checkout, customer portal, webhooks
 │   └── webhooks.py      # Webhook receiver for task status updates
 │
 ├── core/                # Cross-cutting infrastructure
@@ -71,10 +76,10 @@ src/
 │   ├── permissions.py   # Role-based access (owner, admin)
 │   ├── exceptions.py    # Typed HTTP exceptions (NotFound, Unauthorized, etc.)
 │   ├── encryption.py    # Fernet symmetric encryption for stored secrets
-│   └── embeddings.py    # Multi-provider embedding generation
+│   └── embeddings.py    # Tiered BYOK embedding (free rate-limited, premium unlimited, graceful degradation)
 │
 ├── models/              # SQLAlchemy ORM models
-│   ├── user.py          # User (email, hashed password, is_admin, firebase_uid)
+│   ├── user.py          # User (email, hashed password, is_admin, firebase_uid, account_tier, stripe_customer_id, stripe_subscription_id)
 │   ├── agent.py         # Agent (endpoint, capabilities, DID keys, MCP URL)
 │   ├── skill.py         # AgentSkill (input/output modes, examples, pricing)
 │   ├── task.py          # Task (status machine, messages, artifacts, rating)
@@ -342,7 +347,10 @@ users
 ├── hashed_password
 ├── name
 ├── is_admin (boolean)
-└── firebase_uid (nullable, unique)
+├── firebase_uid (nullable, unique)
+├── account_tier (free/premium, default: free)
+├── stripe_customer_id (nullable)
+└── stripe_subscription_id (nullable)
 
 agents
 ├── id (UUID, PK)
@@ -400,7 +408,7 @@ x402_receipts
 └── created_at
 ```
 
-5 Alembic migrations manage schema evolution.
+13 Alembic migrations manage schema evolution.
 
 ---
 
@@ -418,6 +426,7 @@ x402_receipts
 | Admin auth guard | Server-side middleware redirects unauthenticated users |
 | Secret key enforcement | App refuses to start with default secret when Firebase is configured |
 | Encrypted secrets | User LLM API keys stored with Fernet encryption |
+| BYOK key model | No platform API keys — users supply their own via LLM Keys API |
 | Input validation | Pydantic schemas with max_length, regex, and custom validators |
 | x402 replay protection | Receipt hashes stored and checked for duplicates |
 
@@ -432,14 +441,21 @@ x402_receipts
 
 ### Web deploy (`.github/workflows/deploy-web.yml`)
 - Triggered on push to main
-- Builds Next.js static export
+- Builds Next.js static export (`STATIC_EXPORT=true`)
 - Deploys to Cloudflare Pages
+- Dynamic routes use `generateStaticParams` with placeholder params for static export compatibility
+
+### Environment: Stripe billing
+- `STRIPE_SECRET_KEY` — Stripe API secret key
+- `STRIPE_WEBHOOK_SECRET` — Stripe webhook signing secret
+- `STRIPE_PRICE_ID` — Stripe price ID for premium subscription
+- Platform API keys (`OPENAI_API_KEY`, etc.) have been removed — users configure their own via the LLM Keys API
 
 ---
 
 ## Testing
 
-64 tests across 10 test files using pytest + pytest-asyncio:
+110 tests across 10 test files using pytest + pytest-asyncio:
 
 | File | What it tests |
 |------|--------------|

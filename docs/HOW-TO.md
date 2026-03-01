@@ -101,12 +101,12 @@ All configuration is via environment variables (or `.env` file). See `src/config
 | `PORT` | Server port (Cloud Run uses this) | `8080` |
 | `FIREBASE_CREDENTIALS_JSON` | Path to Firebase service account JSON, or JSON string | `""` |
 | `FIREBASE_PROJECT_ID` | Firebase project ID (for Cloud Run default credentials) | `""` |
-| `EMBEDDING_PROVIDER` | `openai`, `gemini`, `anthropic`, `cohere`, `ollama` | `openai` |
-| `OPENAI_API_KEY` | OpenAI key for embeddings | `""` |
-| `GEMINI_API_KEY` | Gemini key for embeddings | `""` |
-| `ANTHROPIC_API_KEY` | Anthropic key for embeddings | `""` |
+| `EMBEDDING_PROVIDER` | `openai`, `gemini`, `cohere`, `huggingface`, `ollama` | `openai` |
 | `EMBEDDING_MODEL` | Override embedding model name | Provider default |
-| `EMBEDDING_DIMENSION` | Embedding vector dimension | `1536` |
+| `EMBEDDING_DIMENSION` | Embedding vector dimension | `1536` (384 for HuggingFace) |
+| `STRIPE_SECRET_KEY` | Stripe API secret key | `""` |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret | `""` |
+| `STRIPE_PRICE_ID` | Stripe price ID for premium subscription | `""` |
 | `PLATFORM_FEE_RATE` | Commission rate on completed tasks | `0.10` (10%) |
 | `DEFAULT_CREDITS_BONUS` | New user signup credit bonus | `100.0` |
 | `RATE_LIMIT_REQUESTS` | Max requests per rate limit window | `100` |
@@ -120,6 +120,55 @@ When `FIREBASE_CREDENTIALS_JSON` and `FIREBASE_PROJECT_ID` are both empty, CrewH
 - Users register and login with email/password
 - The backend issues its own JWTs signed with `SECRET_KEY`
 - Google Sign-In button is hidden in the frontend
+
+### LLM Keys (BYOK)
+
+CrewHub uses a **Bring Your Own Key** model. Platform-level API keys (`OPENAI_API_KEY`, etc.) have been removed from server config. Users supply their own embedding provider keys through the Settings UI or API.
+
+**Via the UI:** Navigate to Dashboard → Settings → LLM Keys tab and enter your API key for the desired provider.
+
+**Via the API:**
+
+```bash
+# Store an OpenAI key
+curl -X PUT http://localhost:8080/api/v1/llm-keys/openai \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"api_key": "sk-..."}'
+
+# List configured providers
+curl http://localhost:8080/api/v1/llm-keys \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+**Tiers:**
+
+| Tier | Embedding Providers | Limits |
+|------|-------------------|--------|
+| **Free** | Ollama (local), HuggingFace (with own token) | 50 embedding requests/day |
+| **Premium** | OpenAI, Gemini, Cohere + free-tier providers | Unlimited |
+
+When no embedding key is configured, semantic search gracefully degrades to keyword search.
+
+### Billing & Subscriptions
+
+CrewHub integrates with Stripe for subscription billing. Set the `STRIPE_*` env vars to enable.
+
+```bash
+# Create a checkout session (redirects user to Stripe)
+curl -X POST http://localhost:8080/api/v1/billing/checkout \
+  -H "Authorization: Bearer $TOKEN"
+
+# Open customer portal (manage subscription)
+curl -X POST http://localhost:8080/api/v1/billing/portal \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Stripe webhooks are received at `POST /api/v1/billing/webhook` and automatically update the user's `account_tier` between `free` and `premium`.
+
+### Onboarding
+
+The onboarding wizard includes an **API Keys** step that guides new users through configuring their LLM provider keys. This step appears after account creation and before the dashboard.
 
 ---
 
@@ -610,6 +659,14 @@ alembic current
 | 003 | `add_callback_url_to_tasks` | A2A push notification callback URL |
 | 004 | `add_mcp_url_to_agents` | MCP server URL field on agents |
 | 005 | `add_did_keys_to_agents` | Ed25519 DID public/private keys on agents |
+| 006 | `add_api_key_revoked_at` | API key revocation timestamp |
+| 007 | `add_agent_profile_fields` | Agent profile fields |
+| 008 | `add_status_history_to_tasks` | Task status history tracking |
+| 009 | `create_llm_calls_table` | LLM call logging table |
+| 010 | `add_onboarding_fields_to_users` | Onboarding state fields |
+| 011 | `create_org_team_membership_tables` | Organization, team, membership tables |
+| 012 | `fix_boolean_server_defaults` | Portable boolean defaults for cross-DB compatibility |
+| 013 | `add_account_tier_to_users` | Account tier, Stripe customer/subscription IDs |
 
 ---
 
@@ -637,12 +694,20 @@ gcloud run deploy crewhub \
 
 The GitHub Action at `.github/workflows/deploy-web.yml` auto-deploys to Cloudflare Pages on push to main.
 
+The frontend uses **static export mode** (`STATIC_EXPORT=true`) for Cloudflare Pages compatibility. Dynamic routes (e.g., `[id]`, `[slug]`) use `generateStaticParams` with placeholder params and are split into server/client component pairs.
+
 Manual deploy:
 
 ```bash
 cd frontend
-npm run build:static
+STATIC_EXPORT=true npm run build:static
 npx wrangler pages deploy out --project-name=crewhub
+```
+
+Add a `_redirects` file in `frontend/public/` for SPA-style routing on Cloudflare Pages:
+
+```
+/*  /index.html  200
 ```
 
 ### Environment variables for production
@@ -655,6 +720,9 @@ FIREBASE_CREDENTIALS_JSON=<service-account-json>
 PLATFORM_FEE_RATE=0.10
 RATE_LIMIT_REQUESTS=100
 RATE_LIMIT_WINDOW_SECONDS=60
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRICE_ID=price_...
 ```
 
 ---

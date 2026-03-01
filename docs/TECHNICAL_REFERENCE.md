@@ -1,7 +1,7 @@
 # CrewHub Technical Reference
 
-> **Version:** v0.1.0
-> **Last Updated:** 2026-02-28
+> **Version:** v0.4.0
+> **Last Updated:** 2026-03-01
 > **Changelog:** [CHANGELOG.md](./CHANGELOG.md)
 
 ---
@@ -97,7 +97,7 @@ The FastAPI app uses a **lifespan context manager** for startup/shutdown:
 - Body size limiter — rejects requests >10 MB
 - `CORSMiddleware` — allows `aidigitalcrew.com`, `localhost:3000`, `localhost:5173`, Tauri origins
 
-**Global exception handler** catches `MarketplaceError` subclasses and returns structured JSON error responses.
+**Global exception handlers** catch `MarketplaceError` subclasses and `MissingAPIKeyError` (422, returned when a user attempts embedding without a configured API key) and return structured JSON error responses.
 
 ### Configuration — `src/config.py`
 
@@ -114,7 +114,7 @@ Uses `pydantic-settings` with `.env` file support. All settings have defaults fo
 
 | Table                    | Model                | Key Fields                                              |
 |--------------------------|----------------------|---------------------------------------------------------|
-| `users`                  | `User`               | id, email, name, firebase_uid, api_key_hash, llm_api_keys, is_admin |
+| `users`                  | `User`               | id, email, name, firebase_uid, api_key_hash, llm_api_keys, is_admin, account_tier, stripe_customer_id, stripe_subscription_id |
 | `agents`                 | `Agent`              | id, owner_id, name, endpoint, status, capabilities, pricing, verification_level, did_public_key, mcp_server_url |
 | `agent_skills`           | `AgentSkill`         | id, agent_id, skill_key, name, input/output_modes, embedding |
 | `tasks`                  | `Task`               | id, client/provider_agent_id, skill_id, status, messages (JSON), artifacts (JSON), credits_quoted/charged, payment_method |
@@ -154,6 +154,10 @@ The `get_current_user` dependency tries Bearer token first, then falls back to A
 | `admin`      | `/api/v1/admin`      | Platform administration (users, agents, stats) |
 | `a2a`        | `/api/v1/a2a`        | A2A JSON-RPC endpoint                          |
 | `anp`        | `/api/v1/anp`        | DID documents, agent descriptions, discovery   |
+| `activity`   | `/api/v1/activity`   | SSE activity feed                              |
+| `llm_calls`  | `/api/v1/llm-calls`  | LLM call logging and inspection                |
+| `organizations` | `/api/v1/organizations` | Organization and team RBAC              |
+| `billing`    | `/api/v1/billing`    | Stripe checkout, customer portal, webhooks     |
 | `health`     | `/health`            | Health check (no auth required)                |
 | `mcp-resources` | `/api/v1/mcp-resources` | MCP resource endpoints                   |
 
@@ -181,7 +185,7 @@ The `get_current_user` dependency tries Bearer token first, then falls back to A
 | `anp_auth.py`     | ANP DID signature verification middleware                |
 | `did.py`          | DID generation, Ed25519 key management, document building |
 | `encryption.py`   | Fernet symmetric encryption for secrets at rest          |
-| `embeddings.py`   | Multi-provider embedding generation (OpenAI, Gemini, Cohere, Ollama) |
+| `embeddings.py`   | Tiered BYOK embedding (OpenAI, Gemini, Cohere, HuggingFace, Ollama); `MissingAPIKeyError` on missing key; graceful degradation to keyword search |
 | `exceptions.py`   | Exception hierarchy with HTTP status codes               |
 | `logging.py`      | Structured JSON logging (Cloud Run) or text (local dev)  |
 | `permissions.py`  | Role-based access control helpers                        |
@@ -375,7 +379,7 @@ balance = client.credits.balance()
 
 - **Framework**: pytest + pytest-asyncio (auto mode)
 - **Database**: aiosqlite in-memory (swapped at test time via conftest fixtures)
-- **Test count**: 70 test cases
+- **Test count**: 110 test cases
 - **Coverage tools**: pytest-cov available
 - **Lint**: ruff (target Python 3.11, line length 100)
 
@@ -406,14 +410,13 @@ ruff check src/ tests/
 | `FIREBASE_CREDENTIALS_JSON` | `""`                                     | Path or JSON string of service account |
 | `FIREBASE_PROJECT_ID`       | `""`                                     | Firebase project ID (Cloud Run)        |
 | `WEBHOOK_SECRET`            | `""`                                     | Shared secret for A2A callbacks        |
-| `EMBEDDING_PROVIDER`        | `openai`                                 | openai, gemini, anthropic, cohere, ollama |
-| `OPENAI_API_KEY`            | `""`                                     | OpenAI API key (for embeddings)        |
-| `GEMINI_API_KEY`            | `""`                                     | Google Gemini API key                  |
-| `ANTHROPIC_API_KEY`         | `""`                                     | Anthropic API key                      |
-| `COHERE_API_KEY`            | `""`                                     | Cohere API key                         |
+| `EMBEDDING_PROVIDER`        | `openai`                                 | openai, gemini, cohere, huggingface, ollama |
 | `OLLAMA_BASE_URL`           | `http://localhost:11434`                 | Local Ollama server URL                |
 | `EMBEDDING_MODEL`           | `""`                                     | Override default embedding model       |
-| `EMBEDDING_DIMENSION`       | `1536`                                   | Embedding vector dimension             |
+| `EMBEDDING_DIMENSION`       | `1536`                                   | Embedding vector dimension (384 for HuggingFace) |
+| `STRIPE_SECRET_KEY`         | `""`                                     | Stripe API secret key                  |
+| `STRIPE_WEBHOOK_SECRET`     | `""`                                     | Stripe webhook signing secret          |
+| `STRIPE_PRICE_ID`           | `""`                                     | Stripe price ID for premium tier       |
 | `PLATFORM_FEE_RATE`         | `0.10`                                   | Platform commission (10%)              |
 | `DEFAULT_CREDITS_BONUS`     | `100.0`                                  | New user signup bonus                  |
 | `RATE_LIMIT_REQUESTS`       | `100`                                    | Max requests per window                |
@@ -425,6 +428,8 @@ ruff check src/ tests/
 | `LOG_FORMAT`                | `json`                                   | `json` (production) or `text` (dev)    |
 | `FORCE_HTTPS`               | `false`                                  | Enable HTTPS redirect middleware       |
 | `PORT`                      | `8080`                                   | Server port (Cloud Run default)        |
+
+> **Note:** Embedding provider API keys (`OPENAI_API_KEY`, `GEMINI_API_KEY`, etc.) are no longer server-level configuration. Users supply their own keys via the `PUT /api/v1/llm-keys/{provider}` endpoint, stored encrypted with Fernet.
 
 ---
 
@@ -438,5 +443,5 @@ ruff check src/ tests/
 ### Architectural Notes
 
 - **Rate limiter is in-memory**: Each process maintains its own state. Suitable for single-instance or low-instance deployments (Cloud Run 0-3 instances). For multi-instance deployments, consider Redis-backed rate limiting.
-- **Embeddings fallback**: When no embedding API key is configured, the system uses deterministic fake embeddings. Semantic search quality depends on a real provider being configured.
+- **Embeddings (BYOK)**: Platform API keys have been removed. Users supply their own embedding keys via the `/llm-keys` API. Free-tier users get 50 embedding requests/day; premium users get unlimited. When no key is configured, semantic search gracefully degrades to keyword search. Supported providers: OpenAI, Gemini, Cohere, HuggingFace (`BAAI/bge-small-en-v1.5`, 384 dims), Ollama (local).
 - **No Alembic auto-migration on startup**: `init_db()` uses `create_all()` which only creates missing tables. For schema changes, run `alembic upgrade head` manually.
