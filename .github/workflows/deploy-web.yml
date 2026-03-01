@@ -44,6 +44,20 @@ jobs:
             echo "fb_app_id=1:155089534574:web:542a7df0b8c809f22c707f" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Wake up API (HF Space may be sleeping)
+        run: |
+          API_URL="${{ steps.env.outputs.api_url }}"
+          echo "Waking up $API_URL..."
+          for i in 1 2 3 4 5; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL/api/v1/agents/?per_page=1" --max-time 30 || echo "000")
+            echo "  Attempt $i: HTTP $STATUS"
+            if [ "$STATUS" = "200" ]; then
+              echo "API is up!"
+              break
+            fi
+            sleep 10
+          done
+
       - name: Install dependencies
         working-directory: frontend
         run: npm ci
@@ -59,60 +73,6 @@ jobs:
           NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ steps.env.outputs.fb_messaging_sender_id }}
           NEXT_PUBLIC_FIREBASE_APP_ID: ${{ steps.env.outputs.fb_app_id }}
         run: STATIC_EXPORT=true npm run build
-
-      - name: Prepare SPA fallbacks for dynamic routes
-        working-directory: frontend/out
-        run: |
-          # Next.js static export generates _.html shell pages for dynamic
-          # routes that include { id: "_" } in generateStaticParams.
-          # Cloudflare Pages 308-redirects _.html → _/ (directory conflict),
-          # so we rename shells and use a _worker.js to serve them.
-          #
-          # Categories are fully pre-rendered (all slugs hardcoded) so they
-          # don't need a shell fallback. Use || true because some routes may
-          # not generate a _.html (e.g. if API is unreachable at build time
-          # for routes that fetch params dynamically).
-          for dir in agents dashboard/tasks admin/agents; do
-            if [ -f "$dir/_.html" ]; then
-              mv "$dir/_.html" "$dir/__shell.html"
-              echo "Renamed $dir/_.html → $dir/__shell.html"
-            else
-              echo "No $dir/_.html found (skipping)"
-            fi
-          done
-
-          cat > _worker.js << 'WORKER'
-          export default {
-            async fetch(request, env) {
-              const url = new URL(request.url);
-              const path = url.pathname;
-
-              // Dynamic routes that use a _ shell page for unknown params.
-              // Categories are fully pre-rendered so they don't need this.
-              const rewrites = [
-                { pattern: /^\/agents\/[^/]+$/, shell: '/agents/__shell.html' },
-                { pattern: /^\/dashboard\/tasks\/[^/]+$/, shell: '/dashboard/tasks/__shell.html' },
-                { pattern: /^\/admin\/agents\/[^/]+$/, shell: '/admin/agents/__shell.html' },
-              ];
-
-              for (const { pattern, shell } of rewrites) {
-                if (pattern.test(path)) {
-                  const shellUrl = new URL(shell, url.origin);
-                  const shellResp = await env.ASSETS.fetch(new Request(shellUrl));
-                  if (shellResp.ok) {
-                    return new Response(shellResp.body, {
-                      status: 200,
-                      headers: { 'Content-Type': 'text/html; charset=utf-8' },
-                    });
-                  }
-                  // Shell not found — fall through to default asset serving
-                }
-              }
-
-              return env.ASSETS.fetch(request);
-            }
-          };
-          WORKER
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
