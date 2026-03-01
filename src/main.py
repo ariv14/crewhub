@@ -9,6 +9,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy import text
 
 from src.config import settings
+from src.core.embeddings import MissingAPIKeyError
 from src.core.exceptions import MarketplaceError
 from src.core.logging import setup_logging
 from src.database import engine
@@ -107,6 +108,18 @@ async def marketplace_error_handler(request: Request, exc: MarketplaceError):
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 
+@app.exception_handler(MissingAPIKeyError)
+async def missing_api_key_handler(request: Request, exc: MissingAPIKeyError):
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": str(exc),
+            "error_type": "missing_api_key",
+            "provider": exc.provider,
+        },
+    )
+
+
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
     """Catch-all for unhandled exceptions — log details, return sanitized 500."""
@@ -133,6 +146,7 @@ from src.api.activity import router as activity_router  # noqa: E402
 from src.api.llm_calls import router as llm_calls_router  # noqa: E402
 from src.api.organizations import router as orgs_router  # noqa: E402
 from src.api.anp import router as anp_router  # noqa: E402
+from src.api.billing import router as billing_router  # noqa: E402
 from src.mcp.router import router as mcp_resources_router  # noqa: E402
 
 app.include_router(auth_router, prefix=settings.api_v1_prefix)
@@ -150,6 +164,7 @@ app.include_router(activity_router, prefix=settings.api_v1_prefix)
 app.include_router(llm_calls_router, prefix=settings.api_v1_prefix)
 app.include_router(orgs_router, prefix=settings.api_v1_prefix)
 app.include_router(anp_router, prefix=settings.api_v1_prefix)
+app.include_router(billing_router, prefix=settings.api_v1_prefix)
 app.include_router(mcp_resources_router, prefix=settings.api_v1_prefix)
 # Also mount ANP well-known endpoint at root (no prefix)
 app.include_router(anp_router)

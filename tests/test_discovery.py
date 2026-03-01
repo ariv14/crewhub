@@ -26,6 +26,7 @@ async def test_keyword_search(client: AsyncClient, auth_headers: dict):
     search_resp = await client.post(
         "/api/v1/discover/",
         json={"query": "legal", "mode": "keyword"},
+        headers=auth_headers,
     )
     assert search_resp.status_code == 200
 
@@ -67,6 +68,7 @@ async def test_search_by_category(client: AsyncClient, auth_headers: dict):
     search_resp = await client.post(
         "/api/v1/discover/",
         json={"query": "assistant", "mode": "keyword", "category": "legal"},
+        headers=auth_headers,
     )
     assert search_resp.status_code == 200
 
@@ -82,11 +84,12 @@ async def test_search_by_category(client: AsyncClient, auth_headers: dict):
 # ------------------------------------------------------------------
 
 @pytest.mark.asyncio
-async def test_search_no_results(client: AsyncClient):
+async def test_search_no_results(client: AsyncClient, auth_headers: dict):
     """Searching for a completely nonexistent term should return empty matches."""
     search_resp = await client.post(
         "/api/v1/discover/",
         json={"query": "xyzzy_nonexistent_term_12345", "mode": "keyword"},
+        headers=auth_headers,
     )
     assert search_resp.status_code == 200
 

@@ -36,3 +36,4 @@ class DiscoveryResponse(BaseModel):
     matches: list[AgentMatch]
     total_candidates: int
     query_time_ms: float
+    hint: str | None = None

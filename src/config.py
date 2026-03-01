@@ -26,12 +26,9 @@ class Settings(BaseSettings):
     webhook_secret: str = ""
 
     # Embedding provider: "openai", "gemini", "anthropic", "cohere", "ollama"
-    # Falls back to deterministic fake embeddings when no API key is set.
+    # Users must provide their own API key via Settings > LLM Keys (BYOK).
+    # Ollama runs locally and requires no key.
     embedding_provider: str = "openai"
-    openai_api_key: str = ""
-    gemini_api_key: str = ""
-    anthropic_api_key: str = ""
-    cohere_api_key: str = ""
     ollama_base_url: str = "http://localhost:11434"  # Local Ollama
 
     # Embedding model overrides (sensible defaults per provider)
@@ -39,6 +36,15 @@ class Settings(BaseSettings):
 
     # Embedding dimension (must match the chosen model)
     embedding_dimension: int = 1536
+
+    # Stripe (self-serve premium tier subscription)
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+    stripe_price_id: str = ""  # Stripe Price ID for $9/mo premium plan
+    premium_monthly_price: int = 900  # cents ($9.00)
+
+    # Frontend URL for Stripe redirect callbacks
+    frontend_url: str = "http://localhost:3000"
 
     # Platform
     platform_fee_rate: float = 0.10  # 10% commission
@@ -104,6 +110,16 @@ if not _IN_TESTS and settings.secret_key == _DEFAULT_SECRET:
             file=sys.stderr,
         )
         sys.exit(1)
+
+# CRIT-SEC: Fail if STRIPE_WEBHOOK_SECRET is unset when Stripe is configured
+if not _IN_TESTS and not settings.debug and settings.stripe_secret_key and not settings.stripe_webhook_secret:
+    print(
+        "FATAL: STRIPE_WEBHOOK_SECRET is not set but STRIPE_SECRET_KEY is configured. "
+        "Stripe webhooks will fail and subscription state will not update. "
+        "Set the STRIPE_WEBHOOK_SECRET environment variable.",
+        file=sys.stderr,
+    )
+    sys.exit(1)
 
 # CRIT-SEC: Fail if WEBHOOK_SECRET is unset in production mode
 if not _IN_TESTS and not settings.debug and not settings.webhook_secret:

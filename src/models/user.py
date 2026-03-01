@@ -21,6 +21,17 @@ class User(Base):
     firebase_uid: Mapped[Optional[str]] = mapped_column(
         String(128), unique=True, nullable=True, index=True
     )
+    # Account tier: "free" (rate-limited) or "premium" (unlimited)
+    account_tier: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="free", server_default="free"
+    )
+    # Stripe billing
+    stripe_customer_id: Mapped[Optional[str]] = mapped_column(
+        String(255), unique=True, nullable=True, index=True
+    )
+    stripe_subscription_id: Mapped[Optional[str]] = mapped_column(
+        String(255), nullable=True
+    )
     api_key_hash: Mapped[Optional[str]] = mapped_column(
         String(64), unique=True, nullable=True, index=True
     )
