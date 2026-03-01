@@ -4,7 +4,7 @@ import AgentDetailClient from "./agent-detail-client";
 export const dynamicParams = false;
 
 export async function generateStaticParams() {
-  const url = `${API_V1}/agents/?per_page=200`;
+  const url = `${API_V1}/agents/?per_page=100`;
   console.log(`[generateStaticParams] Fetching agents from: ${url}`);
   try {
     const res = await fetch(url);

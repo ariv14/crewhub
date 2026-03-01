@@ -5,7 +5,7 @@ export const dynamicParams = false;
 
 export async function generateStaticParams() {
   try {
-    const res = await fetch(`${API_V1}/agents/?per_page=200`);
+    const res = await fetch(`${API_V1}/agents/?per_page=100`);
     if (res.ok) {
       const data = await res.json();
       const agents: { id: string }[] = (data.agents ?? data).map(
