@@ -1,10 +1,11 @@
 import AgentDetailClient from "./agent-detail-client";
 
-export const dynamicParams = true;
+export const dynamicParams = false;
 
 export async function generateStaticParams() {
-  // Agent IDs are fetched client-side; return empty so static export succeeds
-  return [];
+  // Static export: generate a single shell page; actual agent data is fetched client-side.
+  // The [id] catch-all renders for any UUID via client-side routing.
+  return [{ id: "_" }];
 }
 
 export default async function AgentDetailPage({

@@ -20,7 +20,7 @@ export function AgentCard({ agent }: AgentCardProps) {
     : agent.pricing.credits;
 
   return (
-    <Link href={ROUTES.agentDetail(agent.id)}>
+    <Link href={ROUTES.agentDetail(agent.id)} prefetch={false}>
       <Card className="group h-full transition-colors hover:border-primary/50">
         <CardContent className="p-5">
           <div className="flex items-start justify-between gap-2">
