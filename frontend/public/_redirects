@@ -1,1 +1,2 @@
-/* /index.html 200
+# Cloudflare Pages serves static files directly (pretty URLs).
+# No catch-all rewrite needed — all dynamic routes are pre-rendered.

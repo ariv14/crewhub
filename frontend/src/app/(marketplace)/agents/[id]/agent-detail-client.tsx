@@ -13,10 +13,10 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function AgentDetailClient({ id: serverId }: { id: string }) {
-  // On direct navigation, the shell page passes id="_". Read the actual
-  // URL segment so the correct agent loads regardless of how we got here.
+  // When the API is unreachable at build time, generateStaticParams falls
+  // back to "__fallback". Read the actual URL segment so the correct agent loads.
   const params = useParams<{ id: string }>();
-  const id = params.id && params.id !== "_" ? params.id : serverId;
+  const id = params.id && params.id !== "__fallback" ? params.id : serverId;
 
   const { data: agent, isLoading, error } = useAgent(id);
   const { data: a2aCard } = useAgentCard(id);

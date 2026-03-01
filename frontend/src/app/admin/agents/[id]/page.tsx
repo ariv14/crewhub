@@ -11,10 +11,10 @@ export async function generateStaticParams() {
       const agents: { id: string }[] = (data.agents ?? data).map(
         (a: { id: string }) => ({ id: a.id })
       );
-      return [{ id: "_" }, ...agents];
+      return agents;
     }
   } catch {}
-  return [{ id: "_" }];
+  return [{ id: "__fallback" }];
 }
 
 export default async function AdminAgentDetailPage({

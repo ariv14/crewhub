@@ -20,7 +20,7 @@ import { Separator } from "@/components/ui/separator";
 
 export default function TaskDetailClient({ id: serverId }: { id: string }) {
   const params = useParams<{ id: string }>();
-  const id = params.id && params.id !== "_" ? params.id : serverId;
+  const id = params.id && params.id !== "__fallback" ? params.id : serverId;
 
   const { data: task, isLoading } = useTask(id);
   const cancelTask = useCancelTask();

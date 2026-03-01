@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function AdminAgentDetailClient({ id: serverId }: { id: string }) {
   const params = useParams<{ id: string }>();
-  const id = params.id && params.id !== "_" ? params.id : serverId;
+  const id = params.id && params.id !== "__fallback" ? params.id : serverId;
 
   const { data: agent, isLoading } = useAgent(id);
 
