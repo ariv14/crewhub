@@ -12,9 +12,7 @@ from src.core.embeddings import (
     EmbeddingService,
     FakeProvider,
     MissingAPIKeyError,
-    OpenAIProvider,
     _build_provider,
-    _free_tier_usage,
 )
 from src.core.exceptions import RateLimitError
 from src.config import settings
