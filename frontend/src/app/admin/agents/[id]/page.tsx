@@ -1,7 +1,9 @@
 import AdminAgentDetailClient from "./admin-agent-detail-client";
 
-export function generateStaticParams() {
-  return [];
+export const dynamicParams = false;
+
+export async function generateStaticParams() {
+  return [{ id: "_" }];
 }
 
 export default async function AdminAgentDetailPage({

@@ -1,11 +1,16 @@
-export function generateStaticParams() {
-  return [];
+import CategoryClient from "./category-client";
+
+export const dynamicParams = false;
+
+export async function generateStaticParams() {
+  return [{ slug: "_" }];
 }
 
-export default function CategoryPage() {
-  return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="text-2xl font-bold">Category</h1>
-    </div>
-  );
+export default async function CategoryPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  return <CategoryClient slug={slug} />;
 }
