@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { FileQuestion } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +13,8 @@ export default function NotFound() {
         The page you&apos;re looking for doesn&apos;t exist or has been moved.
       </p>
       <div className="flex gap-3">
-        <Button asChild>
+        <Button onClick={() => window.location.reload()}>Try again</Button>
+        <Button asChild variant="outline">
           <Link href="/">Home</Link>
         </Button>
         <Button variant="outline" asChild>

@@ -45,7 +45,18 @@ export default function CreditsPage() {
           <Skeleton className="h-40" />
         ) : balance ? (
           <BalanceCard balance={balance} />
-        ) : null}
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Balance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Unable to load balance. Please try again later.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>

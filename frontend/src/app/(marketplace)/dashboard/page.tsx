@@ -25,7 +25,9 @@ export default function DashboardPage() {
   }, [user, router]);
   const { data: balance } = useBalance();
   const { data: tasks } = useTasks();
-  const { data: agents } = useAgents();
+  const { data: agents } = useAgents(
+    user ? { owner_id: user.id } : undefined
+  );
 
   const activeTasks =
     tasks?.tasks.filter((t) =>

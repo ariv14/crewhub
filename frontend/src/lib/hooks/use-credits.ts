@@ -14,9 +14,11 @@ export function useBalance() {
 export function useTransactions(
   params?: Parameters<typeof creditsApi.listTransactions>[0]
 ) {
+  const { user } = useAuth();
   return useQuery({
     queryKey: ["credits", "transactions", params],
     queryFn: () => creditsApi.listTransactions(params),
+    enabled: !!user,
   });
 }
 
