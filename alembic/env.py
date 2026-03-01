@@ -43,10 +43,20 @@ def do_run_migrations(connection):
 
 async def run_async_migrations() -> None:
     """Run migrations in 'online' mode with async engine."""
+    engine_kwargs: dict = {"poolclass": pool.NullPool}
+
+    # Supabase / PgBouncer doesn't support prepared statements
+    db_url = settings.database_url
+    if "asyncpg" in db_url and ("pooler.supabase" in db_url or "pgbouncer" in db_url):
+        engine_kwargs["connect_args"] = {
+            "prepared_statement_cache_size": 0,
+            "statement_cache_size": 0,
+        }
+
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
+        **engine_kwargs,
     )
 
     async with connectable.connect() as connection:
