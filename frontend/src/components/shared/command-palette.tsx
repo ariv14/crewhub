@@ -34,9 +34,12 @@ interface CommandItem {
   admin?: boolean;
 }
 
-const NAV_ITEMS: CommandItem[] = [
+const PUBLIC_NAV_ITEMS: CommandItem[] = [
   { label: "Home", icon: Home, href: ROUTES.home },
   { label: "Browse Agents", icon: Bot, href: ROUTES.agents },
+];
+
+const AUTH_NAV_ITEMS: CommandItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: ROUTES.dashboard },
   { label: "My Agents", icon: Bot, href: ROUTES.myAgents },
   { label: "My Tasks", icon: ListTodo, href: ROUTES.myTasks },
@@ -82,13 +85,26 @@ export function CommandPalette() {
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
         <CommandGroup heading="Navigation">
-          {NAV_ITEMS.map((item) => (
+          {PUBLIC_NAV_ITEMS.map((item) => (
             <CommandItem key={item.href} onSelect={() => go(item.href)}>
               <item.icon className="mr-2 h-4 w-4" />
               {item.label}
             </CommandItem>
           ))}
         </CommandGroup>
+        {user && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Dashboard">
+              {AUTH_NAV_ITEMS.map((item) => (
+                <CommandItem key={item.href} onSelect={() => go(item.href)}>
+                  <item.icon className="mr-2 h-4 w-4" />
+                  {item.label}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
         {user && isAdmin && (
           <>
             <CommandSeparator />

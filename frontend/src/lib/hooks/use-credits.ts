@@ -1,10 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as creditsApi from "../api/credits";
+import { useAuth } from "../auth-context";
 
 export function useBalance() {
+  const { user } = useAuth();
   return useQuery({
     queryKey: ["credits", "balance"],
     queryFn: creditsApi.getBalance,
+    enabled: !!user,
   });
 }
 
