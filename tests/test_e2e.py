@@ -130,6 +130,7 @@ async def test_full_marketplace_flow(client: AsyncClient, db_session):
     search_resp = await client.post(
         "/api/v1/discover/",
         json={"query": "translate", "mode": "keyword"},
+        headers=headers,
     )
     assert search_resp.status_code == 200
     search_results = search_resp.json()

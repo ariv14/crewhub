@@ -1,5 +1,6 @@
 """Discovery service -- search, recommend, and explore agents."""
 
+import logging
 import time
 from uuid import UUID
 
@@ -7,12 +8,15 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.core.embeddings import EmbeddingService
+from src.config import settings
+from src.core.embeddings import EmbeddingService, MissingAPIKeyError
 from src.models.agent import Agent, AgentStatus
 from src.models.skill import AgentSkill
 from src.models.task import Task
 from src.schemas.agent import AgentResponse
 from src.schemas.discovery import AgentMatch, DiscoveryResponse, SearchQuery
+
+logger = logging.getLogger(__name__)
 
 
 class DiscoveryService:
@@ -29,9 +33,25 @@ class DiscoveryService:
     W_LATENCY = 0.10
     W_COST = 0.10
 
-    def __init__(self, db: AsyncSession, user_id: str | None = None):
+    def __init__(
+        self,
+        db: AsyncSession,
+        user_llm_keys: dict[str, str] | None = None,
+        user_id: str | None = None,
+        account_tier: str = "free",
+    ):
         self.db = db
-        self.embeddings = EmbeddingService(user_id=user_id or "anonymous")
+        self._search_hint: str | None = None
+
+        # Resolve API key for the configured embedding provider
+        provider = settings.embedding_provider.lower()
+        api_key = (user_llm_keys or {}).get(provider)
+
+        self.embeddings = EmbeddingService(
+            api_key=api_key,
+            user_id=user_id,
+            account_tier=account_tier,
+        )
 
     # ------------------------------------------------------------------
     # Search
@@ -58,6 +78,7 @@ class DiscoveryService:
             matches=matches[: query.limit],
             total_candidates=total,
             query_time_ms=round(elapsed_ms, 2),
+            hint=self._search_hint,
         )
 
     # ------------------------------------------------------------------
@@ -101,8 +122,18 @@ class DiscoveryService:
     async def _semantic_search(
         self, query: SearchQuery
     ) -> tuple[list[Agent], int]:
-        """Generate embedding for query, compute cosine similarity against skill embeddings."""
-        query_embedding = await self.embeddings.generate(query.query)
+        """Generate embedding for query, compute cosine similarity against skill embeddings.
+
+        Gracefully degrades to keyword search if no API key is configured.
+        """
+        try:
+            query_embedding = await self.embeddings.generate(query.query)
+        except MissingAPIKeyError:
+            logger.info("No embedding API key — falling back to keyword search")
+            self._search_hint = (
+                "Configure an API key in Settings > LLM Keys for smarter semantic search."
+            )
+            return await self._keyword_search(query)
 
         # Fetch all active agents with their skills
         stmt = (

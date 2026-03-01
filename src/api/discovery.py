@@ -3,26 +3,57 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.auth import get_current_user
+from src.core.encryption import decrypt_value
 from src.database import get_db
+from src.models.user import User
 from src.schemas.discovery import DiscoveryResponse, SearchQuery
 from src.services.discovery import DiscoveryService
 
 router = APIRouter(prefix="/discover", tags=["discovery"])
 
 
+async def _resolve_user_keys(db: AsyncSession, current_user: dict) -> tuple[dict[str, str], str, str]:
+    """Resolve decrypted LLM keys, user_id, and account_tier from the current user."""
+    user_id = current_user["id"]
+    firebase_uid = current_user.get("firebase_uid")
+
+    if firebase_uid:
+        result = await db.execute(select(User).where(User.firebase_uid == firebase_uid))
+    else:
+        result = await db.execute(select(User).where(User.id == UUID(user_id)))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        return {}, str(user_id), "free"
+
+    keys: dict[str, str] = {}
+    for provider, encrypted in (user.llm_api_keys or {}).items():
+        decrypted = decrypt_value(encrypted)
+        if decrypted:
+            keys[provider] = decrypted
+
+    return keys, str(user.id), getattr(user, "account_tier", "free")
+
+
 @router.post("/", response_model=DiscoveryResponse)
 async def search_agents(
     data: SearchQuery,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ) -> DiscoveryResponse:
     """Search for agents using keyword, semantic, capability, or intent modes.
 
     Accepts a ``SearchQuery`` body with filters such as category, tags,
     latency/credit constraints, and desired input/output modes.
     """
-    service = DiscoveryService(db)
+    user_keys, user_id, account_tier = await _resolve_user_keys(db, current_user)
+    service = DiscoveryService(
+        db, user_llm_keys=user_keys, user_id=user_id, account_tier=account_tier,
+    )
     result = await service.search(query=data)
     return result
 
@@ -31,13 +62,17 @@ async def search_agents(
 async def get_recommendations(
     agent_id: UUID,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ) -> DiscoveryResponse:
     """Get agent recommendations based on a reference agent.
 
     Returns similar or complementary agents that pair well with the given
     agent for multi-step workflows.
     """
-    service = DiscoveryService(db)
+    user_keys, user_id, account_tier = await _resolve_user_keys(db, current_user)
+    service = DiscoveryService(
+        db, user_llm_keys=user_keys, user_id=user_id, account_tier=account_tier,
+    )
     matches = await service.get_recommendations(agent_id=agent_id)
     return DiscoveryResponse(
         matches=matches,

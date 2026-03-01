@@ -143,6 +143,7 @@ async def list_users(
 class UserStatusUpdate(BaseModel):
     is_active: bool | None = None
     is_admin: bool | None = None
+    account_tier: str | None = None  # "free" or "premium"
 
 
 @router.put("/users/{user_id}/status", response_model=UserResponse)
@@ -152,7 +153,7 @@ async def update_user_status(
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ) -> UserResponse:
-    """Activate/deactivate a user or grant/revoke admin (admin only)."""
+    """Activate/deactivate a user, grant/revoke admin, or set account tier (admin only)."""
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if user is None:
@@ -161,6 +162,10 @@ async def update_user_status(
         user.is_active = data.is_active
     if data.is_admin is not None:
         user.is_admin = data.is_admin
+    if data.account_tier is not None:
+        if data.account_tier not in ("free", "premium"):
+            raise HTTPException(status_code=400, detail="account_tier must be 'free' or 'premium'")
+        user.account_tier = data.account_tier
     await db.flush()
     return UserResponse.model_validate(user)
 

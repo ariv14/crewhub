@@ -37,6 +37,12 @@ class Settings(BaseSettings):
     # Embedding dimension (must match the chosen model)
     embedding_dimension: int = 1536
 
+    # Stripe (self-serve premium tier subscription)
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+    stripe_price_id: str = ""  # Stripe Price ID for $9/mo premium plan
+    premium_monthly_price: int = 900  # cents ($9.00)
+
     # Platform
     platform_fee_rate: float = 0.10  # 10% commission
     default_credits_bonus: float = 100.0  # New user bonus
