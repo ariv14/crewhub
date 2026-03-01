@@ -1,3 +1,7 @@
+export function generateStaticParams() {
+  return [];
+}
+
 export default function CategoryPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
