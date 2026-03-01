@@ -36,12 +36,17 @@ def _get_stripe():
         raise HTTPException(status_code=503, detail="Stripe SDK not installed")
 
 
-async def _get_user(db: AsyncSession, current_user: dict) -> User:
+async def _get_user(
+    db: AsyncSession, current_user: dict, *, for_update: bool = False
+) -> User:
     firebase_uid = current_user.get("firebase_uid")
     if firebase_uid:
-        result = await db.execute(select(User).where(User.firebase_uid == firebase_uid))
+        stmt = select(User).where(User.firebase_uid == firebase_uid)
     else:
-        result = await db.execute(select(User).where(User.id == UUID(current_user["id"])))
+        stmt = select(User).where(User.id == UUID(current_user["id"]))
+    if for_update:
+        stmt = stmt.with_for_update()
+    result = await db.execute(stmt)
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -64,7 +69,7 @@ async def create_checkout_session(
 ) -> CheckoutResponse:
     """Create a Stripe Checkout session for premium subscription ($9/mo)."""
     stripe = _get_stripe()
-    user = await _get_user(db, current_user)
+    user = await _get_user(db, current_user, for_update=True)
 
     if user.account_tier == "premium":
         raise HTTPException(status_code=400, detail="Already on premium tier")
@@ -85,8 +90,8 @@ async def create_checkout_session(
     checkout_params = {
         "customer": customer_id,
         "mode": "subscription",
-        "success_url": "http://localhost:3000/dashboard/settings?upgrade=success",
-        "cancel_url": "http://localhost:3000/dashboard/settings?upgrade=cancelled",
+        "success_url": f"{settings.frontend_url}/dashboard/settings?upgrade=success",
+        "cancel_url": f"{settings.frontend_url}/dashboard/settings?upgrade=cancelled",
         "metadata": {"crewhub_user_id": str(user.id)},
     }
 
@@ -134,7 +139,7 @@ async def create_portal_session(
 
     session = stripe.billing_portal.Session.create(
         customer=user.stripe_customer_id,
-        return_url="http://localhost:3000/dashboard/settings",
+        return_url=f"{settings.frontend_url}/dashboard/settings",
     )
     return PortalResponse(portal_url=session.url)
 
@@ -193,7 +198,7 @@ async def stripe_webhook(
         event = stripe.Webhook.construct_event(
             payload, sig_header, settings.stripe_webhook_secret
         )
-    except (ValueError, stripe.error.SignatureVerificationError):
+    except (ValueError, stripe.SignatureVerificationError):
         raise HTTPException(status_code=400, detail="Invalid webhook signature")
 
     event_type = event["type"]

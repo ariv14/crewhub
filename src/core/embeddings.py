@@ -44,11 +44,18 @@ class MissingAPIKeyError(Exception):
 # ---------------------------------------------------------------------------
 
 _FREE_TIER_MAX_PER_DAY = 50
+# NOTE: In-memory counter works for single-process deployments.
+# For multi-instance (Cloud Run, k8s), replace with Redis INCR + EXPIRE.
 _free_tier_usage: dict[str, list[float]] = {}
 
 
-def _check_free_tier_rate_limit(user_id: str) -> None:
-    """Rate-limit free-tier users to 50 embedding requests per day."""
+def _check_free_tier_rate_limit(user_id: str, count: int = 1) -> None:
+    """Rate-limit free-tier users to 50 embedding requests per day.
+
+    Args:
+        user_id: User identifier for rate tracking.
+        count: Number of requests to consume (e.g., batch size).
+    """
     now = time.time()
     day_ago = now - 86400
 
@@ -57,13 +64,13 @@ def _check_free_tier_rate_limit(user_id: str) -> None:
 
     _free_tier_usage[user_id] = [t for t in _free_tier_usage[user_id] if t > day_ago]
 
-    if len(_free_tier_usage[user_id]) >= _FREE_TIER_MAX_PER_DAY:
+    if len(_free_tier_usage[user_id]) + count > _FREE_TIER_MAX_PER_DAY:
         raise RateLimitError(
             f"Free tier embedding limit reached ({_FREE_TIER_MAX_PER_DAY}/day). "
             "Upgrade to premium for unlimited usage, or wait until tomorrow."
         )
 
-    _free_tier_usage[user_id].append(now)
+    _free_tier_usage[user_id].extend([now] * count)
 
 
 # ---------------------------------------------------------------------------
@@ -336,15 +343,15 @@ class EmbeddingService:
     def provider_name(self) -> str:
         return type(self._provider).__name__.replace("Provider", "").lower()
 
-    def _check_rate_limit(self) -> None:
+    def _check_rate_limit(self, count: int = 1) -> None:
         """Enforce free-tier daily rate limit (skip for premium, local, or no user)."""
         if self._is_local or self._account_tier == "premium" or not self._user_id:
             return
-        _check_free_tier_rate_limit(self._user_id)
+        _check_free_tier_rate_limit(self._user_id, count)
 
     async def generate(self, text: str) -> list[float]:
         """Generate an embedding for a single text."""
-        self._check_rate_limit()
+        self._check_rate_limit(1)
         results = await self._provider.embed([text])
         return results[0]
 
@@ -352,7 +359,7 @@ class EmbeddingService:
         """Generate embeddings for multiple texts."""
         if not texts:
             return []
-        self._check_rate_limit()
+        self._check_rate_limit(len(texts))
         return await self._provider.embed(texts)
 
     @classmethod
