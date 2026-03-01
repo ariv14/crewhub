@@ -63,16 +63,42 @@ jobs:
       - name: Prepare SPA fallbacks for dynamic routes
         working-directory: frontend/out
         run: |
-          # Next.js static export only pre-renders shell pages (_.html) for
-          # dynamic routes. Direct navigation to /agents/<uuid> or
-          # /categories/<slug> hits Cloudflare's 404 handler because no
-          # static file exists at that path.
-          #
-          # Fix: Replace 404.html with the root index.html (full app shell).
-          # The Next.js client-side router reads window.location and renders
-          # the correct page. This preserves proper 404 UX because the
-          # Next.js not-found boundary still triggers for truly invalid routes.
-          cp index.html 404.html
+          # Next.js static export generates shell pages as _.html for dynamic
+          # [id]/[slug] routes. Cloudflare Pages cannot wildcard-match, and
+          # _redirects rewrites are unreliable. Instead, we add a _worker.js
+          # that intercepts 404s for known dynamic route patterns and serves
+          # the correct shell page.
+          cat > _worker.js << 'WORKER'
+          export default {
+            async fetch(request, env) {
+              const url = new URL(request.url);
+              const path = url.pathname;
+
+              // Try serving the static asset first
+              const asset = await env.ASSETS.fetch(request);
+              if (asset.status !== 404) return asset;
+
+              // Dynamic route patterns → serve the shell page
+              const rewrites = [
+                { pattern: /^\/agents\/[^/]+$/, shell: '/agents/_.html' },
+                { pattern: /^\/categories\/[^/]+$/, shell: '/categories/_.html' },
+                { pattern: /^\/dashboard\/tasks\/[^/]+$/, shell: '/dashboard/tasks/_.html' },
+                { pattern: /^\/admin\/agents\/[^/]+$/, shell: '/admin/agents/_.html' },
+              ];
+
+              for (const { pattern, shell } of rewrites) {
+                if (pattern.test(path)) {
+                  const shellUrl = new URL(shell, url.origin);
+                  const shellReq = new Request(shellUrl, request);
+                  return env.ASSETS.fetch(shellReq);
+                }
+              }
+
+              // No match — return the original 404
+              return asset;
+            }
+          };
+          WORKER
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
