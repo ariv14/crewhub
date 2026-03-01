@@ -7,8 +7,12 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install build tool + dependencies first (better layer caching)
+# Install heavy dependencies first in separate layers (avoids builder timeout)
 RUN pip install --no-cache-dir hatchling
+RUN pip install --no-cache-dir firebase-admin litellm
+RUN pip install --no-cache-dir cryptography PyNaCl "bcrypt<4.1"
+
+# Install remaining deps via pyproject.toml
 COPY pyproject.toml README.md ./
 COPY src/__init__.py src/__init__.py
 RUN pip install --no-cache-dir .
