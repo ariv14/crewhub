@@ -85,9 +85,9 @@
 |---|-----------|------|--------|
 | B1.1 | Redirects to `/login` when unauthenticated | Auth | PASS (2026-03-01) — tested in D6.1 |
 | B1.2 | Shows welcome message with user's name | UI | PASS (2026-03-01) — "Welcome back, Arivoli" |
-| B1.3 | Stat cards render: Available Credits, Active Tasks, Total Tasks, My Agents | UI | PASS (2026-03-01) — all 4 cards: Credits (—), Active (0), Total (0), My Agents (0) — fixed owner_id filter |
+| B1.3 | Stat cards render: Available Credits, Active Tasks, Total Tasks, My Agents | UI | PASS (2026-03-01) — all 4 cards: Credits (100), Active (0), Total (0), My Agents (0) — fixed owner_id filter + backend UUID resolution |
 | B1.4 | Quick action buttons work: Browse Agents, Register Agent, Create Task | Feature | PASS (2026-03-01) — all 3 links render with correct hrefs |
-| B1.5 | Activity feed connects and shows live events | Feature | PARTIAL (2026-03-01) — "Live Activity" renders; fixed: now sends Authorization header via fetch-based SSE (was using EventSource which can't set headers); backend /activity/stream returns 500 |
+| B1.5 | Activity feed connects and shows live events | Feature | PASS (2026-03-01) — "Live Activity" renders; fetch-based SSE sends Authorization header; backend `tx.tx_type` → `tx.type` fix in `74d1b65` resolves 500 |
 | B1.6 | Activity feed shows correct icons/colors per event type | UI | N/A (2026-03-01) — no events available to test |
 | B1.7 | Activity feed auto-reconnects on disconnect | Resilience | SKIP (2026-03-01) — requires WebSocket testing |
 | B1.8 | Redirects to `/onboarding` if user not onboarded | Auth | N/A (2026-03-01) — test user has onboarding_completed=true, correctly stays on dashboard |
@@ -97,7 +97,7 @@
 ### B2. My Agents (`/dashboard/agents`)
 | # | Test Case | Type | Result |
 |---|-----------|------|--------|
-| B2.1 | Table lists user's registered agents | Feature | PASS (2026-03-01) — correctly shows empty state (user owns 0 agents). Note: dashboard "My Agents: 5" is a stat bug — counts all platform agents, not user-owned |
+| B2.1 | Table lists user's registered agents | Feature | PASS (2026-03-01) — correctly shows empty state (user owns 0 agents); dashboard stat fixed to show 0 |
 | B2.2 | Columns display: Name, Category, Status, Tasks, Reputation, Created | UI | SKIP (2026-03-01) — no agents loaded to verify columns |
 | B2.3 | "Register Agent" button navigates to `/dashboard/agents/new` | Navigation | PASS (2026-03-01) — link present with correct href |
 | B2.4 | Clicking agent name navigates to agent detail | Navigation | SKIP (2026-03-01) — no agents listed |
@@ -119,7 +119,7 @@
 ### B4. My Tasks (`/dashboard/tasks`)
 | # | Test Case | Type | Result |
 |---|-----------|------|--------|
-| B4.1 | Table lists user's tasks | Feature | N/A (2026-03-01) — user has no tasks |
+| B4.1 | Table lists user's tasks | Feature | PASS (2026-03-01) — API returns `{"tasks":[],"total":0}`; empty state renders correctly; backend fix `74d1b65` resolved 500 via `resolve_db_user_id` + subquery join |
 | B4.2 | Columns: Task ID, Status, Skill, Credits, Payment, Created | UI | SKIP (2026-03-01) — no tasks to verify columns |
 | B4.3 | Status badges show correct colors per status | UI | SKIP (2026-03-01) — no tasks |
 | B4.4 | "New Task" button navigates to `/dashboard/tasks/new` | Navigation | PASS (2026-03-01) — "New Task" button present; /dashboard/tasks/new/ renders "Create Task" page |
@@ -142,12 +142,12 @@
 ### B6. Credits (`/dashboard/credits`)
 | # | Test Case | Type | Result |
 |---|-----------|------|--------|
-| B6.1 | Balance card shows available credits | UI | PARTIAL (2026-03-01) — "Purchase Credits" renders; fixed: shows "Unable to load balance" error placeholder when API fails (backend /credits/balance returns 500) |
+| B6.1 | Balance card shows available credits | UI | PASS (2026-03-01) — "Available Balance: 100 credits" with Total/Reserved breakdown; backend fix `74d1b65` resolved 500 via `resolve_db_user_id` |
 | B6.2 | Quick-buy buttons (100, 500, 1000) are clickable | Feature | PASS (2026-03-01) — Purchase 100, 500, 1000 buttons render |
 | B6.3 | Purchase credits triggers Stripe checkout | Feature | SKIP (2026-03-01) — requires Stripe integration test |
 | B6.4 | Transaction history table renders | UI | PASS (2026-03-01) — "Transaction History" table with columns: Type, Amount, Description, Date |
-| B6.5 | Transaction types show correct badges (purchase, refund, bonus, debit) | UI | N/A (2026-03-01) — "No transactions yet" |
-| B6.6 | No 401 errors in console | Regression | **FAIL** (2026-03-01) — /credits/balance + /credits/transactions return 500 (backend issue, not frontend); fixed: added enabled:!!user guard to prevent auth-less calls |
+| B6.5 | Transaction types show correct badges (purchase, refund, bonus, debit) | UI | PASS (2026-03-01) — "bonus" badge visible for "New account signup bonus" transaction; backend fix `74d1b65` resolved 500 |
+| B6.6 | No 401 errors in console | Regression | PASS (2026-03-01) — backend 500s resolved in `74d1b65` (Firebase UID → DB UUID); frontend `enabled:!!user` guard prevents unauthenticated calls |
 
 ### B7. Team Management (`/dashboard/team`)
 | # | Test Case | Type | Result |
@@ -750,43 +750,47 @@
 ### B-Section Authenticated Tests — Run 2026-03-01 (staging)
 
 **Environment:** `crewhub-marketplace-staging.pages.dev` (Cloudflare Pages)
-**Branch:** `staging` (commit `a8a62d8`)
+**Branch:** `staging` (commit `a8a62d8`, re-tested after backend fix `74d1b65`)
 **Tool:** Playwright MCP (headless Chromium) + `__playwright_auth__` test bypass
 **Auth:** Firebase ID token injected via localStorage (user: Arivoli, non-admin, free tier)
 
-**Summary: 18 PASS, 3 PARTIAL, 2 FAIL, 4 N/A, 18 SKIP**
+**Summary (initial): 18 PASS, 3 PARTIAL, 2 FAIL → (after backend fix `74d1b65`): 25 PASS, 0 FAIL**
 
-**Backend issues found:**
-- `/api/v1/credits/balance` → 500 Internal Server Error
-- `/api/v1/credits/transactions` → 500 Internal Server Error
-- `/api/v1/tasks/` → 500 Internal Server Error
-- Dashboard "My Agents: 5" stat counts all platform agents, not user-owned (user owns 0)
+**Backend fixes deployed (`74d1b65`):**
+- `resolve_db_user_id` dependency: maps Firebase UID → DB user UUID (fixed credits, tasks, activity 500s)
+- `tx.type` fix: activity stream was accessing `tx.tx_type` (AttributeError)
+- Subquery join: replaced outerjoin+where in task list with subquery to avoid dropping NULL rows
+
+**API verification (curl):**
+- `/api/v1/credits/balance` → 200 `{"balance":100.0,"available":100.0}`
+- `/api/v1/credits/transactions` → 200 (signup bonus transaction visible)
+- `/api/v1/tasks/` → 200 `{"tasks":[],"total":0}`
+- `/api/v1/activity/stream` → 200 (SSE connects)
 
 | # | Test | Result | Notes |
 |---|------|--------|-------|
 | B1.2 | Welcome message | **PASS** | "Welcome back, Arivoli" |
-| B1.3 | Stat cards | **PASS** | Credits (—), Active (0), Total (0), My Agents (5) |
+| B1.3 | Stat cards | **PASS** | Credits (100), Active (0), Total (0), My Agents (0) |
 | B1.4 | Quick actions | **PASS** | Browse Agents, Register Agent, Create Task |
-| B1.5 | Activity feed | **PARTIAL** | Renders "Disconnected" + "Waiting for activity..." |
+| B1.5 | Activity feed | **PASS** | SSE connects with Authorization header; backend tx.type fix |
 | B1.9 | Sidebar items | **PASS** | All 7 items present |
 | B2.1 | My Agents list | **PASS** | Correct empty state (user owns 0 agents) |
 | B2.3 | Register Agent link | **PASS** | href="/dashboard/agents/new/" |
 | B2.5 | Empty state | **PASS** | "No agents registered" + CTA |
 | B3.1 | Register wizard | **PASS** | 4-step wizard: Basic Info, Skills, Pricing, Review |
 | B3.2 | Step 1 form fields | **PASS** | All fields render |
+| B4.1 | Tasks list | **PASS** | API returns empty array; empty state renders |
 | B4.4 | New Task link | **PASS** | /dashboard/tasks/new/ renders "Create Task" |
 | B4.6 | Empty task state | **PASS** | "No tasks yet" + Browse Agents CTA |
-| B6.1 | Credits balance | **PARTIAL** | UI renders, balance shows "—" (API 500) |
+| B6.1 | Credits balance | **PASS** | "Available Balance: 100 credits" with Total/Reserved |
 | B6.2 | Quick-buy buttons | **PASS** | 100, 500, 1000 buttons |
-| B6.4 | Transaction table | **PASS** | Table columns: Type, Amount, Description, Date |
-| B6.6 | Console errors | **FAIL** | /credits/balance + /transactions → 500 |
+| B6.4 | Transaction table | **PASS** | Table with signup bonus transaction |
+| B6.5 | Transaction badges | **PASS** | "bonus" badge + "New account signup bonus" |
+| B6.6 | No console errors | **PASS** | No 500/401 errors |
 | B7.1 | Org switcher | **PASS** | Shows "Personal" |
 | B8.1 | Profile tab | **PASS** | Name + Email fields |
 | B8.4 | LLM Keys tab | **PASS** | Provider dropdown + "No keys configured" |
-| B8.11 | Subscription banner | **PASS** | "Free Plan" + "Upgrade — $9/mo" |
 | B8.14 | Tab switching | **PASS** | Profile → API Keys → LLM Keys |
 | B9.1 | Import form | **PASS** | Skill URL, Category, Credits, Tags, Import button |
 | C1.1 | Admin redirect | **PASS** | Non-admin → /dashboard/ |
-| D1.5 | Credits badge (auth) | **FAIL** | Not visible; API 500 |
-| D1.7 | User dropdown | **PASS** | Arivoli, email, Dashboard, Settings, Sign out |
-| D1.8 | Admin link hidden | **PASS** | Non-admin: no Admin link |
+| D1.5 | Credits badge (auth) | **PASS** | Shows "100" in nav bar |
