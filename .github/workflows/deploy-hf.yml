@@ -1,0 +1,75 @@
+name: Deploy to HuggingFace Spaces
+
+on:
+  push:
+    branches: [main, staging]
+    paths:
+      - "src/**"
+      - "alembic/**"
+      - "alembic.ini"
+      - "pyproject.toml"
+      - "Dockerfile.hf"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install huggingface_hub
+        run: pip install huggingface_hub
+
+      - name: Determine target Space
+        id: target
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          if [ "$BRANCH" = "main" ]; then
+            echo "space=arimatch1/crewhub" >> "$GITHUB_OUTPUT"
+          else
+            echo "space=arimatch1/crewhub-staging" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Prepare and upload to HF Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          SPACE_ID: ${{ steps.target.outputs.space }}
+        run: |
+          cp Dockerfile.hf Dockerfile
+
+          python - <<'PYEOF'
+          import os
+          from huggingface_hub import upload_folder
+
+          space_id = os.environ["SPACE_ID"]
+          upload_folder(
+              folder_path=".",
+              repo_id=space_id,
+              repo_type="space",
+              ignore_patterns=[
+                  "frontend/*",
+                  "dashboard/*",
+                  "desktop/*",
+                  "tests/*",
+                  "docs/*",
+                  "demo_agents/*",
+                  "scripts/*",
+                  "sdk/*",
+                  "workspace/*",
+                  "node_modules/*",
+                  ".github/*",
+                  ".git/*",
+                  ".playwright-mcp/*",
+                  "*.png",
+                  "*.md",
+                  "Dockerfile.hf",
+                  "package-lock.json",
+              ],
+          )
+          print(f"Deployed to https://huggingface.co/spaces/{space_id}")
+          PYEOF

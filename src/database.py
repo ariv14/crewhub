@@ -14,6 +14,11 @@ def _engine_kwargs(url: str, debug: bool) -> dict:
         kwargs["max_overflow"] = 20
         kwargs["pool_pre_ping"] = True
         kwargs["pool_recycle"] = 3600
+
+    # Supabase / PgBouncer in transaction mode doesn't support prepared statements
+    if "asyncpg" in url and ("pooler.supabase" in url or "pgbouncer" in url):
+        kwargs["connect_args"] = {"prepared_statement_cache_size": 0,
+                                  "statement_cache_size": 0}
     return kwargs
 
 
