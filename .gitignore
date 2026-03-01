@@ -39,7 +39,7 @@ Thumbs.db
 
 # Node (SDK/tooling)
 node_modules/
-package-lock.json
+# package-lock.json — tracked for CI reproducibility
 
 # Firebase
 firebase-debug.log
