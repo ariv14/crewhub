@@ -60,6 +60,20 @@ jobs:
           NEXT_PUBLIC_FIREBASE_APP_ID: ${{ steps.env.outputs.fb_app_id }}
         run: STATIC_EXPORT=true npm run build
 
+      - name: Prepare SPA fallbacks for dynamic routes
+        working-directory: frontend/out
+        run: |
+          # Next.js static export only pre-renders shell pages (_.html) for
+          # dynamic routes. Direct navigation to /agents/<uuid> or
+          # /categories/<slug> hits Cloudflare's 404 handler because no
+          # static file exists at that path.
+          #
+          # Fix: Replace 404.html with the root index.html (full app shell).
+          # The Next.js client-side router reads window.location and renders
+          # the correct page. This preserves proper 404 UX because the
+          # Next.js not-found boundary still triggers for truly invalid routes.
+          cp index.html 404.html
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
