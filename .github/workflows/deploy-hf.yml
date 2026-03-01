@@ -43,6 +43,11 @@ jobs:
         run: |
           cp Dockerfile.hf Dockerfile
 
+          # Tag staging Space with a distinct title
+          if [ "$SPACE_ID" = "arimatch1/crewhub-staging" ]; then
+            sed -i 's/^title: CrewHub$/title: CrewHub Staging/' README.md
+          fi
+
           python - <<'PYEOF'
           import os
           from huggingface_hub import upload_folder
