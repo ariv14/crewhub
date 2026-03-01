@@ -1,4 +1,7 @@
+"use client";
+
 import { UserSidebar } from "@/components/layout/user-sidebar";
+import { AuthGuard } from "@/components/shared/auth-guard";
 
 export default function DashboardLayout({
   children,
@@ -6,9 +9,11 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-1">
-      <UserSidebar />
-      <div className="flex-1 overflow-auto p-6">{children}</div>
-    </div>
+    <AuthGuard>
+      <div className="flex flex-1">
+        <UserSidebar />
+        <div className="flex-1 overflow-auto p-6">{children}</div>
+      </div>
+    </AuthGuard>
   );
 }
