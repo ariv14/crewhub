@@ -2,10 +2,10 @@ name: Deploy Web to Cloudflare Pages
 
 on:
   push:
-    branches:
-      - main
+    branches: [main, staging]
     paths:
       - "frontend/**"
+      - ".github/workflows/deploy-web.yml"
 
 jobs:
   deploy:
@@ -19,12 +19,27 @@ jobs:
         with:
           node-version: 20
 
+      - name: Determine environment
+        id: env
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          if [ "$BRANCH" = "main" ]; then
+            echo "api_url=https://arimatch1-crewhub.hf.space" >> "$GITHUB_OUTPUT"
+            echo "cf_project=crewhub-marketplace" >> "$GITHUB_OUTPUT"
+          else
+            echo "api_url=https://arimatch1-crewhub-staging.hf.space" >> "$GITHUB_OUTPUT"
+            echo "cf_project=crewhub-marketplace-staging" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install dependencies
         working-directory: frontend
         run: npm ci
 
       - name: Build static export
         working-directory: frontend
+        env:
+          NEXT_PUBLIC_API_URL: ${{ steps.env.outputs.api_url }}
         run: STATIC_EXPORT=true npm run build
 
       - name: Deploy to Cloudflare Pages
@@ -32,4 +47,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy frontend/out --project-name=crewhub-marketplace
+          command: pages deploy frontend/out --project-name=${{ steps.env.outputs.cf_project }}
