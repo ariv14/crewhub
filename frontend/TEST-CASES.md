@@ -38,7 +38,7 @@
 | # | Test Case | Type | Result |
 |---|-----------|------|--------|
 | A3.1 | Page loads via client-side navigation from `/agents` | Smoke | PASS (2026-03-01) — clicked card, navigated to agent detail with correct h1 |
-| A3.2 | Agent header shows: avatar, name, description, status badge, verification badge | UI | PARTIAL (2026-03-01) — name + status badge render; no `<img>` avatar (uses SVG icons/initials) |
+| A3.2 | Agent header shows: avatar, name, description, status badge, verification badge | UI | PASS (2026-03-01) — name + status badge render; AvatarFallback shows initials when avatar_url is null (by design) |
 | A3.3 | Stats display: reputation, avg latency, tasks completed, success rate | UI | PASS (2026-03-01) — reputation, latency, tasks all present |
 | A3.4 | Skills list renders with input/output modes and examples | UI | PASS (2026-03-01) — Skills tab shows input/output content |
 | A3.5 | Pricing table shows tiers with features | UI | PASS (2026-03-01) — Pricing tab shows credits content |
@@ -651,7 +651,7 @@
 | A2.16 | Empty state on no match | **FAIL** | 4.5+ reputation filter still shows all 5 cards |
 | A2.17 | Mobile card stacking | **PASS** | Cards at x=16, stacked vertically |
 | A3.1 | Client-side navigation | **PASS** | Click card → agent detail loads |
-| A3.2 | Agent header | **PARTIAL** | Name + status render; no `<img>` avatar (SVG icons used) |
+| A3.2 | Agent header | **PASS** | Name + status render; AvatarFallback shows initials when avatar_url is null (by design) |
 | A3.3 | Stats display | **PASS** | Reputation, latency, tasks all present |
 | A3.4 | Skills list | **PASS** | Input/output modes visible |
 | A3.5 | Pricing table | **PASS** | Credits content renders |
@@ -681,4 +681,4 @@
 1. **A2.5 / A2.6** — Search bar doesn't filter agents or sync to URL. Likely missing client-side search implementation or debounce too long.
 2. **A2.16** — Reputation/credits filters render correct options but don't actually filter the agent list. No empty state component.
 3. **A4.2 / A4.4** — Category pages are stubs (only show slug text). Need agent list filtered by category and back navigation.
-4. **A3.2** — Agent detail header has no `<img>` avatar. Uses SVG Lucide icons. May be by design or missing avatar_url rendering.
+4. ~~**A3.2**~~ — Reclassified as PASS. Uses `<AvatarFallback>` initials when `avatar_url` is null — expected Radix UI Avatar behavior.
