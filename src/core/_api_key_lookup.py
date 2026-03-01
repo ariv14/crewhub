@@ -6,7 +6,7 @@ import hmac
 from sqlalchemy import select
 
 from src.config import settings
-from src.database import async_session
+import src.database as _db
 from src.models.user import User
 
 
@@ -25,7 +25,7 @@ async def lookup_user_by_api_key(api_key: str) -> dict | None:
     """
     key_hash = hash_api_key(api_key)
 
-    async with async_session() as session:
+    async with _db.async_session() as session:
         result = await session.execute(
             select(User).where(User.api_key_hash == key_hash, User.is_active.is_(True))
         )

@@ -13,6 +13,7 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import StaticPool
 
 from src.config import settings
 from src.database import Base, get_db
@@ -37,8 +38,10 @@ async def engine():
     _engine = create_async_engine(
         TEST_DATABASE_URL,
         echo=False,
-        # SQLite does not support pool_size / max_overflow; use StaticPool
-        # so that the same in-memory database is reused across connections.
+        # StaticPool ensures all connections share the same in-memory database.
+        # Without this, code that opens its own session (e.g. _api_key_lookup)
+        # would get a fresh empty DB and fail with "no such table".
+        poolclass=StaticPool,
         pool_pre_ping=False,
     )
 
