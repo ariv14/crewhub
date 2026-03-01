@@ -22,6 +22,7 @@ export function useActivityFeed(): UseActivityFeedReturn {
   const [events, setEvents] = useState<ActivityEvent[]>([]);
   const [connected, setConnected] = useState(false);
   const retryDelay = useRef(1000);
+  const retryCount = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
 
   const pushEvent = useCallback((data: ActivityEvent) => {
@@ -56,6 +57,7 @@ export function useActivityFeed(): UseActivityFeedReturn {
 
         setConnected(true);
         retryDelay.current = 1000;
+        retryCount.current = 0;
 
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
@@ -95,6 +97,9 @@ export function useActivityFeed(): UseActivityFeedReturn {
       } finally {
         if (!controller.signal.aborted) {
           setConnected(false);
+          retryCount.current += 1;
+          // Stop retrying after 5 failures to avoid console spam
+          if (retryCount.current > 5) return;
           const delay = Math.min(retryDelay.current, 30000);
           retryDelay.current = delay * 2;
           setTimeout(connect, delay);

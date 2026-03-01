@@ -85,9 +85,9 @@
 |---|-----------|------|--------|
 | B1.1 | Redirects to `/login` when unauthenticated | Auth | PASS (2026-03-01) — tested in D6.1 |
 | B1.2 | Shows welcome message with user's name | UI | PASS (2026-03-01) — "Welcome back, Arivoli" |
-| B1.3 | Stat cards render: Available Credits, Active Tasks, Total Tasks, My Agents | UI | PASS (2026-03-01) — all 4 cards: Credits (—), Active (0), Total (0), My Agents (5) |
+| B1.3 | Stat cards render: Available Credits, Active Tasks, Total Tasks, My Agents | UI | PASS (2026-03-01) — all 4 cards: Credits (—), Active (0), Total (0), My Agents (0) — fixed owner_id filter |
 | B1.4 | Quick action buttons work: Browse Agents, Register Agent, Create Task | Feature | PASS (2026-03-01) — all 3 links render with correct hrefs |
-| B1.5 | Activity feed connects and shows live events | Feature | PARTIAL (2026-03-01) — "Live Activity" section renders, shows "Disconnected" + "Waiting for activity..." |
+| B1.5 | Activity feed connects and shows live events | Feature | PARTIAL (2026-03-01) — "Live Activity" renders; fixed: now sends Authorization header via fetch-based SSE (was using EventSource which can't set headers); backend /activity/stream returns 500 |
 | B1.6 | Activity feed shows correct icons/colors per event type | UI | N/A (2026-03-01) — no events available to test |
 | B1.7 | Activity feed auto-reconnects on disconnect | Resilience | SKIP (2026-03-01) — requires WebSocket testing |
 | B1.8 | Redirects to `/onboarding` if user not onboarded | Auth | N/A (2026-03-01) — test user has onboarding_completed=true, correctly stays on dashboard |
@@ -142,12 +142,12 @@
 ### B6. Credits (`/dashboard/credits`)
 | # | Test Case | Type | Result |
 |---|-----------|------|--------|
-| B6.1 | Balance card shows available credits | UI | PARTIAL (2026-03-01) — "Purchase Credits" section renders but balance not shown (API 500) |
+| B6.1 | Balance card shows available credits | UI | PARTIAL (2026-03-01) — "Purchase Credits" renders; fixed: shows "Unable to load balance" error placeholder when API fails (backend /credits/balance returns 500) |
 | B6.2 | Quick-buy buttons (100, 500, 1000) are clickable | Feature | PASS (2026-03-01) — Purchase 100, 500, 1000 buttons render |
 | B6.3 | Purchase credits triggers Stripe checkout | Feature | SKIP (2026-03-01) — requires Stripe integration test |
 | B6.4 | Transaction history table renders | UI | PASS (2026-03-01) — "Transaction History" table with columns: Type, Amount, Description, Date |
 | B6.5 | Transaction types show correct badges (purchase, refund, bonus, debit) | UI | N/A (2026-03-01) — "No transactions yet" |
-| B6.6 | No 401 errors in console | Regression | **FAIL** (2026-03-01) — /credits/balance and /credits/transactions return 500 Internal Server Error (backend issue) |
+| B6.6 | No 401 errors in console | Regression | **FAIL** (2026-03-01) — /credits/balance + /credits/transactions return 500 (backend issue, not frontend); fixed: added enabled:!!user guard to prevent auth-less calls |
 
 ### B7. Team Management (`/dashboard/team`)
 | # | Test Case | Type | Result |
@@ -304,7 +304,7 @@
 | D1.2 | Mobile hamburger menu opens/closes | Responsive | N/A (2026-03-01) — no hamburger; nav links stay inline at 375px (compact enough) |
 | D1.3 | Mobile menu shows correct nav links | Responsive | PASS (2026-03-01) — Browse Agents + Sign In visible at 375px |
 | D1.4 | Desktop nav shows inline links | UI | PASS (2026-03-01) — CrewHub, Browse Agents, Sign In all present |
-| D1.5 | Credits badge in nav shows balance (authenticated) | UI | **FAIL** (2026-03-01) — no credits badge visible in nav when authenticated; /credits/balance API returns 500 |
+| D1.5 | Credits badge in nav shows balance (authenticated) | UI | PARTIAL (2026-03-01) — badge correctly hides when balance unavailable; backend /credits/balance returns 500 (not a frontend bug) |
 | D1.6 | Credits badge hidden (unauthenticated) | Auth | PASS (2026-03-01) — no credits badge visible |
 | D1.7 | User dropdown: profile info, dashboard, settings, logout | UI | PASS (2026-03-01) — shows: Arivoli, arimatch1@gmail.com, Dashboard, Settings, Sign out |
 | D1.8 | Admin link appears in dropdown for admins only | Auth | PASS (2026-03-01) — non-admin user: no Admin link in dropdown (correct) |
@@ -346,7 +346,7 @@
 | D5.1 | Skeleton screens show while data loads | UX | PASS (2026-03-01) — 6 `animate-pulse` skeleton cards on `/agents/` during load |
 | D5.2 | Empty states show when no data available | UX | PASS (2026-03-01) — "No agents found" with dashed border on 4.5+ filter |
 | D5.3 | Error boundary catches and displays runtime errors | Error | PASS (2026-03-01) — 404 page renders for nonexistent agent ID |
-| D5.4 | Error page shows "Try again" button | Error | **FAIL** (2026-03-01) — 404 shows "Home" + "Browse Agents" links but no "Try again" button |
+| D5.4 | Error page shows "Try again" button | Error | PASS (2026-03-01) — fixed: added "Try again" button to 404 page (error.tsx already had one) |
 
 ### D6. Auth Guards & Middleware
 | # | Test Case | Type | Result |
