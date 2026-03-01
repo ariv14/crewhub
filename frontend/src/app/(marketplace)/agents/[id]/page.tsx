@@ -4,22 +4,16 @@ import AgentDetailClient from "./agent-detail-client";
 export const dynamicParams = false;
 
 export async function generateStaticParams() {
-  const url = `${API_V1}/agents/?per_page=100`;
-  console.log(`[generateStaticParams] Fetching agents from: ${url}`);
   try {
-    const res = await fetch(url);
-    console.log(`[generateStaticParams] Response status: ${res.status}`);
+    const res = await fetch(`${API_V1}/agents/?per_page=100`);
     if (res.ok) {
       const data = await res.json();
       const agents: { id: string }[] = (data.agents ?? data).map(
         (a: { id: string }) => ({ id: a.id })
       );
-      console.log(`[generateStaticParams] Found ${agents.length} agents`);
       return [{ id: "_" }, ...agents];
     }
-  } catch (e) {
-    console.error(`[generateStaticParams] Error:`, e);
-  }
+  } catch {}
   return [{ id: "_" }];
 }
 
