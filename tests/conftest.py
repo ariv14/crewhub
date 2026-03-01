@@ -4,12 +4,14 @@ Uses aiosqlite for an in-memory SQLite database so that tests run
 without any external services (PostgreSQL, Redis, Qdrant, etc.).
 """
 
+import os
 import uuid
 from typing import AsyncGenerator
 
+import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import event
+from sqlalchemy import event, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from src.config import settings
@@ -244,3 +246,72 @@ async def second_auth_headers(client: AsyncClient) -> dict[str, str]:
 
     token = login.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
+
+
+# ---------------------------------------------------------------------------
+# Stripe / billing helpers
+# ---------------------------------------------------------------------------
+
+stripe_configured = pytest.mark.skipif(
+    not os.environ.get("STRIPE_SECRET_KEY"),
+    reason="STRIPE_SECRET_KEY not set",
+)
+
+
+@pytest_asyncio.fixture()
+async def premium_user_headers(
+    client: AsyncClient, db_session: AsyncSession
+) -> dict[str, str]:
+    """Register a user and set account_tier='premium' via DB."""
+    from src.models.user import User
+
+    email = _unique_email()
+    password = "PremiumPass123"
+
+    reg = await client.post(
+        "/api/v1/auth/register",
+        json={"email": email, "password": password, "name": "Premium User"},
+    )
+    assert reg.status_code == 201
+
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={"email": email, "password": password, "name": "Premium User"},
+    )
+    assert login.status_code == 200
+
+    stmt = update(User).where(User.email == email).values(account_tier="premium")
+    await db_session.execute(stmt)
+    await db_session.commit()
+
+    token = login.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest_asyncio.fixture()
+async def user_with_llm_key(
+    client: AsyncClient, auth_headers: dict[str, str]
+) -> dict[str, str]:
+    """Auth headers for a user with a pre-configured OpenAI LLM key."""
+    resp = await client.put(
+        "/api/v1/llm-keys/openai",
+        json={"provider": "openai", "api_key": "sk-test-key-for-fixture"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    return auth_headers
+
+
+# ---------------------------------------------------------------------------
+# Embedding rate-limit isolation
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(autouse=True)
+def reset_embedding_rate_limits():
+    """Clear the in-memory free-tier rate limiter between tests."""
+    from src.core.embeddings import _free_tier_usage
+
+    _free_tier_usage.clear()
+    yield
+    _free_tier_usage.clear()
