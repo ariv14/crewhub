@@ -2,6 +2,7 @@
 
 import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { useAgent } from "@/lib/hooks/use-agents";
 import { ROUTES } from "@/lib/constants";
 import { AgentDetailHeader } from "@/components/agents/agent-detail-header";
@@ -11,7 +12,10 @@ import { JsonViewer } from "@/components/shared/json-viewer";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export default function AdminAgentDetailClient({ id }: { id: string }) {
+export default function AdminAgentDetailClient({ id: serverId }: { id: string }) {
+  const params = useParams<{ id: string }>();
+  const id = params.id && params.id !== "_" ? params.id : serverId;
+
   const { data: agent, isLoading } = useAgent(id);
 
   if (isLoading || !agent) {

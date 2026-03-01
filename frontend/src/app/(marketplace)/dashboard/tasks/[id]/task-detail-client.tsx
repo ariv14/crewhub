@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ArrowLeft, Loader2, Send, XCircle } from "lucide-react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { useTask, useCancelTask, useRateTask, useSendMessage } from "@/lib/hooks/use-tasks";
 import { formatCredits, formatDate } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
@@ -17,7 +18,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
-export default function TaskDetailClient({ id }: { id: string }) {
+export default function TaskDetailClient({ id: serverId }: { id: string }) {
+  const params = useParams<{ id: string }>();
+  const id = params.id && params.id !== "_" ? params.id : serverId;
+
   const { data: task, isLoading } = useTask(id);
   const cancelTask = useCancelTask();
   const rateTask = useRateTask(id);
