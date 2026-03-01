@@ -163,11 +163,18 @@ class TaskBrokerService:
                 | (Task.provider_agent_id == agent_id)
             )
         if user_id:
-            # Tasks where the user owns either the client or provider agent
-            stmt = stmt.outerjoin(
-                Agent,
-                (Agent.id == Task.client_agent_id) | (Agent.id == Task.provider_agent_id),
-            ).where(Agent.owner_id == user_id)
+            # Tasks where the user owns either the client or provider agent.
+            # Use a subquery to find agent IDs owned by the user, then filter
+            # tasks by those IDs.  This avoids the outerjoin + where pattern
+            # that silently drops rows with NULL agent IDs.
+            from sqlalchemy import or_
+            owned_ids_sq = select(Agent.id).where(Agent.owner_id == user_id).subquery()
+            stmt = stmt.where(
+                or_(
+                    Task.client_agent_id.in_(select(owned_ids_sq.c.id)),
+                    Task.provider_agent_id.in_(select(owned_ids_sq.c.id)),
+                )
+            )
         if status:
             stmt = stmt.where(Task.status == status)
 

@@ -10,7 +10,7 @@ from decimal import Decimal
 from sqlalchemy.exc import IntegrityError
 
 from src.config import settings as app_settings
-from src.core.auth import get_current_user
+from src.core.auth import resolve_db_user_id
 from src.core.exceptions import PaymentVerificationError
 from src.core.rate_limiter import rate_limit_dependency
 from src.database import get_db
@@ -35,7 +35,7 @@ router = APIRouter(prefix="/tasks", tags=["tasks"])
 async def create_task(
     data: TaskCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    user_id: UUID = Depends(resolve_db_user_id),
 ) -> TaskResponse:
     """Create a new task for a provider agent.
 
@@ -43,7 +43,7 @@ async def create_task(
     the task to the target provider agent via the A2A protocol.
     """
     service = TaskBrokerService(db)
-    task = await service.create_task(data=data, user_id=UUID(current_user["id"]))
+    task = await service.create_task(data=data, user_id=user_id)
     return task
 
 
@@ -51,11 +51,11 @@ async def create_task(
 async def get_task(
     task_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    user_id: UUID = Depends(resolve_db_user_id),
 ) -> TaskResponse:
     """Get the current status and details of a task."""
     service = TaskBrokerService(db)
-    task = await service.get_task(task_id=task_id, user_id=UUID(current_user["id"]))
+    task = await service.get_task(task_id=task_id, user_id=user_id)
     return task
 
 
@@ -64,7 +64,7 @@ async def send_message(
     task_id: UUID,
     data: TaskMessage,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    user_id: UUID = Depends(resolve_db_user_id),
 ) -> TaskResponse:
     """Send a follow-up message to an in-progress task.
 
@@ -75,7 +75,7 @@ async def send_message(
     task = await service.send_message(
         task_id=task_id,
         message=data,
-        user_id=UUID(current_user["id"]),
+        user_id=user_id,
     )
     return task
 
@@ -84,14 +84,14 @@ async def send_message(
 async def cancel_task(
     task_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    user_id: UUID = Depends(resolve_db_user_id),
 ) -> TaskResponse:
     """Cancel a task that is still in progress.
 
     Any reserved credits are released back to the caller's account.
     """
     service = TaskBrokerService(db)
-    task = await service.cancel_task(task_id=task_id, user_id=UUID(current_user["id"]))
+    task = await service.cancel_task(task_id=task_id, user_id=user_id)
     return task
 
 
@@ -100,7 +100,7 @@ async def rate_task(
     task_id: UUID,
     data: TaskRating,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    user_id: UUID = Depends(resolve_db_user_id),
 ) -> TaskResponse:
     """Rate a completed task.
 
@@ -110,7 +110,7 @@ async def rate_task(
     service = TaskBrokerService(db)
     task = await service.rate_task(
         task_id=task_id,
-        user_id=UUID(current_user["id"]),
+        user_id=user_id,
         rating=data,
     )
     return task
@@ -123,7 +123,7 @@ async def list_tasks(
     page: int = Query(1, ge=1, description="Page number"),
     per_page: int = Query(20, ge=1, le=100, description="Items per page"),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    user_id: UUID = Depends(resolve_db_user_id),
 ) -> TaskListResponse:
     """List tasks with optional filters.
 
@@ -132,7 +132,7 @@ async def list_tasks(
     """
     service = TaskBrokerService(db)
     tasks, total = await service.list_tasks(
-        user_id=UUID(current_user["id"]),
+        user_id=user_id,
         agent_id=agent_id,
         status=status,
         page=page,
@@ -146,11 +146,11 @@ async def submit_x402_receipt(
     task_id: UUID,
     receipt: X402ReceiptSubmit,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    user_id: UUID = Depends(resolve_db_user_id),
 ) -> X402ReceiptResponse:
     """Submit an x402 payment receipt for a pending_payment task."""
     broker = TaskBrokerService(db)
-    task = await broker.get_task(task_id, user_id=UUID(current_user["id"]))
+    task = await broker.get_task(task_id, user_id=user_id)
 
     if task.status != TaskStatusModel.PENDING_PAYMENT:
         raise PaymentVerificationError(
