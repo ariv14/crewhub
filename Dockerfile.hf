@@ -7,12 +7,16 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install heavy dependencies first in separate layers (avoids builder timeout)
+# Pre-install all deps in separate layers (avoids HF builder timeout)
 RUN pip install --no-cache-dir hatchling
 RUN pip install --no-cache-dir firebase-admin litellm
 RUN pip install --no-cache-dir cryptography PyNaCl "bcrypt<4.1"
+RUN pip install --no-cache-dir "fastapi>=0.115.0" "uvicorn[standard]>=0.30.0" "sqlalchemy[asyncio]>=2.0.30"
+RUN pip install --no-cache-dir asyncpg alembic "pydantic[email]>=2.9.0" pydantic-settings
+RUN pip install --no-cache-dir "passlib[bcrypt]" "python-jose[cryptography]" httpx python-multipart
+RUN pip install --no-cache-dir "fastapi-mcp>=0.1.0" "mcp>=1.0.0" "stripe>=8.0.0"
 
-# Install remaining deps via pyproject.toml
+# Install package itself (deps already satisfied, just installs the project)
 COPY pyproject.toml README.md ./
 COPY src/__init__.py src/__init__.py
 RUN pip install --no-cache-dir .
