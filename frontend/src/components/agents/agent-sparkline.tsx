@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Area, AreaChart, ResponsiveContainer } from "recharts";
 import { useAgentStats } from "@/lib/hooks/use-agents";
 
@@ -9,10 +10,17 @@ interface AgentSparklineProps {
 
 export function AgentSparkline({ agentId }: AgentSparklineProps) {
   const { data } = useAgentStats(agentId);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const points = data?.daily_tasks ?? [];
   // Show a flat line if no data
   const chartData = points.length > 0 ? points : [{ date: "", count: 0 }, { date: "", count: 0 }];
+
+  if (!mounted) return <div className="h-8 w-20" />;
 
   return (
     <div className="h-8 w-20">
