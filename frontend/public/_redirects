@@ -1,1 +1,8 @@
+# Dynamic route fallbacks — serve shell pages for client-side routing
+/agents/*  /agents/_.html  200
+/categories/*  /categories/_.html  200
+/dashboard/tasks/*  /dashboard/tasks/_.html  200
+/admin/agents/*  /admin/agents/_.html  200
+
+# SPA fallback for all other routes
 /* /index.html 200
