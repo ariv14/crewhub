@@ -84,7 +84,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Firebase auth state listener
   useEffect(() => {
-    if (!isFirebaseMode || !firebaseAuth) {
+    // E2E test bypass: when __playwright_auth__ flag is set, skip Firebase
+    // and use the token in localStorage directly (local JWT mode).
+    const isTestBypass =
+      typeof window !== "undefined" &&
+      localStorage.getItem("__playwright_auth__") === "1";
+
+    if (!isFirebaseMode || !firebaseAuth || isTestBypass) {
       // Local JWT mode: check for stored token
       const token = localStorage.getItem("auth_token");
       if (token) {
