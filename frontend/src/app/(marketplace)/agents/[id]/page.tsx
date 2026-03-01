@@ -4,21 +4,21 @@ import AgentDetailClient from "./agent-detail-client";
 export const dynamicParams = false;
 
 export async function generateStaticParams() {
-  // Fetch all agent IDs at build time so each gets a pre-rendered page.
-  // This is required because dynamicParams:false (needed for static export)
-  // rejects any param not returned here.
+  const url = `${API_V1}/agents/?per_page=200`;
+  console.log(`[generateStaticParams] Fetching agents from: ${url}`);
   try {
-    const res = await fetch(`${API_V1}/agents/?per_page=200`);
+    const res = await fetch(url);
+    console.log(`[generateStaticParams] Response status: ${res.status}`);
     if (res.ok) {
       const data = await res.json();
       const agents: { id: string }[] = (data.agents ?? data).map(
         (a: { id: string }) => ({ id: a.id })
       );
-      // Keep the "_" shell as a fallback for agents added post-build
+      console.log(`[generateStaticParams] Found ${agents.length} agents`);
       return [{ id: "_" }, ...agents];
     }
-  } catch {
-    // Build continues with just the shell page if API is unreachable
+  } catch (e) {
+    console.error(`[generateStaticParams] Error:`, e);
   }
   return [{ id: "_" }];
 }
