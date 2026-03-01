@@ -63,14 +63,23 @@ jobs:
       - name: Prepare SPA fallbacks for dynamic routes
         working-directory: frontend/out
         run: |
-          # Next.js static export generates shell pages as _.html for dynamic
-          # [id]/[slug] routes. Cloudflare's asset serving 308-redirects
-          # _.html to _/ (directory), so we rename the shell files to avoid
-          # the conflict, then use a _worker.js to serve them for dynamic paths.
-          mv agents/_.html agents/__shell.html
-          mv categories/_.html categories/__shell.html
-          mv dashboard/tasks/_.html dashboard/tasks/__shell.html
-          mv admin/agents/_.html admin/agents/__shell.html
+          # Next.js static export generates _.html shell pages for dynamic
+          # routes that include { id: "_" } in generateStaticParams.
+          # Cloudflare Pages 308-redirects _.html → _/ (directory conflict),
+          # so we rename shells and use a _worker.js to serve them.
+          #
+          # Categories are fully pre-rendered (all slugs hardcoded) so they
+          # don't need a shell fallback. Use || true because some routes may
+          # not generate a _.html (e.g. if API is unreachable at build time
+          # for routes that fetch params dynamically).
+          for dir in agents dashboard/tasks admin/agents; do
+            if [ -f "$dir/_.html" ]; then
+              mv "$dir/_.html" "$dir/__shell.html"
+              echo "Renamed $dir/_.html → $dir/__shell.html"
+            else
+              echo "No $dir/_.html found (skipping)"
+            fi
+          done
 
           cat > _worker.js << 'WORKER'
           export default {
@@ -78,10 +87,10 @@ jobs:
               const url = new URL(request.url);
               const path = url.pathname;
 
-              // Dynamic route patterns → serve the shell page directly
+              // Dynamic routes that use a _ shell page for unknown params.
+              // Categories are fully pre-rendered so they don't need this.
               const rewrites = [
                 { pattern: /^\/agents\/[^/]+$/, shell: '/agents/__shell.html' },
-                { pattern: /^\/categories\/[^/]+$/, shell: '/categories/__shell.html' },
                 { pattern: /^\/dashboard\/tasks\/[^/]+$/, shell: '/dashboard/tasks/__shell.html' },
                 { pattern: /^\/admin\/agents\/[^/]+$/, shell: '/admin/agents/__shell.html' },
               ];
@@ -90,15 +99,16 @@ jobs:
                 if (pattern.test(path)) {
                   const shellUrl = new URL(shell, url.origin);
                   const shellResp = await env.ASSETS.fetch(new Request(shellUrl));
-                  // Return shell HTML with 200 status, bypassing Cloudflare 308
-                  return new Response(shellResp.body, {
-                    status: 200,
-                    headers: { 'Content-Type': 'text/html; charset=utf-8' },
-                  });
+                  if (shellResp.ok) {
+                    return new Response(shellResp.body, {
+                      status: 200,
+                      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+                    });
+                  }
+                  // Shell not found — fall through to default asset serving
                 }
               }
 
-              // All other requests: serve static assets normally
               return env.ASSETS.fetch(request);
             }
           };
