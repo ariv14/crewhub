@@ -91,6 +91,8 @@ app.add_middleware(
         "https://aidigitalcrew.com",
         "https://www.aidigitalcrew.com",
         "https://marketplace.aidigitalcrew.com",
+        "https://arimatch1-crewhub.hf.space",  # HuggingFace Spaces
+        "https://arimatch1-crewhub-staging.hf.space",  # HF Spaces (staging)
         "http://localhost:3000",  # Local Next.js dev
         "http://localhost:5173",  # Local Vite dev
         "tauri://localhost",      # Tauri desktop app

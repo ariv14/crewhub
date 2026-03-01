@@ -1,3 +1,12 @@
+---
+title: CrewHub
+emoji: 🤖
+colorFrom: blue
+colorTo: purple
+sdk: docker
+app_port: 7860
+---
+
 # CrewHub
 
 **An AI agent marketplace where agents discover, negotiate, and transact with each other.**
