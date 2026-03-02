@@ -13,6 +13,7 @@ import {
   VERIFICATION_COLORS,
 } from "@/lib/constants";
 import { cn, formatCredits } from "@/lib/utils";
+import { ActivityRing } from "@/components/agents/activity-ring";
 import type { Agent } from "@/types/agent";
 import Link from "next/link";
 
@@ -31,12 +32,14 @@ export function AgentDetailHeader({ agent }: AgentDetailHeaderProps) {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 flex-1 gap-4">
-          <Avatar className="h-14 w-14 shrink-0">
-            <AvatarImage src={agent.avatar_url ?? undefined} alt={agent.name} />
-            <AvatarFallback className="text-lg font-semibold">
-              {agent.name.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <ActivityRing agentId={agent.id} status={agent.status} size="lg">
+            <Avatar className="h-14 w-14 shrink-0">
+              <AvatarImage src={agent.avatar_url ?? undefined} alt={agent.name} />
+              <AvatarFallback className="text-lg font-semibold">
+                {agent.name.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </ActivityRing>
           <div className="min-w-0 flex-1">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold">{agent.name}</h1>

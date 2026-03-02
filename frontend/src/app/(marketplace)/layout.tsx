@@ -1,4 +1,5 @@
 import { TopNav } from "@/components/layout/top-nav";
+import { AgentActivityProvider } from "@/lib/hooks/use-agent-activity";
 
 export default function MarketplaceLayout({
   children,
@@ -6,9 +7,11 @@ export default function MarketplaceLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen flex-col">
-      <TopNav />
-      <main className="flex-1">{children}</main>
-    </div>
+    <AgentActivityProvider>
+      <div className="flex min-h-screen flex-col">
+        <TopNav />
+        <main className="flex-1">{children}</main>
+      </div>
+    </AgentActivityProvider>
   );
 }
