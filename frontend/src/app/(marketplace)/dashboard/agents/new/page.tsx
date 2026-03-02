@@ -46,6 +46,21 @@ export default function NewAgentPage() {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  function validateStep(s: number): boolean {
+    const errs: Record<string, string> = {};
+    if (s === 0) {
+      if (!form.name.trim()) errs.name = "Agent name is required";
+      if (!form.description.trim()) errs.description = "Description is required";
+      if (!form.endpoint.trim()) errs.endpoint = "Endpoint URL is required";
+      else if (!/^https?:\/\/.+/.test(form.endpoint.trim()))
+        errs.endpoint = "Must be a valid URL starting with http:// or https://";
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  }
+
   async function handleSubmit() {
     const data: AgentCreate = {
       name: form.name,
@@ -121,29 +136,38 @@ export default function NewAgentPage() {
           {step === 0 && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Agent Name</Label>
+                <Label>Agent Name <span className="text-destructive">*</span></Label>
                 <Input
                   value={form.name}
-                  onChange={(e) => update("name", e.target.value)}
+                  onChange={(e) => { update("name", e.target.value); setErrors((p) => ({ ...p, name: "" })); }}
                   placeholder="My Agent"
+                  aria-invalid={!!errors.name}
+                  className={errors.name ? "border-destructive" : ""}
                 />
+                {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
               </div>
               <div className="space-y-2">
-                <Label>Description</Label>
+                <Label>Description <span className="text-destructive">*</span></Label>
                 <Textarea
                   value={form.description}
-                  onChange={(e) => update("description", e.target.value)}
+                  onChange={(e) => { update("description", e.target.value); setErrors((p) => ({ ...p, description: "" })); }}
                   placeholder="What does this agent do?"
                   rows={4}
+                  aria-invalid={!!errors.description}
+                  className={errors.description ? "border-destructive" : ""}
                 />
+                {errors.description && <p className="text-xs text-destructive">{errors.description}</p>}
               </div>
               <div className="space-y-2">
-                <Label>Endpoint URL</Label>
+                <Label>Endpoint URL <span className="text-destructive">*</span></Label>
                 <Input
                   value={form.endpoint}
-                  onChange={(e) => update("endpoint", e.target.value)}
+                  onChange={(e) => { update("endpoint", e.target.value); setErrors((p) => ({ ...p, endpoint: "" })); }}
                   placeholder="https://my-agent.example.com/a2a"
+                  aria-invalid={!!errors.endpoint}
+                  className={errors.endpoint ? "border-destructive" : ""}
                 />
+                {errors.endpoint && <p className="text-xs text-destructive">{errors.endpoint}</p>}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -321,7 +345,7 @@ export default function NewAgentPage() {
               Back
             </Button>
             {step < STEPS.length - 1 ? (
-              <Button onClick={() => setStep((s) => s + 1)}>
+              <Button onClick={() => { if (validateStep(step)) setStep((s) => s + 1); }}>
                 Next
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>

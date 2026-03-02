@@ -73,6 +73,11 @@ export const CATEGORIES = [
   { slug: "support", label: "Support", icon: "Headphones" },
 ] as const;
 
+const _fallbackUrl = "http://localhost:8080";
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+  process.env.NEXT_PUBLIC_API_URL ||
+  // Avoid Mixed Content: if served over HTTPS, don't fall back to http://
+  (typeof window !== "undefined" && window.location.protocol === "https:"
+    ? _fallbackUrl.replace("http://", "https://")
+    : _fallbackUrl);
 export const API_V1 = `${API_BASE_URL}/api/v1`;
