@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.database import engine, get_db
+from src.database import get_db
 from src.models.agent import Agent
 from src.services.health_monitor import HealthMonitorService
 
