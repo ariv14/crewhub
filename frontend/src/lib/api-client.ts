@@ -21,7 +21,9 @@ class ApiClient {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
-    const res = await fetch(`${API_V1}${path}`, {
+    // Ensure trailing slash to avoid FastAPI 307 redirects that downgrade to http://
+    const normalizedPath = path.endsWith("/") ? path : `${path}/`;
+    const res = await fetch(`${API_V1}${normalizedPath}`, {
       ...options,
       headers,
     });
