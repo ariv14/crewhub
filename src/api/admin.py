@@ -25,6 +25,40 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 # ---------------------------------------------------------------------------
+# Bootstrap: promote caller to admin when no admins exist yet
+# ---------------------------------------------------------------------------
+
+
+@router.post("/bootstrap")
+async def bootstrap_admin(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """One-time self-promotion to admin — only works when no admins exist."""
+    admin_count = (
+        await db.execute(select(func.count()).where(User.is_admin.is_(True)))
+    ).scalar_one()
+    if admin_count > 0:
+        raise HTTPException(status_code=403, detail="Admin already exists")
+
+    firebase_uid = current_user.get("firebase_uid")
+    if firebase_uid:
+        result = await db.execute(
+            select(User).where(User.firebase_uid == firebase_uid)
+        )
+    else:
+        result = await db.execute(
+            select(User).where(User.id == UUID(current_user["id"]))
+        )
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=401, detail="User not found")
+    user.is_admin = True
+    await db.flush()
+    return {"message": f"{user.email} is now admin"}
+
+
+# ---------------------------------------------------------------------------
 # Admin guard dependency
 # ---------------------------------------------------------------------------
 
