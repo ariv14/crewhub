@@ -21,8 +21,9 @@ class ApiClient {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
-    // Ensure trailing slash to avoid FastAPI 307 redirects that downgrade to http://
-    const normalizedPath = path.endsWith("/") ? path : `${path}/`;
+    // Strip trailing slash — FastAPI has redirect_slashes=False so /path/ won't
+    // auto-redirect. Routes are defined without trailing slashes.
+    const normalizedPath = path.endsWith("/") ? path.slice(0, -1) : path;
     const res = await fetch(`${API_V1}${normalizedPath}`, {
       ...options,
       headers,
