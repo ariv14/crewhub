@@ -134,11 +134,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Tauri webview blocks popups — use redirect flow instead
     if (isTauri) {
       await signInWithRedirect(firebaseAuth, provider);
-    } else {
-      await signInWithPopup(firebaseAuth, provider);
+      return; // redirect flow — onAuthStateChanged handles it on return
     }
-    // onAuthStateChanged will handle the rest
-  }, [isTauri]);
+    const result = await signInWithPopup(firebaseAuth, provider);
+    // Set token + cookie NOW so middleware sees auth on the next navigation.
+    // Without this, router.push("/dashboard") races ahead of onAuthStateChanged
+    // and middleware redirects back to /login (no cookie yet).
+    const idToken = await result.user.getIdToken();
+    localStorage.setItem("auth_token", idToken);
+    setAuthCookie(idToken);
+    await api.post("/auth/firebase", { id_token: idToken });
+    await fetchProfile();
+  }, [isTauri, fetchProfile]);
 
   const loginWithEmail = useCallback(
     async (email: string, password: string) => {
