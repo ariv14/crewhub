@@ -22,6 +22,10 @@ export async function createCheckoutSession(): Promise<CheckoutResponse> {
   return api.post("/billing/checkout", {});
 }
 
+export async function createCreditsCheckout(amount: number): Promise<CheckoutResponse> {
+  return api.post("/billing/credits-checkout", { amount });
+}
+
 export async function createPortalSession(): Promise<PortalResponse> {
   return api.post("/billing/portal", {});
 }

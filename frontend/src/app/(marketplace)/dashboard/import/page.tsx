@@ -18,9 +18,23 @@ export default function ImportPage() {
   const [credits, setCredits] = useState("10");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<OpenClawImportResponse | null>(null);
+  const [urlError, setUrlError] = useState("");
+
+  function validateUrl(value: string): boolean {
+    if (!value.trim()) {
+      setUrlError("Skill URL is required");
+      return false;
+    }
+    if (!/^https?:\/\/.+/.test(value.trim())) {
+      setUrlError("Must be a valid URL starting with http:// or https://");
+      return false;
+    }
+    setUrlError("");
+    return true;
+  }
 
   async function handleImport() {
-    if (!url.trim()) return;
+    if (!validateUrl(url)) return;
     setLoading(true);
     try {
       const res = await importOpenClaw({
@@ -86,15 +100,21 @@ export default function ImportPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Skill URL</Label>
+              <Label>Skill URL <span className="text-destructive">*</span></Label>
               <Input
                 value={url}
-                onChange={(e) => setUrl(e.target.value)}
+                onChange={(e) => { setUrl(e.target.value); setUrlError(""); }}
                 placeholder="https://clawhub.io/skills/..."
+                aria-invalid={!!urlError}
+                className={urlError ? "border-destructive" : ""}
               />
-              <p className="text-xs text-muted-foreground">
-                Supported: clawhub.io, clawmart.online, github.com/openclaw
-              </p>
+              {urlError ? (
+                <p className="text-xs text-destructive">{urlError}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Supported: clawhub.io, clawmart.online, github.com/openclaw
+                </p>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
