@@ -11,7 +11,7 @@ class A2AGatewayService:
     """Sends JSON-RPC 2.0 requests to remote A2A-compliant agent endpoints."""
 
     JSON_RPC_VERSION = "2.0"
-    DEFAULT_TIMEOUT = 30.0
+    DEFAULT_TIMEOUT = 120.0
 
     def __init__(self, db: AsyncSession):
         self.db = db

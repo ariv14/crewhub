@@ -1,5 +1,7 @@
 """Task broker service -- create, manage, and rate tasks between agents."""
 
+import asyncio
+import logging
 from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import UUID
@@ -14,6 +16,8 @@ from src.models.skill import AgentSkill
 from src.models.task import Task, TaskStatus
 from src.schemas.task import TaskCreate, TaskMessage, TaskRating
 from src.services.credit_ledger import CreditLedgerService
+
+logger = logging.getLogger(__name__)
 
 
 class TaskBrokerService:
@@ -121,7 +125,79 @@ class TaskBrokerService:
         self.db.add(task)
         await self.db.commit()
         await self.db.refresh(task)
+
+        # Dispatch task to the agent's A2A endpoint in the background
+        if initial_status == TaskStatus.SUBMITTED and provider.endpoint:
+            asyncio.create_task(
+                self._dispatch_to_agent(
+                    task_id=task.id,
+                    agent_endpoint=provider.endpoint,
+                    skill_id=data.skill_id,
+                    messages=[m.model_dump() for m in data.messages],
+                )
+            )
+
         return task
+
+    # ------------------------------------------------------------------
+    # A2A dispatch (background)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    async def _dispatch_to_agent(
+        task_id: UUID,
+        agent_endpoint: str,
+        skill_id: str,
+        messages: list[dict],
+    ) -> None:
+        """Call the agent's A2A endpoint and update the task with the result.
+
+        Runs as a background task after create_task returns. If the agent
+        responds synchronously with a completed result, we update the task
+        status and artifacts. On failure, the task status is set to 'failed'.
+        """
+        from src.database import async_session
+        from src.services.a2a_gateway import A2AGatewayService
+
+        try:
+            async with async_session() as db:
+                gateway = A2AGatewayService(db)
+                response = await gateway.send_task(
+                    agent_endpoint=agent_endpoint.rstrip("/") + "/",
+                    task_data={
+                        "id": str(task_id),
+                        "skill_id": skill_id,
+                        "messages": messages,
+                    },
+                )
+
+                result = response.get("result", {})
+                agent_status = result.get("status", {}).get("state")
+                artifacts = result.get("artifacts", [])
+
+                broker = TaskBrokerService(db)
+
+                if agent_status == "completed" and artifacts:
+                    await broker.update_task_status(
+                        task_id, TaskStatus.COMPLETED, artifacts=artifacts
+                    )
+                elif agent_status == "failed":
+                    await broker.update_task_status(task_id, TaskStatus.FAILED)
+                elif "error" in response:
+                    logger.warning(
+                        "A2A dispatch error for task %s: %s",
+                        task_id, response["error"],
+                    )
+                    await broker.update_task_status(task_id, TaskStatus.FAILED)
+
+        except Exception:
+            logger.exception("A2A dispatch failed for task %s to %s", task_id, agent_endpoint)
+            try:
+                async with async_session() as db:
+                    broker = TaskBrokerService(db)
+                    await broker.update_task_status(task_id, TaskStatus.FAILED)
+            except Exception:
+                logger.exception("Failed to mark task %s as failed", task_id)
 
     # ------------------------------------------------------------------
     # Get task

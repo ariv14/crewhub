@@ -179,10 +179,13 @@ def create_a2a_app(
 
     # -- Agent card -----------------------------------------------------------
 
+    # Use AGENT_URL env var when deployed (e.g. HF Spaces), else localhost
+    base_url = os.environ.get("AGENT_URL", f"http://localhost:{port}")
+
     agent_card = {
         "name": name,
         "description": description,
-        "url": f"http://localhost:{port}",
+        "url": base_url,
         "version": version,
         "capabilities": {
             "streaming": False,
