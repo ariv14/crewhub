@@ -54,13 +54,19 @@ def _log(status: str, name: str, detail: str = ""):
 class StagingClient:
     """Thin wrapper around requests for staging API calls."""
 
-    def __init__(self, base_url: str, token: str):
+    def __init__(self, base_url: str, token: str, use_api_key: bool = False):
         self.base = base_url.rstrip("/") + API_PREFIX
         self.session = requests.Session()
-        self.session.headers.update({
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        })
+        if use_api_key:
+            self.session.headers.update({
+                "X-API-Key": token,
+                "Content-Type": "application/json",
+            })
+        else:
+            self.session.headers.update({
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+            })
         self.session.verify = True
 
     def get(self, path: str, **kwargs) -> requests.Response:
@@ -86,13 +92,20 @@ class StagingClient:
 # ---------------------------------------------------------------------------
 
 
-def load_token(args) -> str:
-    """Load auth token from args, file, or playwright session."""
+def load_token(args) -> tuple[str, bool]:
+    """Load auth token/key from args, file, or playwright session.
+
+    Returns (token_or_key, is_api_key).
+    """
+    if args.api_key:
+        return args.api_key, True
+
     if args.token:
-        return args.token
+        return args.token, False
 
     if args.token_file:
-        return Path(args.token_file).read_text().strip()
+        val = Path(args.token_file).read_text().strip()
+        return val, val.startswith("a2a_")
 
     # Try playwright session
     session_file = Path("frontend/.playwright-auth/session.json")
@@ -101,14 +114,15 @@ def load_token(args) -> str:
         token = data.get("localStorage", {}).get("auth_token")
         if token:
             print(f"  Loaded token from {session_file}")
-            return token
+            return token, False
 
     # Try auth.txt
     auth_txt = Path("auth.txt")
     if auth_txt.exists():
-        return auth_txt.read_text().strip()
+        val = auth_txt.read_text().strip()
+        return val, val.startswith("a2a_")
 
-    print("ERROR: No auth token found. Run the capture script first or pass --token")
+    print("ERROR: No auth token found. Pass --token, --api-key, or --token-file")
     sys.exit(1)
 
 
@@ -653,7 +667,8 @@ def main():
     parser = argparse.ArgumentParser(description="E2E staging tests for CrewHub agents")
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL)
     parser.add_argument("--token", default=None, help="Firebase auth token")
-    parser.add_argument("--token-file", default=None, help="File containing auth token")
+    parser.add_argument("--api-key", default=None, help="API key (X-API-Key)")
+    parser.add_argument("--token-file", default=None, help="File containing auth token or API key")
     args = parser.parse_args()
 
     print(f"\n{'='*60}")
@@ -661,8 +676,8 @@ def main():
     print(f"  Target: {args.base_url}")
     print(f"{'='*60}\n")
 
-    token = load_token(args)
-    client = StagingClient(args.base_url, token)
+    token, is_api_key = load_token(args)
+    client = StagingClient(args.base_url, token, use_api_key=is_api_key)
 
     # ── Phase 1: Auth & Setup ──────────────────────────────────
     print("Phase 1: Auth & Setup")

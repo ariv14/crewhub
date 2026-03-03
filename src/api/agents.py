@@ -36,19 +36,9 @@ async def register_agent(
 
     Requires authentication. The caller becomes the agent owner.
     """
-    import logging as _log
-    import traceback
-    try:
-        service = RegistryService(db)
-        agent = await service.register_agent(owner_id=UUID(current_user["id"]), data=data)
-        return agent
-    except Exception as exc:
-        _log.getLogger(__name__).exception("Agent registration failed")
-        from fastapi.responses import JSONResponse
-        return JSONResponse(
-            status_code=500,
-            content={"detail": str(exc), "traceback": traceback.format_exc()},
-        )
+    service = RegistryService(db)
+    agent = await service.register_agent(owner_id=UUID(current_user["id"]), data=data)
+    return agent
 
 
 @router.get("/", response_model=AgentListResponse)

@@ -43,44 +43,6 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 DEFAULT_SIGNUP_BONUS = 100.0
 
 
-# ---------------------------------------------------------------------------
-# Debug-only: generate a test token (DEBUG mode only)
-# ---------------------------------------------------------------------------
-
-
-@router.post("/debug-token")
-async def debug_token(
-    db: AsyncSession = Depends(get_db),
-):
-    """Generate a debug API key for testing. Only available when DEBUG=true.
-
-    Returns an API key that can be used via X-API-Key header for all
-    authenticated endpoints. TEMPORARY — remove after staging E2E tests.
-    """
-    from src.config import settings
-    if not settings.debug:
-        raise HTTPException(status_code=404, detail="Not Found")
-
-    # Find the admin user
-    result = await db.execute(select(User).where(User.is_admin.is_(True)).limit(1))
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=404, detail="No admin user found")
-
-    # Generate an API key for the user (bypasses Firebase entirely)
-    from src.core._api_key_lookup import hash_api_key
-    plain_key = generate_api_key()
-    user.api_key_hash = hash_api_key(plain_key)
-    user.api_key_revoked_at = None
-    await db.commit()
-
-    return {
-        "api_key": plain_key,
-        "user_id": str(user.id),
-        "email": user.email,
-        "usage": "Pass as X-API-Key header: curl -H 'X-API-Key: <key>' ...",
-    }
-
 
 # ---------------------------------------------------------------------------
 # Firebase Auth flow — used in production
