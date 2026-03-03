@@ -52,9 +52,10 @@ DEFAULT_SIGNUP_BONUS = 100.0
 async def debug_token(
     db: AsyncSession = Depends(get_db),
 ):
-    """Generate a debug token for testing. Only available when DEBUG=true.
+    """Generate a debug API key for testing. Only available when DEBUG=true.
 
-    TEMPORARY — remove after staging E2E tests are validated.
+    Returns an API key that can be used via X-API-Key header for all
+    authenticated endpoints. TEMPORARY — remove after staging E2E tests.
     """
     from src.config import settings
     if not settings.debug:
@@ -66,26 +67,19 @@ async def debug_token(
     if not user:
         raise HTTPException(status_code=404, detail="No admin user found")
 
-    # If Firebase is enabled, create a custom token via Admin SDK
-    if is_firebase_enabled():
-        import firebase_admin.auth as fb_auth
-        custom_token = fb_auth.create_custom_token(user.firebase_uid or str(user.id))
-        return {
-            "mode": "firebase_custom_token",
-            "custom_token": custom_token.decode() if isinstance(custom_token, bytes) else custom_token,
-            "note": "Exchange this via Firebase Auth REST API: POST https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=FIREBASE_WEB_API_KEY with {token, returnSecureToken: true}",
-            "user_id": str(user.id),
-            "email": user.email,
-        }
-    else:
-        # Local JWT mode
-        token = create_access_token({"sub": str(user.id), "email": user.email})
-        return {
-            "mode": "local_jwt",
-            "token": token,
-            "user_id": str(user.id),
-            "email": user.email,
-        }
+    # Generate an API key for the user (bypasses Firebase entirely)
+    from src.core._api_key_lookup import hash_api_key
+    plain_key = generate_api_key()
+    user.api_key_hash = hash_api_key(plain_key)
+    user.api_key_revoked_at = None
+    await db.commit()
+
+    return {
+        "api_key": plain_key,
+        "user_id": str(user.id),
+        "email": user.email,
+        "usage": "Pass as X-API-Key header: curl -H 'X-API-Key: <key>' ...",
+    }
 
 
 # ---------------------------------------------------------------------------
