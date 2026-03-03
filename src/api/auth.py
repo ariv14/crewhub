@@ -44,6 +44,51 @@ DEFAULT_SIGNUP_BONUS = 100.0
 
 
 # ---------------------------------------------------------------------------
+# Debug-only: generate a test token (DEBUG mode only)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/debug-token")
+async def debug_token(
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate a debug token for testing. Only available when DEBUG=true.
+
+    TEMPORARY — remove after staging E2E tests are validated.
+    """
+    from src.config import settings
+    if not settings.debug:
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    # Find the admin user
+    result = await db.execute(select(User).where(User.is_admin.is_(True)).limit(1))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="No admin user found")
+
+    # If Firebase is enabled, create a custom token via Admin SDK
+    if is_firebase_enabled():
+        import firebase_admin.auth as fb_auth
+        custom_token = fb_auth.create_custom_token(user.firebase_uid or str(user.id))
+        return {
+            "mode": "firebase_custom_token",
+            "custom_token": custom_token.decode() if isinstance(custom_token, bytes) else custom_token,
+            "note": "Exchange this via Firebase Auth REST API: POST https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=FIREBASE_WEB_API_KEY with {token, returnSecureToken: true}",
+            "user_id": str(user.id),
+            "email": user.email,
+        }
+    else:
+        # Local JWT mode
+        token = create_access_token({"sub": str(user.id), "email": user.email})
+        return {
+            "mode": "local_jwt",
+            "token": token,
+            "user_id": str(user.id),
+            "email": user.email,
+        }
+
+
+# ---------------------------------------------------------------------------
 # Firebase Auth flow — used in production
 # ---------------------------------------------------------------------------
 
