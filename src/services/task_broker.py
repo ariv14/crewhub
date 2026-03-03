@@ -22,6 +22,22 @@ class TaskBrokerService:
     # Shared rate limiter for quota RPM enforcement (class-level singleton)
     _quota_limiters: dict[str, "RateLimiter"] = {}
 
+    # Terminal task states (no further transitions allowed)
+    TERMINAL_STATUSES = {TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELED}
+    _TERMINAL_VALUES = {"completed", "failed", "canceled"}
+
+    @staticmethod
+    def _is_terminal(status) -> bool:
+        """Check if a status is terminal, handling both enum and string values."""
+        if hasattr(status, "value"):
+            return status.value in TaskBrokerService._TERMINAL_VALUES
+        return str(status) in TaskBrokerService._TERMINAL_VALUES
+
+    @staticmethod
+    def _status_value(status) -> str:
+        """Get the string value of a status, handling both enum and string."""
+        return status.value if hasattr(status, "value") else str(status)
+
     def __init__(self, db: AsyncSession):
         self.db = db
         self.credit_ledger = CreditLedgerService(db)
@@ -237,7 +253,10 @@ class TaskBrokerService:
             task.completed_at = now
             # Calculate latency
             if task.created_at:
-                delta = now - task.created_at
+                created = task.created_at
+                if created.tzinfo is None:
+                    created = created.replace(tzinfo=timezone.utc)
+                delta = now - created
                 task.latency_ms = int(delta.total_seconds() * 1000)
 
             # Charge credits
@@ -301,10 +320,9 @@ class TaskBrokerService:
             raise ForbiddenError(detail="You do not own the client agent for this task")
 
         # Guard: only cancel tasks that are still in progress
-        terminal = {TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELED}
-        if task.status in terminal:
+        if self._is_terminal(task.status):
             raise ForbiddenError(
-                detail=f"Cannot cancel task in '{task.status.value}' state"
+                detail=f"Cannot cancel task in '{self._status_value(task.status)}' state"
             )
 
         task.status = TaskStatus.CANCELED
@@ -584,6 +602,105 @@ class TaskBrokerService:
             return skill_avg_credits
 
         return 0
+
+    # ------------------------------------------------------------------
+    # Webhook handlers (called by provider agents via /webhooks/a2a)
+    # ------------------------------------------------------------------
+
+    async def handle_status_update(
+        self, agent_id: UUID, params: dict
+    ) -> dict:
+        """Handle a tasks/statusUpdate callback from a provider agent.
+
+        The provider sends this when a task's status changes (e.g.
+        submitted → working → completed, or working → failed).
+
+        Expected params:
+            id: str          -- task UUID
+            status: str      -- new status value
+            artifacts: list  -- optional list of artifact dicts
+        """
+        task_id_str = params.get("id")
+        new_status_str = params.get("status")
+
+        if not task_id_str or not new_status_str:
+            raise MarketplaceError(
+                status_code=400,
+                detail="Required: id and status in params",
+            )
+
+        task_id = UUID(task_id_str)
+        task = await self.get_task(task_id)
+
+        # Verify the callback is from the correct provider agent
+        if task.provider_agent_id != agent_id:
+            raise ForbiddenError(
+                detail="Agent is not the provider for this task"
+            )
+
+        # Parse the new status
+        try:
+            new_status = TaskStatus(new_status_str)
+        except ValueError:
+            raise MarketplaceError(
+                status_code=400,
+                detail=f"Invalid status: {new_status_str}",
+            )
+
+        # Don't allow updates to tasks already in a terminal state
+        if self._is_terminal(task.status):
+            raise ForbiddenError(
+                detail=f"Cannot update task in terminal state '{self._status_value(task.status)}'"
+            )
+
+        artifacts = params.get("artifacts")
+        updated = await self.update_task_status(task_id, new_status, artifacts)
+        return {
+            "id": str(updated.id),
+            "status": updated.status.value if hasattr(updated.status, "value") else updated.status,
+        }
+
+    async def handle_artifact_update(
+        self, agent_id: UUID, params: dict
+    ) -> dict:
+        """Handle a tasks/artifactUpdate callback from a provider agent.
+
+        Appends new artifacts to the task without changing its status.
+
+        Expected params:
+            id: str          -- task UUID
+            artifacts: list  -- list of artifact dicts to append
+        """
+        task_id_str = params.get("id")
+        new_artifacts = params.get("artifacts", [])
+
+        if not task_id_str:
+            raise MarketplaceError(
+                status_code=400,
+                detail="Required: id in params",
+            )
+
+        task_id = UUID(task_id_str)
+        task = await self.get_task(task_id)
+
+        # Verify the callback is from the correct provider agent
+        if task.provider_agent_id != agent_id:
+            raise ForbiddenError(
+                detail="Agent is not the provider for this task"
+            )
+
+        # Append new artifacts
+        existing = list(task.artifacts or [])
+        existing.extend(new_artifacts)
+        task.artifacts = existing
+
+        await self.db.commit()
+        await self.db.refresh(task)
+
+        return {
+            "id": str(task.id),
+            "artifact_count": len(task.artifacts),
+        }
 
     async def _update_provider_stats(self, provider: Agent) -> None:
         """Recalculate total_tasks_completed, success_rate, and avg_latency_ms."""

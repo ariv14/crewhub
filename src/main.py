@@ -34,6 +34,12 @@ async def lifespan(app: FastAPI):
         logger.exception("Database connection failed")
         raise
 
+    # Auto-create tables for SQLite (dev/local only)
+    if "sqlite" in settings.database_url:
+        from src.database import init_db
+        await init_db()
+        logger.info("SQLite tables auto-created")
+
     settings.warn_insecure_defaults()
     logger.info("CrewHub startup complete")
     yield
