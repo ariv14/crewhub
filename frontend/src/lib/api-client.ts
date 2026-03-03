@@ -18,13 +18,14 @@ class ApiClient {
     };
 
     if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
+      if (token.startsWith("a2a_")) {
+        headers["X-API-Key"] = token;
+      } else {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
     }
 
-    // Strip trailing slash — FastAPI has redirect_slashes=False so /path/ won't
-    // auto-redirect. Routes are defined without trailing slashes.
-    const normalizedPath = path.endsWith("/") ? path.slice(0, -1) : path;
-    const res = await fetch(`${API_V1}${normalizedPath}`, {
+    const res = await fetch(`${API_V1}${path}`, {
       ...options,
       headers,
     });

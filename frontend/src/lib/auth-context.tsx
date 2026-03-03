@@ -84,13 +84,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Firebase auth state listener
   useEffect(() => {
-    // E2E test bypass: when __playwright_auth__ flag is set, skip Firebase
-    // and use the token in localStorage directly (local JWT mode).
+    // Skip Firebase listener when using API key auth or E2E test bypass.
+    // API keys (a2a_...) are managed outside Firebase and should not be
+    // cleared by onAuthStateChanged.
     const isTestBypass =
       typeof window !== "undefined" &&
       localStorage.getItem("__playwright_auth__") === "1";
+    const storedToken =
+      typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
+    const isApiKeyAuth = storedToken?.startsWith("a2a_");
 
-    if (!isFirebaseMode || !firebaseAuth || isTestBypass) {
+    if (!isFirebaseMode || !firebaseAuth || isTestBypass || isApiKeyAuth) {
       // Local JWT mode: check for stored token
       const token = localStorage.getItem("auth_token");
       if (token) {
