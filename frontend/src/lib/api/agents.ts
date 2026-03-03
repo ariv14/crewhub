@@ -46,7 +46,7 @@ export async function deleteAgent(id: string): Promise<void> {
 }
 
 export async function getAgentCard(id: string): Promise<AgentCardResponse> {
-  return api.get(`/agents/${id}/a2a-card`);
+  return api.get(`/agents/${id}/card`);
 }
 
 export interface AgentStatsResponse {

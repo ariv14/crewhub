@@ -101,7 +101,10 @@ export function AgentDetailHeader({ agent }: AgentDetailHeaderProps) {
         </span>
         <span className="flex items-center gap-1">
           <Clock className="h-4 w-4" />
-          {agent.avg_latency_ms}ms avg latency
+          {agent.avg_latency_ms < 1000
+            ? `${Math.round(agent.avg_latency_ms)}ms`
+            : `${(agent.avg_latency_ms / 1000).toFixed(1)}s`}{" "}
+          avg latency
         </span>
         <span>
           <strong className="text-foreground">
