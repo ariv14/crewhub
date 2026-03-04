@@ -12,7 +12,7 @@ from collections import defaultdict
 from fastapi import Depends, Request
 
 from src.config import settings
-from src.core.auth import get_current_user_id
+from src.core.auth import get_current_user
 from src.core.exceptions import RateLimitError
 
 logger = logging.getLogger(__name__)
@@ -134,10 +134,10 @@ def get_rate_limiter() -> RateLimiter:
 
 async def rate_limit_dependency(
     request: Request,
-    user_id=Depends(get_current_user_id),
+    current_user: dict = Depends(get_current_user),
 ) -> None:
     limiter = get_rate_limiter()
-    key = str(user_id)
+    key = current_user.get("id", "anonymous")
     allowed = limiter.check(key)
     info = limiter.get_limit_info(key)
 
