@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -13,14 +14,52 @@ from src.core.embeddings import MissingAPIKeyError
 from src.core.exceptions import MarketplaceError
 from src.core.logging import setup_logging
 from src.database import engine
+from src.middleware.request_id import RequestTracingMiddleware
 
 logger = logging.getLogger(__name__)
+
+
+async def _health_monitor_loop(interval: int = 300) -> None:
+    """Periodically check all active agents' health every `interval` seconds."""
+    from src.database import async_session
+    from src.services.health_monitor import HealthMonitorService
+
+    while True:
+        try:
+            await asyncio.sleep(interval)
+            async with async_session() as db:
+                service = HealthMonitorService(db)
+                results = await service.check_all_active_agents()
+                healthy = sum(1 for r in results if r["available"])
+                logger.info(
+                    "Health check: %d/%d agents healthy", healthy, len(results)
+                )
+        except asyncio.CancelledError:
+            break
+        except Exception:
+            logger.exception("Health monitor loop error")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     setup_logging(settings.log_level, settings.log_format)
+
+    # Initialize Sentry if DSN is configured
+    import os
+    sentry_dsn = os.environ.get("SENTRY_DSN", "")
+    if sentry_dsn:
+        try:
+            import sentry_sdk
+            sentry_sdk.init(
+                dsn=sentry_dsn,
+                traces_sample_rate=0.1 if not settings.debug else 1.0,
+                environment="staging" if settings.debug else "production",
+            )
+            logger.info("Sentry initialized")
+        except ImportError:
+            logger.warning("SENTRY_DSN set but sentry-sdk not installed")
+
     from src.core.auth import _init_firebase
     _init_firebase()
 
@@ -41,9 +80,19 @@ async def lifespan(app: FastAPI):
         logger.info("SQLite tables auto-created")
 
     settings.warn_insecure_defaults()
+
+    # Start background health monitor (every 5 minutes)
+    health_task = asyncio.create_task(_health_monitor_loop(interval=300))
+
     logger.info("CrewHub startup complete")
     yield
+
     # Shutdown
+    health_task.cancel()
+    try:
+        await health_task
+    except asyncio.CancelledError:
+        pass
     logger.info("CrewHub shutting down")
 
 
@@ -75,7 +124,21 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
+class RateLimitHeadersMiddleware(BaseHTTPMiddleware):
+    """Inject X-RateLimit-* headers when rate limit info is available."""
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        info = getattr(request.state, "rate_limit_info", None)
+        if info:
+            response.headers["X-RateLimit-Limit"] = str(info["limit"])
+            response.headers["X-RateLimit-Remaining"] = str(info["remaining"])
+            response.headers["X-RateLimit-Reset"] = str(info["reset"])
+        return response
+
+
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RateLimitHeadersMiddleware)
+app.add_middleware(RequestTracingMiddleware)
 
 # HTTPS redirect (production only)
 if settings.force_https:

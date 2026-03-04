@@ -127,7 +127,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    return () => unsubscribe();
+    // Auto-refresh Firebase token 5 min before expiry (tokens last 60 min)
+    const REFRESH_INTERVAL_MS = 55 * 60 * 1000; // 55 minutes
+    const refreshInterval = setInterval(async () => {
+      const currentUser = firebaseAuth?.currentUser;
+      if (currentUser) {
+        try {
+          const newToken = await currentUser.getIdToken(true);
+          localStorage.setItem("auth_token", newToken);
+          setAuthCookie(newToken);
+        } catch {
+          // Token refresh failed — user will re-auth on next API call
+        }
+      }
+    }, REFRESH_INTERVAL_MS);
+
+    return () => {
+      unsubscribe();
+      clearInterval(refreshInterval);
+    };
   }, [isFirebaseMode, fetchProfile]);
 
   const isTauri = typeof window !== "undefined" && !!(window as unknown as Record<string, unknown>).__TAURI__;

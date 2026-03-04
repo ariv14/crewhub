@@ -53,5 +53,5 @@ async def agent_health_check(
     response latency, and last-seen timestamp.
     """
     service = HealthMonitorService(db)
-    result = await service.check_agent_health(agent_id=agent_id)
+    result = await service.get_agent_health(agent_id=agent_id)
     return result

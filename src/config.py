@@ -92,6 +92,11 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
+# Auto-enable HTTPS in production (non-debug + PostgreSQL = real deployment)
+if not settings.debug and "postgresql" in settings.database_url and not settings.force_https:
+    settings.force_https = True
+    _config_logger.info("Auto-enabled force_https for production deployment")
+
 # CRIT-3: Fail loudly if running with the default secret key outside of testing
 _IN_TESTS = "pytest" in sys.modules
 _DEFAULT_SECRET = "dev-secret-key-change-in-production"
@@ -127,6 +132,15 @@ if not _IN_TESTS and not settings.debug and not settings.webhook_secret:
         "FATAL: WEBHOOK_SECRET is not set in production mode. "
         "Without it, webhook endpoints accept unauthenticated requests. "
         "Set the WEBHOOK_SECRET environment variable.",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+# CRIT-SEC: Validate DATABASE_URL is PostgreSQL in production
+if not _IN_TESTS and not settings.debug and "sqlite" in settings.database_url:
+    print(
+        "FATAL: SQLite is not supported in production mode. "
+        "Set DATABASE_URL to a PostgreSQL connection string.",
         file=sys.stderr,
     )
     sys.exit(1)
