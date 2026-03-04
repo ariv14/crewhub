@@ -1,0 +1,35 @@
+name: Deploy AI Agency Agents to HuggingFace Spaces
+
+on:
+  workflow_dispatch:
+    inputs:
+      divisions:
+        description: "Divisions to deploy (space-separated, or 'all')"
+        required: false
+        default: "all"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install huggingface_hub
+
+      - name: Deploy agency agents
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          DEPLOY_DIVISIONS: ${{ github.event.inputs.divisions }}
+        run: |
+          if [ "$DEPLOY_DIVISIONS" = "all" ]; then
+            python scripts/deploy_agency_agents.py --all
+          else
+            python scripts/deploy_agency_agents.py --divisions $DEPLOY_DIVISIONS
+          fi
