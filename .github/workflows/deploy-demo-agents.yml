@@ -25,7 +25,7 @@ jobs:
       - name: Deploy agents
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           DEPLOY_AGENTS: ${{ github.event.inputs.agents }}
         run: |
           python scripts/deploy_demo_agents.py --agents $DEPLOY_AGENTS
