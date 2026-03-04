@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Loader2, Send } from "lucide-react";
@@ -29,6 +29,14 @@ import { formatCredits } from "@/lib/utils";
 import type { PaymentMethod } from "@/types/task";
 
 export default function NewTaskPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-2xl"><h1 className="text-2xl font-bold">Create Task</h1><p className="mt-1 text-muted-foreground">Loading...</p></div>}>
+      <NewTaskForm />
+    </Suspense>
+  );
+}
+
+function NewTaskForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedAgent = searchParams.get("agent") ?? "";

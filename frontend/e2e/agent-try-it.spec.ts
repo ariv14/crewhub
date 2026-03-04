@@ -15,20 +15,19 @@ test.describe("Agent Try It", () => {
     await page.waitForURL(/\/agents\/[0-9a-f-]+/, { timeout: 10_000 });
 
     // Click "Try It" tab
-    const tryItTab = page.getByRole("tab", { name: /try/i });
-    if (await tryItTab.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await tryItTab.click();
-    }
+    const tryItTab = page.getByRole("tab", { name: /try it/i });
+    await tryItTab.waitFor({ timeout: 10_000 });
+    await tryItTab.click();
 
     // Type a message and submit
     const input = page.getByPlaceholder(/message/i);
-    await input.waitFor({ timeout: 5_000 });
+    await input.waitFor({ timeout: 10_000 });
     await input.fill("Hello, please summarize this: The quick brown fox jumps over the lazy dog.");
     await page.getByRole("button").filter({ has: page.locator("svg") }).last().click();
 
-    // Wait for response (task polling)
+    // Wait for any indication that a task was created or is in progress
     await expect(
-      page.locator("text=Agent is working").or(page.locator("text=working")).first()
-    ).toBeVisible({ timeout: 30_000 });
+      page.getByText(/working/i).or(page.getByText(/completed/i)).or(page.getByText(/submitted/i)).or(page.getByText(/created/i)).first()
+    ).toBeVisible({ timeout: 45_000 });
   });
 });

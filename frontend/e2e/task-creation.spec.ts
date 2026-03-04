@@ -45,7 +45,7 @@ test.describe("Task Creation", () => {
     await page.goto(`/dashboard/tasks/new?agent=${agentId}`);
     await page.waitForTimeout(3_000);
     // The form should be visible with the agent pre-selected
-    await expect(page.locator("form, main")).toBeVisible();
+    await expect(page.locator("form")).toBeVisible({ timeout: 15_000 });
   });
 
   test("submit creates task and redirects to detail", async ({ page }) => {
