@@ -27,6 +27,9 @@ class Task(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         Uuid, primary_key=True, default=uuid.uuid4
     )
+    creator_user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     client_agent_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("agents.id", ondelete="SET NULL"), nullable=True, index=True
     )

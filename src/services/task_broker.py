@@ -112,6 +112,7 @@ class TaskBrokerService:
         # 4. Create task
         now = datetime.now(timezone.utc)
         task = Task(
+            creator_user_id=user_id,
             client_agent_id=client_agent_id,
             provider_agent_id=provider.id,
             skill_id=skill.id,
@@ -224,9 +225,10 @@ class TaskBrokerService:
             raise NotFoundError(detail=f"Task {task_id} not found")
 
         if user_id is not None:
+            is_creator = task.creator_user_id == user_id
             owns_client = task.client_agent and task.client_agent.owner_id == user_id
             owns_provider = task.provider_agent and task.provider_agent.owner_id == user_id
-            if not owns_client and not owns_provider:
+            if not is_creator and not owns_client and not owns_provider:
                 raise ForbiddenError(detail="You do not have access to this task")
 
         return task
@@ -255,14 +257,12 @@ class TaskBrokerService:
                 | (Task.provider_agent_id == agent_id)
             )
         if user_id:
-            # Tasks where the user owns either the client or provider agent.
-            # Use a subquery to find agent IDs owned by the user, then filter
-            # tasks by those IDs.  This avoids the outerjoin + where pattern
-            # that silently drops rows with NULL agent IDs.
+            # Tasks where the user is the creator, or owns the client/provider agent.
             from sqlalchemy import or_
             owned_ids_sq = select(Agent.id).where(Agent.owner_id == user_id).subquery()
             stmt = stmt.where(
                 or_(
+                    Task.creator_user_id == user_id,
                     Task.client_agent_id.in_(select(owned_ids_sq.c.id)),
                     Task.provider_agent_id.in_(select(owned_ids_sq.c.id)),
                 )
