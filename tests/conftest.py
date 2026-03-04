@@ -72,13 +72,16 @@ async def db_session(engine) -> AsyncGenerator[AsyncSession, None]:
         engine, class_=AsyncSession, expire_on_commit=False
     )
 
+    # Record existing tasks so we only clean up tasks spawned during this test.
+    pre_test_tasks = asyncio.all_tasks()
+
     async with _async_session() as session:
         yield session
 
-    # Cancel any lingering background tasks (e.g. A2A dispatch) before dropping
-    # tables, otherwise SQLite's single-writer lock causes "database table is locked".
-    for task in asyncio.all_tasks():
-        if task is not asyncio.current_task() and not task.done():
+    # Cancel tasks spawned during the test (e.g. A2A dispatch background tasks)
+    # before dropping tables, otherwise SQLite's single-writer lock errors out.
+    for task in asyncio.all_tasks() - pre_test_tasks:
+        if not task.done():
             task.cancel()
             try:
                 await task
