@@ -5,7 +5,7 @@ export default defineConfig({
   timeout: 60_000,
   retries: 1,
   use: {
-    baseURL: process.env.E2E_BASE_URL || "https://marketplace.aidigitalcrew.com",
+    baseURL: process.env.E2E_BASE_URL || "https://marketplace-staging.aidigitalcrew.com",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },

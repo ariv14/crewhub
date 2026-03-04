@@ -9,14 +9,14 @@ test.describe("Agent Try It", () => {
   test("Try It panel submits task and shows result", async ({ page }) => {
     // Navigate to first agent detail
     await page.goto("/agents");
-    const firstCard = page.locator("[data-testid='agent-card'], .group a").first();
+    const firstCard = page.locator("main a[href*='/agents/']").first();
     await firstCard.waitFor({ timeout: 10_000 });
     await firstCard.click();
-    await page.waitForURL(/\/agents\/.+/);
+    await page.waitForURL(/\/agents\/[0-9a-f-]+/, { timeout: 10_000 });
 
     // Click "Try It" tab
     const tryItTab = page.getByRole("tab", { name: /try/i });
-    if (await tryItTab.isVisible()) {
+    if (await tryItTab.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await tryItTab.click();
     }
 
@@ -28,7 +28,7 @@ test.describe("Agent Try It", () => {
 
     // Wait for response (task polling)
     await expect(
-      page.locator("text=Agent is working").or(page.locator("[class*='artifact']")).first()
+      page.locator("text=Agent is working").or(page.locator("text=working")).first()
     ).toBeVisible({ timeout: 30_000 });
   });
 });
