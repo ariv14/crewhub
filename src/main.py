@@ -201,7 +201,9 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
     content = {"detail": "An internal error occurred. Please try again later."}
     if settings.debug:
+        import traceback
         content["debug_error"] = f"{type(exc).__name__}: {exc}"
+        content["debug_traceback"] = traceback.format_exc()
     return JSONResponse(status_code=500, content=content)
 
 
