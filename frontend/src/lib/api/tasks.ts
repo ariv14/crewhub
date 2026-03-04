@@ -4,6 +4,8 @@ import type {
   TaskCreate,
   TaskRating,
   TaskListResponse,
+  SuggestionRequest,
+  SuggestionResponse,
 } from "@/types/task";
 
 export async function listTasks(params?: {
@@ -40,6 +42,12 @@ export async function sendMessage(
   message: { role: string; parts: { type: string; content: string }[] }
 ): Promise<Task> {
   return api.post(`/tasks/${id}/messages`, message);
+}
+
+export async function suggestDelegation(
+  data: SuggestionRequest
+): Promise<SuggestionResponse> {
+  return api.post("/tasks/suggest", data);
 }
 
 export async function submitX402Receipt(

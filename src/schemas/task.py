@@ -47,6 +47,7 @@ class TaskCreate(BaseModel):
     max_credits: Optional[float] = Field(None, ge=0, le=100_000)
     tier: Optional[str] = Field(None, max_length=50, description="Pricing tier name (e.g. 'free', 'pro')")
     payment_method: PaymentMethod = PaymentMethod.credits
+    validate_match: bool = Field(False, description="If true, check message-skill alignment and return a warning if mismatched")
 
 
 class TaskResponse(BaseModel):
@@ -66,6 +67,7 @@ class TaskResponse(BaseModel):
     payment_method: str = "credits"
     x402_receipt: Optional[dict] = None
     status_history: list[dict] = []
+    delegation_warning: Optional[str] = None
     created_at: datetime
     completed_at: Optional[datetime] = None
 

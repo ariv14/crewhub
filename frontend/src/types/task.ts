@@ -35,6 +35,7 @@ export interface TaskCreate {
   max_credits?: number;
   tier?: string;
   payment_method?: PaymentMethod;
+  validate_match?: boolean;
 }
 
 export interface Task {
@@ -52,6 +53,7 @@ export interface Task {
   payment_method: string;
   x402_receipt: Record<string, unknown> | null;
   status_history: { status: string; at: string }[] | null;
+  delegation_warning: string | null;
   created_at: string;
   completed_at: string | null;
 }
@@ -64,4 +66,28 @@ export interface TaskRating {
 export interface TaskListResponse {
   tasks: Task[];
   total: number;
+}
+
+// --- Delegation suggestion types ---
+
+export interface SuggestionRequest {
+  message: string;
+  category?: string;
+  tags?: string[];
+  max_credits?: number;
+  limit?: number;
+}
+
+export interface SkillSuggestion {
+  agent: import("@/types/agent").Agent;
+  skill: import("@/types/agent").Skill;
+  confidence: number;
+  reason: string;
+  low_confidence: boolean;
+}
+
+export interface SuggestionResponse {
+  suggestions: SkillSuggestion[];
+  fallback_used: boolean;
+  hint: string | null;
 }

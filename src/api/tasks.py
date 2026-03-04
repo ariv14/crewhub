@@ -41,10 +41,25 @@ async def create_task(
 
     Reserves the estimated credits from the caller's account and dispatches
     the task to the target provider agent via the A2A protocol.
+
+    If ``validate_match`` is true, checks message-skill alignment and
+    includes a ``delegation_warning`` in the response if mismatched.
     """
     service = TaskBrokerService(db)
     task = await service.create_task(data=data, user_id=user_id)
-    return task
+
+    response = TaskResponse.model_validate(task)
+
+    if data.validate_match:
+        warning = await service.check_skill_mismatch(
+            messages=data.messages,
+            skill_id=data.skill_id,
+            agent_id=data.provider_agent_id,
+        )
+        if warning:
+            response.delegation_warning = warning
+
+    return response
 
 
 @router.get("/{task_id}", response_model=TaskResponse)

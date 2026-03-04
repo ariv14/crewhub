@@ -10,6 +10,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from src.config import settings
 from src.core.exceptions import ForbiddenError, MarketplaceError, NotFoundError, QuotaExceededError
 from src.models.agent import Agent, AgentStatus
 from src.models.skill import AgentSkill
@@ -139,6 +140,174 @@ class TaskBrokerService:
             )
 
         return task
+
+    # ------------------------------------------------------------------
+    # Delegation suggestion
+    # ------------------------------------------------------------------
+
+    async def suggest_delegation(
+        self,
+        message: str,
+        category: str | None = None,
+        tags: list[str] | None = None,
+        max_credits: float | None = None,
+        limit: int = 3,
+        user_llm_keys: dict[str, str] | None = None,
+        user_id: str | None = None,
+        account_tier: str = "free",
+    ):
+        """Suggest the best (agent, skill) pairs for a given message.
+
+        Uses semantic search when an embedding API key is available,
+        otherwise falls back to keyword matching.
+        """
+        from src.core.embeddings import EmbeddingService, MissingAPIKeyError
+        from src.schemas.agent import AgentResponse, SkillResponse
+        from src.schemas.suggestion import SkillSuggestion, SuggestionResponse
+
+        # Fetch all active agents with skills
+        stmt = (
+            select(Agent)
+            .options(selectinload(Agent.skills))
+            .where(Agent.status == AgentStatus.ACTIVE)
+        )
+        if category:
+            stmt = stmt.where(Agent.category == category)
+        if tags:
+            stmt = stmt.where(Agent.tags.contains(tags))
+        result = await self.db.execute(stmt)
+        agents = list(result.scalars().unique().all())
+
+        if not agents:
+            return SuggestionResponse(suggestions=[], hint="No active agents found.")
+
+        # Try semantic search first
+        fallback_used = False
+        hint = None
+        try:
+            provider = settings.embedding_provider.lower()
+            api_key = (user_llm_keys or {}).get(provider)
+            embeddings = EmbeddingService(
+                api_key=api_key, user_id=user_id, account_tier=account_tier,
+            )
+            query_embedding = await embeddings.generate(message)
+            scored = self._score_skills_semantic(agents, query_embedding, max_credits)
+        except MissingAPIKeyError:
+            logger.info("No embedding API key — falling back to keyword suggestion")
+            scored = self._score_skills_keyword(agents, message, max_credits)
+            fallback_used = True
+            hint = "Configure an API key in Settings > LLM Keys for smarter suggestions."
+
+        # Sort by score descending and take top N
+        scored.sort(key=lambda x: x[2], reverse=True)
+        suggestions = []
+        for agent_obj, skill_obj, score in scored[:limit]:
+            suggestions.append(SkillSuggestion(
+                agent=AgentResponse.model_validate(agent_obj),
+                skill=SkillResponse.model_validate(skill_obj),
+                confidence=round(score, 4),
+                reason=self._build_reason(score, fallback_used),
+                low_confidence=score < 0.3,
+            ))
+
+        return SuggestionResponse(
+            suggestions=suggestions,
+            fallback_used=fallback_used,
+            hint=hint,
+        )
+
+    @staticmethod
+    def _score_skills_semantic(
+        agents: list[Agent],
+        query_embedding: list[float],
+        max_credits: float | None,
+    ) -> list[tuple[Agent, AgentSkill, float]]:
+        """Score each (agent, skill) pair by cosine similarity."""
+        from src.services.discovery import DiscoveryService
+
+        scored = []
+        for agent in agents:
+            for skill in agent.skills:
+                if max_credits is not None and skill.avg_credits > max_credits:
+                    continue
+                if skill.embedding:
+                    sim = DiscoveryService._cosine_similarity(query_embedding, skill.embedding)
+                    scored.append((agent, skill, sim))
+        return scored
+
+    @staticmethod
+    def _score_skills_keyword(
+        agents: list[Agent],
+        message: str,
+        max_credits: float | None,
+    ) -> list[tuple[Agent, AgentSkill, float]]:
+        """Score each (agent, skill) pair by keyword overlap."""
+        words = set(message.lower().split())
+        scored = []
+        for agent in agents:
+            for skill in agent.skills:
+                if max_credits is not None and skill.avg_credits > max_credits:
+                    continue
+                skill_text = f"{skill.name} {skill.description}".lower()
+                skill_words = set(skill_text.split())
+                overlap = len(words & skill_words)
+                if overlap > 0:
+                    score = min(overlap / max(len(words), 1), 1.0)
+                    scored.append((agent, skill, score))
+        return scored
+
+    async def check_skill_mismatch(
+        self,
+        messages: list,
+        skill_id: str,
+        agent_id: UUID,
+        threshold: float = 0.4,
+    ) -> str | None:
+        """Check if a message aligns with the selected skill.
+
+        Returns a warning string if similarity is below threshold, None otherwise.
+        Silently returns None if embeddings are unavailable.
+        """
+        from src.core.embeddings import EmbeddingService, MissingAPIKeyError
+        from src.services.discovery import DiscoveryService
+
+        skill = await self._get_skill_on_agent(skill_id, agent_id)
+        if not skill.embedding:
+            return None
+
+        # Extract text from messages
+        text_parts = []
+        for m in messages:
+            msg = m if isinstance(m, dict) else m.model_dump()
+            for part in msg.get("parts", []):
+                if part.get("type") == "text" and part.get("content"):
+                    text_parts.append(part["content"])
+        if not text_parts:
+            return None
+
+        text = " ".join(text_parts)
+        try:
+            embeddings = EmbeddingService()
+            query_embedding = await embeddings.generate(text)
+        except (MissingAPIKeyError, Exception):
+            return None
+
+        similarity = DiscoveryService._cosine_similarity(query_embedding, skill.embedding)
+        if similarity < threshold:
+            return (
+                f"Your message may not match the selected skill '{skill.name}' "
+                f"(confidence: {similarity:.0%}). Consider trying auto-delegation."
+            )
+        return None
+
+    @staticmethod
+    def _build_reason(score: float, fallback: bool) -> str:
+        method = "keyword match" if fallback else "semantic similarity"
+        if score >= 0.7:
+            return f"Strong match via {method}"
+        if score >= 0.3:
+            return f"Moderate match via {method}"
+        return f"Weak match via {method}"
 
     # ------------------------------------------------------------------
     # A2A dispatch (background)
