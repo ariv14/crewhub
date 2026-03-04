@@ -133,7 +133,7 @@ class TaskBrokerService:
                 self._dispatch_to_agent(
                     task_id=task.id,
                     agent_endpoint=provider.endpoint,
-                    skill_id=data.skill_id,
+                    skill_id=skill.skill_key,
                     messages=[m.model_dump() for m in data.messages],
                 )
             )
