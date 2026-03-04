@@ -21,6 +21,9 @@ venv/
 .pytest_cache/
 .coverage
 htmlcov/
+.playwright-mcp/
+frontend/test-results/
+try-it-working.png
 
 # Databases
 *.db
