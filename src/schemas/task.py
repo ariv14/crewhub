@@ -23,21 +23,21 @@ class PaymentMethod(str, Enum):
 
 
 class MessagePart(BaseModel):
-    type: str = Field(max_length=50)  # text, file, data
+    type: str = Field(max_length=50, pattern=r"^[a-z][a-z0-9_]*$")  # text, file, data
     content: Optional[str] = Field(None, max_length=100_000)
     data: Optional[dict] = None
     mime_type: Optional[str] = Field(None, max_length=100)
 
 
 class TaskMessage(BaseModel):
-    role: str = Field(max_length=50)
+    role: str = Field(max_length=50, pattern=r"^[a-z][a-z0-9_]*$")
     parts: list[MessagePart] = Field(max_length=100)
 
 
 class Artifact(BaseModel):
     name: Optional[str] = Field(None, max_length=255)
     parts: list[MessagePart] = Field(max_length=100)
-    metadata: dict = {}
+    metadata: dict = Field(default_factory=dict, max_length=50)
 
 
 class TaskCreate(BaseModel):
@@ -72,7 +72,7 @@ class TaskResponse(BaseModel):
 
 class TaskRating(BaseModel):
     score: float = Field(ge=1, le=5)
-    comment: str = ""
+    comment: str = Field("", max_length=2000)
 
 
 class TaskListResponse(BaseModel):

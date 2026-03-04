@@ -7,7 +7,7 @@ Usage:
 
 Requires:
     - HF_TOKEN env var (or --token)
-    - GEMINI_API_KEY env var (or --gemini-key) for setting Space secrets
+    - GROQ_API_KEY env var (or --groq-key) for setting Space secrets
 """
 
 import argparse
@@ -73,7 +73,7 @@ def _prepare_upload_dir(agent_name: str, config: dict) -> Path:
     return tmp
 
 
-def deploy_agent(agent_name: str, config: dict, api: HfApi, gemini_key: str, dry_run: bool = False):
+def deploy_agent(agent_name: str, config: dict, api: HfApi, groq_key: str, dry_run: bool = False):
     space_id = config["space_id"]
     space_url = f"https://{space_id.replace('/', '-')}.hf.space"
 
@@ -112,8 +112,8 @@ def deploy_agent(agent_name: str, config: dict, api: HfApi, gemini_key: str, dry
 
     # Set secrets
     secrets = {
-        "MODEL": "gemini/gemini-2.0-flash",
-        "GEMINI_API_KEY": gemini_key,
+        "MODEL": "groq/llama-3.3-70b-versatile",
+        "GROQ_API_KEY": groq_key,
         "AGENT_URL": space_url,
     }
     for key, value in secrets.items():
@@ -129,22 +129,22 @@ def main():
     parser.add_argument("--agents", nargs="+", default=["summarizer", "translator"],
                         choices=list(AGENT_CONFIGS.keys()))
     parser.add_argument("--token", default=os.environ.get("HF_TOKEN"))
-    parser.add_argument("--gemini-key", default=os.environ.get("GEMINI_API_KEY"))
+    parser.add_argument("--groq-key", default=os.environ.get("GROQ_API_KEY"))
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
     if not args.token:
         print("ERROR: HF_TOKEN env var or --token required")
         sys.exit(1)
-    if not args.gemini_key and not args.dry_run:
-        print("ERROR: GEMINI_API_KEY env var or --gemini-key required")
+    if not args.groq_key and not args.dry_run:
+        print("ERROR: GROQ_API_KEY env var or --groq-key required")
         sys.exit(1)
 
     api = HfApi(token=args.token)
 
     for agent_name in args.agents:
         config = AGENT_CONFIGS[agent_name]
-        deploy_agent(agent_name, config, api, args.gemini_key or "", dry_run=args.dry_run)
+        deploy_agent(agent_name, config, api, args.groq_key or "", dry_run=args.dry_run)
 
     print("\n✓ All agents deployed!")
     print("\nAgent URLs:")

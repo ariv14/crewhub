@@ -1,21 +1,60 @@
-"""In-memory sliding window rate limiter.
+"""Rate limiter with Redis backend and in-memory fallback.
 
-No external dependencies (no Redis). Each process maintains its own state,
-which is fine for single-instance or low-instance deployments (Cloud Run 0-3).
+Uses Redis INCR + EXPIRE for multi-instance deployments. Falls back to
+in-memory sliding window when Redis is unavailable.
 """
 
+import logging
+import os
 import time
 from collections import defaultdict
 
 from fastapi import Depends, Request
 
 from src.config import settings
-from src.core.auth import get_current_user_id
+from src.core.auth import get_current_user
 from src.core.exceptions import RateLimitError
+
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Redis backend (optional)
+# ---------------------------------------------------------------------------
+
+_redis_client = None
+_redis_init_attempted = False
+
+
+def _get_redis():
+    """Lazy-init Redis connection. Returns None if unavailable."""
+    global _redis_client, _redis_init_attempted
+    if _redis_init_attempted:
+        return _redis_client
+
+    _redis_init_attempted = True
+    redis_url = os.environ.get("REDIS_URL")
+    if not redis_url:
+        return None
+
+    try:
+        import redis
+        _redis_client = redis.from_url(redis_url, decode_responses=True)
+        _redis_client.ping()
+        logger.info("Redis rate limiter connected")
+        return _redis_client
+    except Exception:
+        logger.warning("Redis unavailable, falling back to in-memory rate limiter")
+        _redis_client = None
+        return None
+
+
+# ---------------------------------------------------------------------------
+# In-memory backend
+# ---------------------------------------------------------------------------
 
 
 class RateLimiter:
-    """Sliding window rate limiter using in-memory sorted timestamps."""
+    """Sliding window rate limiter with Redis or in-memory backend."""
 
     def __init__(self, max_requests: int = 100, window_seconds: int = 60):
         self.max_requests = max_requests
@@ -23,10 +62,25 @@ class RateLimiter:
         self._requests: dict[str, list[float]] = defaultdict(list)
 
     def check(self, key: str) -> bool:
+        r = _get_redis()
+        if r is not None:
+            return self._check_redis(r, key)
+        return self._check_memory(key)
+
+    def _check_redis(self, r, key: str) -> bool:
+        redis_key = f"ratelimit:{key}"
+        try:
+            current = r.incr(redis_key)
+            if current == 1:
+                r.expire(redis_key, self.window_seconds)
+            return current <= self.max_requests
+        except Exception:
+            logger.warning("Redis check failed, falling back to in-memory")
+            return self._check_memory(key)
+
+    def _check_memory(self, key: str) -> bool:
         now = time.monotonic()
         window_start = now - self.window_seconds
-
-        # Prune old entries
         timestamps = self._requests[key]
         self._requests[key] = [t for t in timestamps if t > window_start]
 
@@ -37,6 +91,22 @@ class RateLimiter:
         return True
 
     def get_limit_info(self, key: str) -> dict:
+        r = _get_redis()
+        if r is not None:
+            return self._get_limit_info_redis(r, key)
+        return self._get_limit_info_memory(key)
+
+    def _get_limit_info_redis(self, r, key: str) -> dict:
+        redis_key = f"ratelimit:{key}"
+        try:
+            current = int(r.get(redis_key) or 0)
+            ttl = r.ttl(redis_key)
+            remaining = max(0, self.max_requests - current)
+            return {"remaining": remaining, "reset_in_seconds": max(ttl, 0)}
+        except Exception:
+            return self._get_limit_info_memory(key)
+
+    def _get_limit_info_memory(self, key: str) -> dict:
         now = time.monotonic()
         window_start = now - self.window_seconds
         timestamps = self._requests.get(key, [])
@@ -45,7 +115,10 @@ class RateLimiter:
         return {"remaining": remaining, "reset_in_seconds": self.window_seconds}
 
 
-# Module-level singleton
+# ---------------------------------------------------------------------------
+# Module-level singletons
+# ---------------------------------------------------------------------------
+
 _limiter: RateLimiter | None = None
 
 
@@ -60,12 +133,22 @@ def get_rate_limiter() -> RateLimiter:
 
 
 async def rate_limit_dependency(
-    user_id=Depends(get_current_user_id),
+    request: Request,
+    current_user: dict = Depends(get_current_user),
 ) -> None:
     limiter = get_rate_limiter()
-    allowed = limiter.check(str(user_id))
+    key = current_user.get("id", "anonymous")
+    allowed = limiter.check(key)
+    info = limiter.get_limit_info(key)
+
+    # Store rate limit info for response headers
+    request.state.rate_limit_info = {
+        "limit": limiter.max_requests,
+        "remaining": info["remaining"],
+        "reset": info["reset_in_seconds"],
+    }
+
     if not allowed:
-        info = limiter.get_limit_info(str(user_id))
         raise RateLimitError(
             detail=f"Rate limit exceeded. Try again in {info['reset_in_seconds']} seconds"
         )

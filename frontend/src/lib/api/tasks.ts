@@ -39,7 +39,7 @@ export async function sendMessage(
   id: string,
   message: { role: string; parts: { type: string; content: string }[] }
 ): Promise<Task> {
-  return api.post(`/tasks/${id}/message`, message);
+  return api.post(`/tasks/${id}/messages`, message);
 }
 
 export async function submitX402Receipt(

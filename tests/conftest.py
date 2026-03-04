@@ -4,6 +4,7 @@ Uses aiosqlite for an in-memory SQLite database so that tests run
 without any external services (PostgreSQL, Redis, Qdrant, etc.).
 """
 
+import asyncio
 import os
 import uuid
 from typing import AsyncGenerator
@@ -71,8 +72,21 @@ async def db_session(engine) -> AsyncGenerator[AsyncSession, None]:
         engine, class_=AsyncSession, expire_on_commit=False
     )
 
+    # Record existing tasks so we only clean up tasks spawned during this test.
+    pre_test_tasks = asyncio.all_tasks()
+
     async with _async_session() as session:
         yield session
+
+    # Cancel tasks spawned during the test (e.g. A2A dispatch background tasks)
+    # before dropping tables, otherwise SQLite's single-writer lock errors out.
+    for task in asyncio.all_tasks() - pre_test_tasks:
+        if not task.done():
+            task.cancel()
+            try:
+                await task
+            except (asyncio.CancelledError, Exception):
+                pass
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)

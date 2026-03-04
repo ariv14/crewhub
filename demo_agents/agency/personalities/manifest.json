@@ -1,0 +1,415 @@
+{
+  "source": "https://github.com/msitarzewski/agency-agents",
+  "divisions": {
+    "design": [
+      {
+        "filename": "design-brand-guardian.md",
+        "division": "design",
+        "skill_id": "brand-guardian",
+        "name": "Brand Guardian",
+        "description": "Expert brand strategist and guardian specializing in brand identity development, consistency maintenance, and strategic brand positioning"
+      },
+      {
+        "filename": "design-image-prompt-engineer.md",
+        "division": "design",
+        "skill_id": "image-prompt-engineer",
+        "name": "Image Prompt Engineer",
+        "description": "Expert photography prompt engineer specializing in crafting detailed, evocative prompts for AI image generation. Masters the art of translating visual concepts into precise language that produces stunning, professional-quality photography through generative AI tools."
+      },
+      {
+        "filename": "design-ui-designer.md",
+        "division": "design",
+        "skill_id": "ui-designer",
+        "name": "UI Designer",
+        "description": "Expert UI designer specializing in visual design systems, component libraries, and pixel-perfect interface creation. Creates beautiful, consistent, accessible user interfaces that enhance UX and reflect brand identity"
+      },
+      {
+        "filename": "design-ux-architect.md",
+        "division": "design",
+        "skill_id": "ux-architect",
+        "name": "UX Architect",
+        "description": "Technical architecture and UX specialist who provides developers with solid foundations, CSS systems, and clear implementation guidance"
+      },
+      {
+        "filename": "design-ux-researcher.md",
+        "division": "design",
+        "skill_id": "ux-researcher",
+        "name": "UX Researcher",
+        "description": "Expert user experience researcher specializing in user behavior analysis, usability testing, and data-driven design insights. Provides actionable research findings that improve product usability and user satisfaction"
+      },
+      {
+        "filename": "design-visual-storyteller.md",
+        "division": "design",
+        "skill_id": "visual-storyteller",
+        "name": "Visual Storyteller",
+        "description": "Expert visual communication specialist focused on creating compelling visual narratives, multimedia content, and brand storytelling through design. Specializes in transforming complex information into engaging visual stories that connect with audiences and drive emotional engagement."
+      },
+      {
+        "filename": "design-whimsy-injector.md",
+        "division": "design",
+        "skill_id": "whimsy-injector",
+        "name": "Whimsy Injector",
+        "description": "Expert creative specialist focused on adding personality, delight, and playful elements to brand experiences. Creates memorable, joyful interactions that differentiate brands through unexpected moments of whimsy"
+      }
+    ],
+    "engineering": [
+      {
+        "filename": "engineering-ai-engineer.md",
+        "division": "engineering",
+        "skill_id": "ai-engineer",
+        "name": "AI Engineer",
+        "description": "Expert AI/ML engineer specializing in machine learning model development, deployment, and integration into production systems. Focused on building intelligent features, data pipelines, and AI-powered applications with emphasis on practical, scalable solutions."
+      },
+      {
+        "filename": "engineering-backend-architect.md",
+        "division": "engineering",
+        "skill_id": "backend-architect",
+        "name": "Backend Architect",
+        "description": "Senior backend architect specializing in scalable system design, database architecture, API development, and cloud infrastructure. Builds robust, secure, performant server-side applications and microservices"
+      },
+      {
+        "filename": "engineering-devops-automator.md",
+        "division": "engineering",
+        "skill_id": "devops-automator",
+        "name": "DevOps Automator",
+        "description": "Expert DevOps engineer specializing in infrastructure automation, CI/CD pipeline development, and cloud operations"
+      },
+      {
+        "filename": "engineering-frontend-developer.md",
+        "division": "engineering",
+        "skill_id": "frontend-developer",
+        "name": "Frontend Developer",
+        "description": "Expert frontend developer specializing in modern web technologies, React/Vue/Angular frameworks, UI implementation, and performance optimization"
+      },
+      {
+        "filename": "engineering-mobile-app-builder.md",
+        "division": "engineering",
+        "skill_id": "mobile-app-builder",
+        "name": "Mobile App Builder",
+        "description": "Specialized mobile application developer with expertise in native iOS/Android development and cross-platform frameworks"
+      },
+      {
+        "filename": "engineering-rapid-prototyper.md",
+        "division": "engineering",
+        "skill_id": "rapid-prototyper",
+        "name": "Rapid Prototyper",
+        "description": "Specialized in ultra-fast proof-of-concept development and MVP creation using efficient tools and frameworks"
+      },
+      {
+        "filename": "engineering-senior-developer.md",
+        "division": "engineering",
+        "skill_id": "senior-developer",
+        "name": "Senior Developer",
+        "description": "Premium implementation specialist - Masters Laravel/Livewire/FluxUI, advanced CSS, Three.js integration"
+      }
+    ],
+    "marketing": [
+      {
+        "filename": "marketing-app-store-optimizer.md",
+        "division": "marketing",
+        "skill_id": "app-store-optimizer",
+        "name": "App Store Optimizer",
+        "description": "Expert app store marketing specialist focused on App Store Optimization (ASO), conversion rate optimization, and app discoverability"
+      },
+      {
+        "filename": "marketing-content-creator.md",
+        "division": "marketing",
+        "skill_id": "content-creator",
+        "name": "Content Creator",
+        "description": "Expert content strategist and creator for multi-platform campaigns. Develops editorial calendars, creates compelling copy, manages brand storytelling, and optimizes content for engagement across all digital channels."
+      },
+      {
+        "filename": "marketing-growth-hacker.md",
+        "division": "marketing",
+        "skill_id": "growth-hacker",
+        "name": "Growth Hacker",
+        "description": "Expert growth strategist specializing in rapid user acquisition through data-driven experimentation. Develops viral loops, optimizes conversion funnels, and finds scalable growth channels for exponential business growth."
+      },
+      {
+        "filename": "marketing-instagram-curator.md",
+        "division": "marketing",
+        "skill_id": "instagram-curator",
+        "name": "Instagram Curator",
+        "description": "Expert Instagram marketing specialist focused on visual storytelling, community building, and multi-format content optimization. Masters aesthetic development and drives meaningful engagement."
+      },
+      {
+        "filename": "marketing-reddit-community-builder.md",
+        "division": "marketing",
+        "skill_id": "reddit-community-builder",
+        "name": "Reddit Community Builder",
+        "description": "Expert Reddit marketing specialist focused on authentic community engagement, value-driven content creation, and long-term relationship building. Masters Reddit culture navigation."
+      },
+      {
+        "filename": "marketing-social-media-strategist.md",
+        "division": "marketing",
+        "skill_id": "social-media-strategist",
+        "name": "Social Media Strategist",
+        "description": "Expert social media strategist for Twitter, LinkedIn, and professional platforms. Creates viral campaigns, builds communities, manages real-time engagement, and develops thought leadership strategies."
+      },
+      {
+        "filename": "marketing-tiktok-strategist.md",
+        "division": "marketing",
+        "skill_id": "tiktok-strategist",
+        "name": "TikTok Strategist",
+        "description": "Expert TikTok marketing specialist focused on viral content creation, algorithm optimization, and community building. Masters TikTok's unique culture and features for brand growth."
+      },
+      {
+        "filename": "marketing-twitter-engager.md",
+        "division": "marketing",
+        "skill_id": "twitter-engager",
+        "name": "Twitter Engager",
+        "description": "Expert Twitter marketing specialist focused on real-time engagement, thought leadership building, and community-driven growth. Masters LinkedIn campaigns and professional social media strategy."
+      }
+    ],
+    "product": [
+      {
+        "filename": "product-feedback-synthesizer.md",
+        "division": "product",
+        "skill_id": "feedback-synthesizer",
+        "name": "Feedback Synthesizer",
+        "description": "Expert in collecting, analyzing, and synthesizing user feedback from multiple channels to extract actionable product insights. Transforms qualitative feedback into quantitative priorities and strategic recommendations."
+      },
+      {
+        "filename": "product-sprint-prioritizer.md",
+        "division": "product",
+        "skill_id": "sprint-prioritizer",
+        "name": "Sprint Prioritizer",
+        "description": "Expert product manager specializing in agile sprint planning, feature prioritization, and resource allocation. Focused on maximizing team velocity and business value delivery through data-driven prioritization frameworks."
+      },
+      {
+        "filename": "product-trend-researcher.md",
+        "division": "product",
+        "skill_id": "trend-researcher",
+        "name": "Trend Researcher",
+        "description": "Expert market intelligence analyst specializing in identifying emerging trends, competitive analysis, and opportunity assessment. Focused on providing actionable insights that drive product strategy and innovation decisions."
+      }
+    ],
+    "project-management": [
+      {
+        "filename": "project-management-experiment-tracker.md",
+        "division": "project-management",
+        "skill_id": "experiment-tracker",
+        "name": "Experiment Tracker",
+        "description": "Expert project manager specializing in experiment design, execution tracking, and data-driven decision making. Focused on managing A/B tests, feature experiments, and hypothesis validation through systematic experimentation and rigorous analysis."
+      },
+      {
+        "filename": "project-management-project-shepherd.md",
+        "division": "project-management",
+        "skill_id": "project-shepherd",
+        "name": "Project Shepherd",
+        "description": "Expert project manager specializing in cross-functional project coordination, timeline management, and stakeholder alignment. Focused on shepherding projects from conception to completion while managing resources, risks, and communications across multiple teams and departments."
+      },
+      {
+        "filename": "project-management-studio-operations.md",
+        "division": "project-management",
+        "skill_id": "studio-operations",
+        "name": "Studio Operations",
+        "description": "Expert operations manager specializing in day-to-day studio efficiency, process optimization, and resource coordination. Focused on ensuring smooth operations, maintaining productivity standards, and supporting all teams with the tools and processes needed for success."
+      },
+      {
+        "filename": "project-management-studio-producer.md",
+        "division": "project-management",
+        "skill_id": "studio-producer",
+        "name": "Studio Producer",
+        "description": "Senior strategic leader specializing in high-level creative and technical project orchestration, resource allocation, and multi-project portfolio management. Focused on aligning creative vision with business objectives while managing complex cross-functional initiatives and ensuring optimal studio operations."
+      },
+      {
+        "filename": "project-manager-senior.md",
+        "division": "project-management",
+        "skill_id": "project-manager-senior",
+        "name": "Senior Project Manager",
+        "description": "Converts specs to tasks, remembers previous projects\\n - Focused on realistic scope, no background processes, exact spec requirements"
+      }
+    ],
+    "spatial-computing": [
+      {
+        "filename": "macos-spatial-metal-engineer.md",
+        "division": "spatial-computing",
+        "skill_id": "macos-spatial-metal-engineer",
+        "name": "macOS Spatial/Metal Engineer",
+        "description": "Native Swift and Metal specialist building high-performance 3D rendering systems and spatial computing experiences for macOS and Vision Pro"
+      },
+      {
+        "filename": "terminal-integration-specialist.md",
+        "division": "spatial-computing",
+        "skill_id": "terminal-integration-specialist",
+        "name": "Terminal Integration Specialist",
+        "description": "Terminal emulation, text rendering optimization, and SwiftTerm integration for modern Swift applications"
+      },
+      {
+        "filename": "visionos-spatial-engineer.md",
+        "division": "spatial-computing",
+        "skill_id": "visionos-spatial-engineer",
+        "name": "visionOS Spatial Engineer",
+        "description": "Native visionOS spatial computing, SwiftUI volumetric interfaces, and Liquid Glass design implementation"
+      },
+      {
+        "filename": "xr-cockpit-interaction-specialist.md",
+        "division": "spatial-computing",
+        "skill_id": "xr-cockpit-interaction-specialist",
+        "name": "XR Cockpit Interaction Specialist",
+        "description": "Specialist in designing and developing immersive cockpit-based control systems for XR environments"
+      },
+      {
+        "filename": "xr-immersive-developer.md",
+        "division": "spatial-computing",
+        "skill_id": "xr-immersive-developer",
+        "name": "XR Immersive Developer",
+        "description": "Expert WebXR and immersive technology developer with specialization in browser-based AR/VR/XR applications"
+      },
+      {
+        "filename": "xr-interface-architect.md",
+        "division": "spatial-computing",
+        "skill_id": "xr-interface-architect",
+        "name": "XR Interface Architect",
+        "description": "Spatial interaction designer and interface strategist for immersive AR/VR/XR environments"
+      }
+    ],
+    "specialized": [
+      {
+        "filename": "agentic-identity-trust.md",
+        "division": "specialized",
+        "skill_id": "agentic-identity-trust",
+        "name": "Agentic Identity & Trust Architect",
+        "description": "Designs identity, authentication, and trust verification systems for autonomous AI agents operating in multi-agent environments. Ensures agents can prove who they are, what they're authorized to do, and what they actually did."
+      },
+      {
+        "filename": "agents-orchestrator.md",
+        "division": "specialized",
+        "skill_id": "agents-orchestrator",
+        "name": "Agents Orchestrator",
+        "description": "Autonomous pipeline manager that orchestrates the entire development workflow. You are the leader of this process."
+      },
+      {
+        "filename": "data-analytics-reporter.md",
+        "division": "specialized",
+        "skill_id": "data-analytics-reporter",
+        "name": "Data Analytics Reporter",
+        "description": "Expert data analyst transforming raw data into actionable business insights. Creates dashboards, performs statistical analysis, tracks KPIs, and provides strategic decision support through data visualization and reporting."
+      },
+      {
+        "filename": "data-consolidation-agent.md",
+        "division": "specialized",
+        "skill_id": "data-consolidation-agent",
+        "name": "Data Consolidation Agent",
+        "description": "AI agent that consolidates extracted sales data into live reporting dashboards with territory, rep, and pipeline summaries"
+      },
+      {
+        "filename": "lsp-index-engineer.md",
+        "division": "specialized",
+        "skill_id": "lsp-index-engineer",
+        "name": "LSP/Index Engineer",
+        "description": "Language Server Protocol specialist building unified code intelligence systems through LSP client orchestration and semantic indexing"
+      },
+      {
+        "filename": "report-distribution-agent.md",
+        "division": "specialized",
+        "skill_id": "report-distribution-agent",
+        "name": "Report Distribution Agent",
+        "description": "AI agent that automates distribution of consolidated sales reports to representatives based on territorial parameters"
+      },
+      {
+        "filename": "sales-data-extraction-agent.md",
+        "division": "specialized",
+        "skill_id": "sales-data-extraction-agent",
+        "name": "Sales Data Extraction Agent",
+        "description": "AI agent specialized in monitoring Excel files and extracting key sales metrics (MTD, YTD, Year End) for internal live reporting"
+      }
+    ],
+    "support": [
+      {
+        "filename": "support-analytics-reporter.md",
+        "division": "support",
+        "skill_id": "analytics-reporter",
+        "name": "Analytics Reporter",
+        "description": "Expert data analyst transforming raw data into actionable business insights. Creates dashboards, performs statistical analysis, tracks KPIs, and provides strategic decision support through data visualization and reporting."
+      },
+      {
+        "filename": "support-executive-summary-generator.md",
+        "division": "support",
+        "skill_id": "executive-summary-generator",
+        "name": "Executive Summary Generator",
+        "description": "Consultant-grade AI specialist trained to think and communicate like a senior strategy consultant. Transforms complex business inputs into concise, actionable executive summaries using McKinsey SCQA, BCG Pyramid Principle, and Bain frameworks for C-suite decision-makers."
+      },
+      {
+        "filename": "support-finance-tracker.md",
+        "division": "support",
+        "skill_id": "finance-tracker",
+        "name": "Finance Tracker",
+        "description": "Expert financial analyst and controller specializing in financial planning, budget management, and business performance analysis. Maintains financial health, optimizes cash flow, and provides strategic financial insights for business growth."
+      },
+      {
+        "filename": "support-infrastructure-maintainer.md",
+        "division": "support",
+        "skill_id": "infrastructure-maintainer",
+        "name": "Infrastructure Maintainer",
+        "description": "Expert infrastructure specialist focused on system reliability, performance optimization, and technical operations management. Maintains robust, scalable infrastructure supporting business operations with security, performance, and cost efficiency."
+      },
+      {
+        "filename": "support-legal-compliance-checker.md",
+        "division": "support",
+        "skill_id": "legal-compliance-checker",
+        "name": "Legal Compliance Checker",
+        "description": "Expert legal and compliance specialist ensuring business operations, data handling, and content creation comply with relevant laws, regulations, and industry standards across multiple jurisdictions."
+      },
+      {
+        "filename": "support-support-responder.md",
+        "division": "support",
+        "skill_id": "support-responder",
+        "name": "Support Responder",
+        "description": "Expert customer support specialist delivering exceptional customer service, issue resolution, and user experience optimization. Specializes in multi-channel support, proactive customer care, and turning support interactions into positive brand experiences."
+      }
+    ],
+    "testing": [
+      {
+        "filename": "testing-api-tester.md",
+        "division": "testing",
+        "skill_id": "api-tester",
+        "name": "API Tester",
+        "description": "Expert API testing specialist focused on comprehensive API validation, performance testing, and quality assurance across all systems and third-party integrations"
+      },
+      {
+        "filename": "testing-evidence-collector.md",
+        "division": "testing",
+        "skill_id": "evidence-collector",
+        "name": "Evidence Collector",
+        "description": "Screenshot-obsessed, fantasy-allergic QA specialist - Default to finding 3-5 issues, requires visual proof for everything"
+      },
+      {
+        "filename": "testing-performance-benchmarker.md",
+        "division": "testing",
+        "skill_id": "performance-benchmarker",
+        "name": "Performance Benchmarker",
+        "description": "Expert performance testing and optimization specialist focused on measuring, analyzing, and improving system performance across all applications and infrastructure"
+      },
+      {
+        "filename": "testing-reality-checker.md",
+        "division": "testing",
+        "skill_id": "reality-checker",
+        "name": "Reality Checker",
+        "description": "Stops fantasy approvals, evidence-based certification - Default to \"NEEDS WORK\", requires overwhelming proof for production readiness"
+      },
+      {
+        "filename": "testing-test-results-analyzer.md",
+        "division": "testing",
+        "skill_id": "test-results-analyzer",
+        "name": "Test Results Analyzer",
+        "description": "Expert test analysis specialist focused on comprehensive test result evaluation, quality metrics analysis, and actionable insight generation from testing activities"
+      },
+      {
+        "filename": "testing-tool-evaluator.md",
+        "division": "testing",
+        "skill_id": "tool-evaluator",
+        "name": "Tool Evaluator",
+        "description": "Expert technology assessment specialist focused on evaluating, testing, and recommending tools, software, and platforms for business use and productivity optimization"
+      },
+      {
+        "filename": "testing-workflow-optimizer.md",
+        "division": "testing",
+        "skill_id": "workflow-optimizer",
+        "name": "Workflow Optimizer",
+        "description": "Expert process improvement specialist focused on analyzing, optimizing, and automating workflows across all business functions for maximum productivity and efficiency"
+      }
+    ]
+  }
+}

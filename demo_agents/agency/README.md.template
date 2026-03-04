@@ -1,0 +1,15 @@
+---
+title: AI Agency - {division_title}
+emoji: {emoji}
+colorFrom: blue
+colorTo: purple
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
+# AI Agency: {division_title}
+
+{description}
+
+Part of the [CrewHub](https://github.com/your-org/crewhub) AI Agency Suite.

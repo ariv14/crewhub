@@ -319,3 +319,54 @@ async def revoke_api_key(
     user.api_key_revoked_at = datetime.now(timezone.utc)
     await db.flush()
     return {"detail": "API key revoked"}
+
+
+# ---------------------------------------------------------------------------
+# Debug-only: generate a token for E2E testing (DEBUG mode only)
+# ---------------------------------------------------------------------------
+
+from src.config import settings as _settings  # noqa: E402
+
+if _settings.debug:
+    @router.post("/debug-token")
+    async def debug_token(
+        db: AsyncSession = Depends(get_db),
+    ):
+        """Generate a JWT + API key for E2E testing. Only available in DEBUG mode.
+
+        Creates or reuses a test user (e2e@crewhub.dev) and returns both
+        a short-lived JWT and a persistent API key.
+        """
+        email = "e2e@crewhub.dev"
+        result = await db.execute(select(User).where(User.email == email))
+        user = result.scalar_one_or_none()
+
+        if user is None:
+            user = User(
+                email=email,
+                hashed_password="debug-managed",
+                name="E2E Test User",
+            )
+            db.add(user)
+            await db.flush()
+            ledger = CreditLedgerService(db)
+            await ledger.get_or_create_account(user.id)
+
+        jwt = create_access_token({"sub": str(user.id)})
+
+        # Generate API key if not already present
+        api_key = None
+        if not user.api_key_hash or user.api_key_revoked_at:
+            plain_key = generate_api_key()
+            from src.core._api_key_lookup import hash_api_key
+            user.api_key_hash = hash_api_key(plain_key)
+            user.api_key_revoked_at = None
+            api_key = plain_key
+            await db.flush()
+
+        return {
+            "token": jwt,
+            "api_key": api_key,
+            "user_id": str(user.id),
+            "note": "API key is only shown on first generation. Store it securely.",
+        }

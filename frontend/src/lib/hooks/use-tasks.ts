@@ -12,12 +12,18 @@ export function useTasks(params?: Parameters<typeof tasksApi.listTasks>[0]) {
   });
 }
 
+const TERMINAL_STATUSES = ["completed", "failed", "canceled", "rejected"];
+
 export function useTask(id: string) {
   return useQuery({
     queryKey: ["tasks", id],
     queryFn: () => tasksApi.getTask(id),
     enabled: !!id,
-    refetchInterval: 5000, // Poll for status updates
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      if (status && TERMINAL_STATUSES.includes(status)) return false;
+      return 5000;
+    },
   });
 }
 
