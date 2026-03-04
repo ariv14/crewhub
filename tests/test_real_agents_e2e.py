@@ -21,9 +21,7 @@ Default agent URLs (HuggingFace Spaces):
 """
 
 import argparse
-import json
 import sys
-import time
 from pathlib import Path
 from uuid import uuid4
 
@@ -638,7 +636,7 @@ def main():
     summarizer = args.summarizer_url.rstrip("/")
     translator = args.translator_url.rstrip("/")
 
-    print(f"\n  Real Agent E2E Tests")
+    print("\n  Real Agent E2E Tests")
     print(f"  Staging:    {args.base_url}")
     print(f"  Summarizer: {summarizer}")
     print(f"  Translator: {translator}")
@@ -695,7 +693,7 @@ def main():
 
             # Register agents
             summarizer_id = test_register_real_agent(client, "Summarizer", summarizer, credits=1.0)
-            translator_id = test_register_real_agent(client, "Translator", translator, credits=2.0)
+            test_register_real_agent(client, "Translator", translator, credits=2.0)
 
             # Create task through marketplace
             if summarizer_id:

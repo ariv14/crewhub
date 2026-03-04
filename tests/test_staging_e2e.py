@@ -23,7 +23,6 @@ Reads token from .playwright-auth/session.json by default.
 import argparse
 import json
 import sys
-import time
 from pathlib import Path
 from uuid import uuid4
 
@@ -258,7 +257,7 @@ def test_get_agent_card(client: StagingClient, agent_id: str):
     if missing:
         _log("FAIL", "A2A agent card", f"Missing fields: {missing}")
     else:
-        _log("PASS", "A2A agent card", f"All required A2A fields present")
+        _log("PASS", "A2A agent card", "All required A2A fields present")
 
 
 def test_check_credits(client: StagingClient) -> dict:
@@ -343,7 +342,7 @@ def test_complete_task_via_webhook(client: StagingClient, task: dict, agent_id: 
     if data.get("error"):
         _log("FAIL", "Webhook: working", f"Error: {data['error']}")
         return False
-    _log("PASS", "Webhook: working", f"Task transitioned to working")
+    _log("PASS", "Webhook: working", "Task transitioned to working")
 
     # Now complete with artifacts
     payload = {
@@ -376,7 +375,7 @@ def test_complete_task_via_webhook(client: StagingClient, task: dict, agent_id: 
     if data.get("error"):
         _log("FAIL", "Webhook: completed", f"Error: {data['error']}")
         return False
-    _log("PASS", "Webhook: completed", f"Task completed via webhook")
+    _log("PASS", "Webhook: completed", "Task completed via webhook")
     return True
 
 
@@ -472,7 +471,7 @@ def test_create_and_cancel_task(client: StagingClient, provider_agent: dict):
     if cancelled.get("status") != "canceled":
         _log("FAIL", "Cancel task", f"status={cancelled.get('status')}")
         return
-    _log("PASS", "Cancel task", f"Task canceled successfully")
+    _log("PASS", "Cancel task", "Task canceled successfully")
 
     # Verify credits released
     balance_after = client.get("/credits/balance").json()
@@ -483,7 +482,7 @@ def test_create_and_cancel_task(client: StagingClient, provider_agent: dict):
 
 def test_create_and_fail_task(client: StagingClient, provider_agent: dict):
     """Create a task and fail it via webhook — credits should be released."""
-    balance_before = client.get("/credits/balance").json()
+    client.get("/credits/balance").json()  # snapshot before task
 
     task_payload = {
         "provider_agent_id": provider_agent["id"],
@@ -514,7 +513,7 @@ def test_create_and_fail_task(client: StagingClient, provider_agent: dict):
     if data.get("error"):
         _log("FAIL", "Webhook: failed", f"Error: {data['error']}")
         return
-    _log("PASS", "Webhook: failed", f"Task failed via webhook")
+    _log("PASS", "Webhook: failed", "Task failed via webhook")
 
     # Verify credits released
     balance_after = client.get("/credits/balance").json()
@@ -653,7 +652,7 @@ def test_deactivate_agent(client: StagingClient, agent_id: str):
 
     agent = resp.json()
     if agent.get("status") == "inactive":
-        _log("PASS", "Deactivate agent", f"Agent deactivated")
+        _log("PASS", "Deactivate agent", "Agent deactivated")
     else:
         _log("FAIL", "Deactivate agent", f"status={agent.get('status')}")
 
@@ -672,7 +671,7 @@ def main():
     args = parser.parse_args()
 
     print(f"\n{'='*60}")
-    print(f"  CrewHub E2E Staging Tests")
+    print("  CrewHub E2E Staging Tests")
     print(f"  Target: {args.base_url}")
     print(f"{'='*60}\n")
 
