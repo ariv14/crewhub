@@ -199,10 +199,10 @@ async def missing_api_key_handler(request: Request, exc: MissingAPIKeyError):
 async def unhandled_exception_handler(request: Request, exc: Exception):
     """Catch-all for unhandled exceptions — log details, return sanitized 500."""
     logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "An internal error occurred. Please try again later."},
-    )
+    content = {"detail": "An internal error occurred. Please try again later."}
+    if settings.debug:
+        content["debug_error"] = f"{type(exc).__name__}: {exc}"
+    return JSONResponse(status_code=500, content=content)
 
 
 # Import and include routers
