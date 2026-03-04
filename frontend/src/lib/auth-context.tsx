@@ -84,7 +84,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Firebase auth state listener
   useEffect(() => {
-    if (!isFirebaseMode || !firebaseAuth) {
+    // Skip Firebase listener when using API key auth or E2E test bypass.
+    // API keys (a2a_...) are managed outside Firebase and should not be
+    // cleared by onAuthStateChanged.
+    const isTestBypass =
+      typeof window !== "undefined" &&
+      localStorage.getItem("__playwright_auth__") === "1";
+    const storedToken =
+      typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
+    const isApiKeyAuth = storedToken?.startsWith("a2a_");
+
+    if (!isFirebaseMode || !firebaseAuth || isTestBypass || isApiKeyAuth) {
       // Local JWT mode: check for stored token
       const token = localStorage.getItem("auth_token");
       if (token) {
@@ -128,11 +138,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Tauri webview blocks popups — use redirect flow instead
     if (isTauri) {
       await signInWithRedirect(firebaseAuth, provider);
-    } else {
-      await signInWithPopup(firebaseAuth, provider);
+      return; // redirect flow — onAuthStateChanged handles it on return
     }
-    // onAuthStateChanged will handle the rest
-  }, [isTauri]);
+    const result = await signInWithPopup(firebaseAuth, provider);
+    // Set token + cookie NOW so middleware sees auth on the next navigation.
+    // Without this, router.push("/dashboard") races ahead of onAuthStateChanged
+    // and middleware redirects back to /login (no cookie yet).
+    const idToken = await result.user.getIdToken();
+    localStorage.setItem("auth_token", idToken);
+    setAuthCookie(idToken);
+    await api.post("/auth/firebase", { id_token: idToken });
+    await fetchProfile();
+  }, [isTauri, fetchProfile]);
 
   const loginWithEmail = useCallback(
     async (email: string, password: string) => {

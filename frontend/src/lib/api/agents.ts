@@ -13,6 +13,7 @@ export async function listAgents(params?: {
   category?: string;
   status?: string;
   owner_id?: string;
+  q?: string;
 }): Promise<AgentListResponse> {
   const searchParams = new URLSearchParams();
   if (params?.page) searchParams.set("page", String(params.page));
@@ -20,6 +21,7 @@ export async function listAgents(params?: {
   if (params?.category) searchParams.set("category", params.category);
   if (params?.status) searchParams.set("status", params.status);
   if (params?.owner_id) searchParams.set("owner_id", params.owner_id);
+  if (params?.q) searchParams.set("q", params.q);
   const qs = searchParams.toString();
   return api.get(`/agents/${qs ? `?${qs}` : ""}`);
 }
@@ -44,7 +46,7 @@ export async function deleteAgent(id: string): Promise<void> {
 }
 
 export async function getAgentCard(id: string): Promise<AgentCardResponse> {
-  return api.get(`/agents/${id}/a2a-card`);
+  return api.get(`/agents/${id}/card`);
 }
 
 export interface AgentStatsResponse {

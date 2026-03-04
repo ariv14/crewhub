@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useBalance, useTransactions, usePurchaseCredits } from "@/lib/hooks/use-credits";
+import { useBalance, useTransactions } from "@/lib/hooks/use-credits";
+import { createCreditsCheckout } from "@/lib/api/billing";
 import { BalanceCard } from "@/components/credits/balance-card";
 import { formatCredits, formatRelativeTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -17,17 +18,27 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 export default function CreditsPage() {
   const { data: balance, isLoading: balanceLoading } = useBalance();
   const { data: txData } = useTransactions({ per_page: 20 });
-  const purchase = usePurchaseCredits();
   const [amount, setAmount] = useState("");
+  const [purchasing, setPurchasing] = useState(false);
 
-  function handlePurchase() {
+  async function handlePurchase() {
     const num = Number(amount);
-    if (num > 0) {
-      purchase.mutate(num, { onSuccess: () => setAmount("") });
+    if (num < 100) {
+      toast.error("Minimum purchase is 100 credits");
+      return;
+    }
+    setPurchasing(true);
+    try {
+      const { checkout_url } = await createCreditsCheckout(num);
+      window.location.href = checkout_url;
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to start checkout");
+      setPurchasing(false);
     }
   }
 
@@ -45,7 +56,18 @@ export default function CreditsPage() {
           <Skeleton className="h-40" />
         ) : balance ? (
           <BalanceCard balance={balance} />
-        ) : null}
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Balance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Unable to load balance. Please try again later.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>
@@ -60,8 +82,8 @@ export default function CreditsPage() {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
               />
-              <Button onClick={handlePurchase} disabled={purchase.isPending}>
-                {purchase.isPending ? "Purchasing..." : "Purchase"}
+              <Button onClick={handlePurchase} disabled={purchasing}>
+                {purchasing ? "Redirecting..." : "Purchase"}
               </Button>
             </div>
             <div className="mt-3 flex gap-2">

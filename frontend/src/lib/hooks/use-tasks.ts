@@ -1,11 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as tasksApi from "../api/tasks";
+import { useAuth } from "../auth-context";
 import type { TaskCreate, TaskRating } from "@/types/task";
 
 export function useTasks(params?: Parameters<typeof tasksApi.listTasks>[0]) {
+  const { user } = useAuth();
   return useQuery({
     queryKey: ["tasks", params],
     queryFn: () => tasksApi.listTasks(params),
+    enabled: !!user,
   });
 }
 

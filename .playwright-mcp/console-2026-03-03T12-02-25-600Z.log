@@ -1,0 +1,8 @@
+[     574ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[    1817ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[    4087ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[    8334ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[   16580ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[   32862ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[   41884ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/agents/dbd08db4-8f2a-4846-832b-a09eb9d6b00b/a2a-card:0
+[   43125ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/agents/dbd08db4-8f2a-4846-832b-a09eb9d6b00b/a2a-card:0

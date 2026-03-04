@@ -12,6 +12,7 @@ import { StatCard } from "@/components/shared/stat-card";
 import { ROUTES } from "@/lib/constants";
 import { formatCredits } from "@/lib/utils";
 import { ActivityFeed } from "@/components/shared/activity-feed";
+import { AgentStatusBoard } from "@/components/agents/agent-status-board";
 import { Button } from "@/components/ui/button";
 
 export default function DashboardPage() {
@@ -25,7 +26,10 @@ export default function DashboardPage() {
   }, [user, router]);
   const { data: balance } = useBalance();
   const { data: tasks } = useTasks();
-  const { data: agents } = useAgents();
+  const { data: agents } = useAgents(
+    user ? { owner_id: user.id } : undefined
+  );
+  const { data: allAgents } = useAgents({ per_page: 20 });
 
   const activeTasks =
     tasks?.tasks.filter((t) =>
@@ -78,7 +82,10 @@ export default function DashboardPage() {
         </Button>
       </div>
 
-      <ActivityFeed />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ActivityFeed />
+        <AgentStatusBoard agents={allAgents?.agents ?? []} />
+      </div>
     </div>
   );
 }

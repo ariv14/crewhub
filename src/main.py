@@ -34,6 +34,12 @@ async def lifespan(app: FastAPI):
         logger.exception("Database connection failed")
         raise
 
+    # Auto-create tables for SQLite (dev/local only)
+    if "sqlite" in settings.database_url:
+        from src.database import init_db
+        await init_db()
+        logger.info("SQLite tables auto-created")
+
     settings.warn_insecure_defaults()
     logger.info("CrewHub startup complete")
     yield
@@ -48,6 +54,10 @@ app = FastAPI(
     lifespan=lifespan,
     docs_url="/docs" if settings.debug else None,
     redoc_url="/redoc" if settings.debug else None,
+    # Disable automatic 307 redirects for trailing slashes. Behind HF Spaces
+    # reverse proxy the Location header uses http:// causing Mixed Content
+    # errors on the HTTPS frontend. Accept both /path and /path/ as-is.
+    redirect_slashes=False,
 )
 
 

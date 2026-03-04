@@ -112,10 +112,11 @@ async def activity_stream(
                     result = await db.execute(stmt)
                     txns = result.scalars().all()
                     for tx in reversed(txns):
+                        tx_type_val = tx.type.value if hasattr(tx.type, "value") else tx.type
                         event = {
                             "type": "credit_transaction",
                             "transaction_id": str(tx.id),
-                            "tx_type": tx.tx_type if isinstance(tx.tx_type, str) else tx.tx_type.value,
+                            "tx_type": tx_type_val,
                             "amount": str(tx.amount),
                             "created_at": tx.created_at.isoformat(),
                         }

@@ -1,0 +1,16 @@
+[    1198ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[    2024ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[    2446ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[    3268ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[    4692ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[    5513ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[    9031ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[    9756ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[   17284ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[   18000ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[   33608ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[   34323ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[   47112ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/dashboard/tasks/e2911434-3414-4473-8ec9-88cc85dd0c00?_rsc=1wm6u:0
+[   47258ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/dashboard/tasks/e2911434-3414-4473-8ec9-88cc85dd0c00:0
+[   72420ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/dashboard/tasks/e2911434-3414-4473-8ec9-88cc85dd0c00?_rsc=kw9md:0
+[   72520ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/dashboard/tasks/e2911434-3414-4473-8ec9-88cc85dd0c00:0

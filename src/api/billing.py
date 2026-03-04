@@ -117,6 +117,69 @@ async def create_checkout_session(
 
 
 # ---------------------------------------------------------------------------
+# Credits checkout (one-time payment)
+# ---------------------------------------------------------------------------
+
+
+class CreditsCheckoutRequest(BaseModel):
+    amount: int  # Number of credits to purchase (minimum 100)
+
+
+@router.post("/credits-checkout", response_model=CheckoutResponse)
+async def create_credits_checkout(
+    data: CreditsCheckoutRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+) -> CheckoutResponse:
+    """Create a Stripe Checkout session for a one-time credit purchase."""
+    stripe = _get_stripe()
+
+    if data.amount < 100:
+        raise HTTPException(status_code=400, detail="Minimum purchase is 100 credits")
+
+    user = await _get_user(db, current_user, for_update=True)
+
+    # Reuse existing Stripe customer or create new one
+    customer_id = user.stripe_customer_id
+    if not customer_id:
+        customer = stripe.Customer.create(
+            email=user.email,
+            name=user.name,
+            metadata={"crewhub_user_id": str(user.id)},
+        )
+        customer_id = customer.id
+        user.stripe_customer_id = customer_id
+        await db.commit()
+
+    # $1 per 100 credits (1 cent per credit)
+    unit_amount = data.amount  # 1 credit = 1 cent
+
+    session = stripe.checkout.Session.create(
+        customer=customer_id,
+        mode="payment",
+        line_items=[{
+            "price_data": {
+                "currency": "usd",
+                "unit_amount": unit_amount,
+                "product_data": {
+                    "name": f"{data.amount} CrewHub Credits",
+                    "description": f"One-time purchase of {data.amount} credits",
+                },
+            },
+            "quantity": 1,
+        }],
+        success_url=f"{settings.frontend_url}/dashboard/credits?purchase=success",
+        cancel_url=f"{settings.frontend_url}/dashboard/credits?purchase=cancelled",
+        metadata={
+            "crewhub_user_id": str(user.id),
+            "type": "credits",
+            "credits_amount": str(data.amount),
+        },
+    )
+    return CheckoutResponse(checkout_url=session.url)
+
+
+# ---------------------------------------------------------------------------
 # Billing portal (manage/cancel subscription)
 # ---------------------------------------------------------------------------
 
@@ -219,9 +282,9 @@ async def stripe_webhook(
 
 
 async def _handle_checkout_completed(db: AsyncSession, session: dict) -> None:
-    """Activate premium after successful checkout."""
+    """Handle successful checkout — premium subscription or credit purchase."""
+    metadata = session.get("metadata") or {}
     customer_id = session.get("customer")
-    subscription_id = session.get("subscription")
 
     if not customer_id:
         logger.warning("Checkout completed without customer ID")
@@ -233,7 +296,7 @@ async def _handle_checkout_completed(db: AsyncSession, session: dict) -> None:
     user = result.scalar_one_or_none()
     if not user:
         # Try metadata fallback
-        user_id = (session.get("metadata") or {}).get("crewhub_user_id")
+        user_id = metadata.get("crewhub_user_id")
         if user_id:
             result = await db.execute(select(User).where(User.id == UUID(user_id)))
             user = result.scalar_one_or_none()
@@ -242,6 +305,18 @@ async def _handle_checkout_completed(db: AsyncSession, session: dict) -> None:
         logger.error("Could not find user for Stripe customer %s", customer_id)
         return
 
+    # Credit purchase (one-time payment)
+    if metadata.get("type") == "credits":
+        credits_amount = int(metadata.get("credits_amount", 0))
+        if credits_amount > 0:
+            from src.services.credit_ledger import CreditLedgerService
+            ledger = CreditLedgerService(db)
+            await ledger.purchase_credits(owner_id=user.id, amount=credits_amount)
+            logger.info("User %s purchased %d credits via Stripe", user.id, credits_amount)
+        return
+
+    # Subscription upgrade
+    subscription_id = session.get("subscription")
     user.account_tier = "premium"
     user.stripe_customer_id = customer_id
     if subscription_id:

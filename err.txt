@@ -1,0 +1,1138 @@
+===== Application Startup at 2026-03-01 15:13:14 =====
+
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO:     Started server process [1]
+INFO:     Waiting for application startup.
+{"timestamp": "2026-03-01T15:13:31.673725+00:00", "level": "INFO", "logger": "src.main", "message": "Database connection verified"}
+{"timestamp": "2026-03-01T15:13:31.673819+00:00", "level": "WARNING", "logger": "src.config", "message": "DEBUG mode is ON \u2014 disable for production"}
+{"timestamp": "2026-03-01T15:13:31.673862+00:00", "level": "INFO", "logger": "src.main", "message": "CrewHub startup complete"}
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:7860 (Press CTRL+C to quit)
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /?logs=container HTTP/1.1" 404 Not Found
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:27100 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:50408 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:23540 - "POST /api/v1/auth/firebase HTTP/1.1" 200 OK
+INFO:     10.16.43.133:23540 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+INFO:     10.16.43.133:44427 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.21.217:36186 - "GET /api/v1/agents/?owner_id=019a91e9-a47d-4769-ad15-d5584ad9bd37 HTTP/1.1" 200 OK
+INFO:     10.16.21.217:7244 - "GET /api/v1/credits/balance HTTP/1.1" 200 OK
+INFO:     10.16.43.133:35356 - "GET /api/v1/tasks/ HTTP/1.1" 200 OK
+INFO:     10.16.21.217:57687 - "GET /api/v1/credits/transactions?per_page=20 HTTP/1.1" 200 OK
+INFO:     10.16.43.133:38348 - "GET /api/v1/organizations HTTP/1.1" 307 Temporary Redirect
+INFO:     10.16.43.133:9310 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.43.133:18488 - "POST /api/v1/auth/firebase HTTP/1.1" 200 OK
+INFO:     10.16.21.217:26304 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+INFO:     10.16.21.217:26304 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.21.217:65492 - "GET /api/v1/agents/?owner_id=019a91e9-a47d-4769-ad15-d5584ad9bd37 HTTP/1.1" 200 OK
+INFO:     10.16.43.133:18488 - "GET /api/v1/credits/balance HTTP/1.1" 200 OK
+INFO:     10.16.43.133:26727 - "GET /api/v1/tasks/ HTTP/1.1" 200 OK
+INFO:     10.16.21.217:65492 - "GET /api/v1/agents/?page=1&per_page=12&status=active HTTP/1.1" 200 OK
+INFO:     10.16.21.217:65492 - "GET /api/v1/agents/5d35067f-3ac9-4271-880b-f8181bb17391/stats HTTP/1.1" 200 OK
+INFO:     10.16.43.133:47052 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1/stats HTTP/1.1" 200 OK
+INFO:     10.16.43.133:26727 - "GET /api/v1/agents/1e03ab82-e292-4f76-b3f5-9c0048ccd5de/stats HTTP/1.1" 200 OK
+INFO:     10.16.43.133:58584 - "GET /api/v1/agents/7a4aa975-e0a5-4028-bf8e-12944b0b81ad/stats HTTP/1.1" 200 OK
+INFO:     10.16.21.217:40967 - "GET /api/v1/agents/93ea8c44-56d8-4860-8c89-8ce0f2ccc004/stats HTTP/1.1" 200 OK
+INFO:     10.16.43.133:30127 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1/a2a-card HTTP/1.1" 404 Not Found
+INFO:     10.16.21.217:48639 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1 HTTP/1.1" 200 OK
+INFO:     10.16.43.133:30127 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1/a2a-card HTTP/1.1" 404 Not Found
+INFO:     10.16.21.217:62644 - "GET / HTTP/1.1" 404 Not Found
+INFO:     10.16.21.217:34315 - "GET / HTTP/1.1" 404 Not Found
+INFO:     10.16.43.133:1769 - "GET /api/v1/agents/?per_page=1 HTTP/1.1" 200 OK
+INFO:     10.16.21.217:39859 - "GET / HTTP/1.1" 404 Not Found
+INFO:     10.16.43.133:18005 - "GET / HTTP/1.1" 404 Not Found
+INFO:     10.16.21.217:7070 - "POST /api/v1/auth/firebase HTTP/1.1" 200 OK
+INFO:     10.16.43.133:39808 - "GET /api/v1/tasks/ HTTP/1.1" 200 OK
+INFO:     10.16.21.217:15809 - "GET /api/v1/agents/?page=1&per_page=12&status=active HTTP/1.1" 200 OK
+INFO:     10.16.43.133:1156 - "POST /api/v1/auth/firebase HTTP/1.1" 200 OK
+INFO:     10.16.43.133:1156 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+INFO:     10.16.21.217:13097 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.43.133:20018 - "GET /api/v1/agents/?owner_id=019a91e9-a47d-4769-ad15-d5584ad9bd37 HTTP/1.1" 200 OK
+INFO:     10.16.21.217:46048 - "GET /api/v1/tasks/ HTTP/1.1" 200 OK
+INFO:     10.16.43.133:55685 - "GET /api/v1/credits/balance HTTP/1.1" 200 OK
+INFO:     10.16.43.133:30663 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.21.217:61850 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.43.133:44285 - "GET /api/v1/agents/?page=1&per_page=12&status=active HTTP/1.1" 200 OK
+INFO:     10.16.43.133:44285 - "GET /api/v1/agents/1e03ab82-e292-4f76-b3f5-9c0048ccd5de/stats HTTP/1.1" 200 OK
+INFO:     10.16.43.133:38429 - "GET /api/v1/agents/7a4aa975-e0a5-4028-bf8e-12944b0b81ad/stats HTTP/1.1" 200 OK
+INFO:     10.16.21.217:51635 - "GET /api/v1/agents/5d35067f-3ac9-4271-880b-f8181bb17391/stats HTTP/1.1" 200 OK
+INFO:     10.16.21.217:23618 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1/stats HTTP/1.1" 200 OK
+INFO:     10.16.21.217:35060 - "GET /api/v1/agents/93ea8c44-56d8-4860-8c89-8ce0f2ccc004/stats HTTP/1.1" 200 OK
+INFO:     10.16.21.217:40090 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.43.133:29483 - "GET /api/v1/agents/?owner_id=019a91e9-a47d-4769-ad15-d5584ad9bd37 HTTP/1.1" 200 OK
+INFO:     10.16.43.133:35905 - "GET /api/v1/tasks/ HTTP/1.1" 200 OK
+INFO:     10.16.43.133:35905 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.21.217:8335 - "GET /api/v1/credits/balance HTTP/1.1" 200 OK
+INFO:     10.16.21.217:25784 - "GET /api/v1/agents/?page=1&per_page=12&status=active HTTP/1.1" 200 OK
+INFO:     10.16.21.217:40661 - "GET /api/v1/agents/7a4aa975-e0a5-4028-bf8e-12944b0b81ad/a2a-card HTTP/1.1" 404 Not Found
+INFO:     10.16.43.133:11541 - "GET /api/v1/agents/7a4aa975-e0a5-4028-bf8e-12944b0b81ad HTTP/1.1" 200 OK
+INFO:     10.16.43.133:11541 - "GET /api/v1/agents/7a4aa975-e0a5-4028-bf8e-12944b0b81ad/a2a-card HTTP/1.1" 404 Not Found
+{"timestamp": "2026-03-01T15:18:31.504570+00:00", "level": "ERROR", "logger": "src.main", "message": "Unhandled exception on POST /api/v1/tasks/", "exception": "  + Exception Group Traceback (most recent call last):\n  |   File \"/usr/local/lib/python3.12/site-packages/starlette/_utils.py\", line 81, in collapse_excgroups\n  |     yield\n  |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 192, in __call__\n  |     async with anyio.create_task_group() as task_group:\n  |                ^^^^^^^^^^^^^^^^^^^^^^^^^\n  |   File \"/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py\", line 783, in __aexit__\n  |     raise BaseExceptionGroup(\n  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)\n  +-+---------------- 1 ----------------\n    | Traceback (most recent call last):\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py\", line 164, in __call__\n    |     await self.app(scope, receive, _send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py\", line 95, in __call__\n    |     await self.simple_response(scope, receive, send, request_headers=headers)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py\", line 153, in simple_response\n    |     await self.app(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 191, in __call__\n    |     with recv_stream, send_stream, collapse_excgroups():\n    |                                    ^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/contextlib.py\", line 158, in __exit__\n    |     self.gen.throw(value)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/_utils.py\", line 87, in collapse_excgroups\n    |     raise exc\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 193, in __call__\n    |     response = await self.dispatch_func(request, call_next)\n    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/app/src/main.py\", line 84, in limit_body_size\n    |     return await call_next(request)\n    |            ^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 168, in call_next\n    |     raise app_exc from app_exc.__cause__ or app_exc.__context__\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 144, in coro\n    |     await self.app(scope, receive_or_disconnect, send_no_error)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 191, in __call__\n    |     with recv_stream, send_stream, collapse_excgroups():\n    |                                    ^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/contextlib.py\", line 158, in __exit__\n    |     self.gen.throw(value)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/_utils.py\", line 87, in collapse_excgroups\n    |     raise exc\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 193, in __call__\n    |     response = await self.dispatch_func(request, call_next)\n    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/app/src/main.py\", line 57, in dispatch\n    |     response = await call_next(request)\n    |                ^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 168, in call_next\n    |     raise app_exc from app_exc.__cause__ or app_exc.__context__\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 144, in coro\n    |     await self.app(scope, receive_or_disconnect, send_no_error)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/exceptions.py\", line 63, in __call__\n    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 53, in wrapped_app\n    |     raise exc\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 42, in wrapped_app\n    |     await app(scope, receive, sender)\n    |   File \"/usr/local/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py\", line 18, in __call__\n    |     await self.app(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/routing.py\", line 716, in __call__\n    |     await self.middleware_stack(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/routing.py\", line 736, in app\n    |     await route.handle(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/routing.py\", line 290, in handle\n    |     await self.app(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/fastapi/routing.py\", line 122, in app\n    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 53, in wrapped_app\n    |     raise exc\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 42, in wrapped_app\n    |     await app(scope, receive, sender)\n    |   File \"/usr/local/lib/python3.12/site-packages/fastapi/routing.py\", line 108, in app\n    |     response = await f(request)\n    |                ^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/site-packages/fastapi/routing.py\", line 444, in app\n    |     solved_result = await solve_dependencies(\n    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py\", line 646, in solve_dependencies\n    |     solved_result = await solve_dependencies(\n    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py\", line 675, in solve_dependencies\n    |     solved = await call(**solved_result.values)\n    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/app/src/core/auth.py\", line 213, in get_current_user_id\n    |     return UUID(current_user[\"id\"])\n    |            ^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/uuid.py\", line 178, in __init__\n    |     raise ValueError('badly formed hexadecimal UUID string')\n    | ValueError: badly formed hexadecimal UUID string\n    +------------------------------------\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py\", line 164, in __call__\n    await self.app(scope, receive, _send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py\", line 95, in __call__\n    await self.simple_response(scope, receive, send, request_headers=headers)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py\", line 153, in simple_response\n    await self.app(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 191, in __call__\n    with recv_stream, send_stream, collapse_excgroups():\n                                   ^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/contextlib.py\", line 158, in __exit__\n    self.gen.throw(value)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/_utils.py\", line 87, in collapse_excgroups\n    raise exc\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 193, in __call__\n    response = await self.dispatch_func(request, call_next)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/app/src/main.py\", line 84, in limit_body_size\n    return await call_next(request)\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 168, in call_next\n    raise app_exc from app_exc.__cause__ or app_exc.__context__\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 144, in coro\n    await self.app(scope, receive_or_disconnect, send_no_error)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 191, in __call__\n    with recv_stream, send_stream, collapse_excgroups():\n                                   ^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/contextlib.py\", line 158, in __exit__\n    self.gen.throw(value)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/_utils.py\", line 87, in collapse_excgroups\n    raise exc\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 193, in __call__\n    response = await self.dispatch_func(request, call_next)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/app/src/main.py\", line 57, in dispatch\n    response = await call_next(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 168, in call_next\n    raise app_exc from app_exc.__cause__ or app_exc.__context__\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 144, in coro\n    await self.app(scope, receive_or_disconnect, send_no_error)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/exceptions.py\", line 63, in __call__\n    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 53, in wrapped_app\n    raise exc\n  File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 42, in wrapped_app\n    await app(scope, receive, sender)\n  File \"/usr/local/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py\", line 18, in __call__\n    await self.app(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/routing.py\", line 716, in __call__\n    await self.middleware_stack(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/routing.py\", line 736, in app\n    await route.handle(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/routing.py\", line 290, in handle\n    await self.app(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/fastapi/routing.py\", line 122, in app\n    await wrap_app_handling_exceptions(app, request)(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 53, in wrapped_app\n    raise exc\n  File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 42, in wrapped_app\n    await app(scope, receive, sender)\n  File \"/usr/local/lib/python3.12/site-packages/fastapi/routing.py\", line 108, in app\n    response = await f(request)\n               ^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/site-packages/fastapi/routing.py\", line 444, in app\n    solved_result = await solve_dependencies(\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py\", line 646, in solve_dependencies\n    solved_result = await solve_dependencies(\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py\", line 675, in solve_dependencies\n    solved = await call(**solved_result.values)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/app/src/core/auth.py\", line 213, in get_current_user_id\n    return UUID(current_user[\"id\"])\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/uuid.py\", line 178, in __init__\n    raise ValueError('badly formed hexadecimal UUID string')\nValueError: badly formed hexadecimal UUID string"}
+INFO:     10.16.43.133:33850 - "POST /api/v1/tasks/ HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+  + Exception Group Traceback (most recent call last):
+  |   File "/usr/local/lib/python3.12/site-packages/starlette/_utils.py", line 81, in collapse_excgroups
+  |     yield
+  |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 192, in __call__
+  |     async with anyio.create_task_group() as task_group:
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 783, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "/usr/local/lib/python3.12/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    |     result = await app(  # type: ignore[func-returns-value]
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    |     return await self.app(scope, receive, send)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/applications.py", line 1160, in __call__
+    |     await super().__call__(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/applications.py", line 107, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    |     raise exc
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    |     await self.app(scope, receive, _send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py", line 95, in __call__
+    |     await self.simple_response(scope, receive, send, request_headers=headers)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py", line 153, in simple_response
+    |     await self.app(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |                                    ^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/contextlib.py", line 158, in __exit__
+    |     self.gen.throw(value)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    |     raise exc
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/app/src/main.py", line 84, in limit_body_size
+    |     return await call_next(request)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |                                    ^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/contextlib.py", line 158, in __exit__
+    |     self.gen.throw(value)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    |     raise exc
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/app/src/main.py", line 57, in dispatch
+    |     response = await call_next(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 716, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 736, in app
+    |     await route.handle(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 290, in handle
+    |     await self.app(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 122, in app
+    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 108, in app
+    |     response = await f(request)
+    |                ^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 444, in app
+    |     solved_result = await solve_dependencies(
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py", line 646, in solve_dependencies
+    |     solved_result = await solve_dependencies(
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py", line 675, in solve_dependencies
+    |     solved = await call(**solved_result.values)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/app/src/core/auth.py", line 213, in get_current_user_id
+    |     return UUID(current_user["id"])
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/uuid.py", line 178, in __init__
+    |     raise ValueError('badly formed hexadecimal UUID string')
+    | ValueError: badly formed hexadecimal UUID string
+    +------------------------------------
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/applications.py", line 1160, in __call__
+    await super().__call__(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/applications.py", line 107, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py", line 95, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py", line 153, in simple_response
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/src/main.py", line 84, in limit_body_size
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/src/main.py", line 57, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 122, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 108, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 444, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py", line 646, in solve_dependencies
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py", line 675, in solve_dependencies
+    solved = await call(**solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/src/core/auth.py", line 213, in get_current_user_id
+    return UUID(current_user["id"])
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/uuid.py", line 178, in __init__
+    raise ValueError('badly formed hexadecimal UUID string')
+ValueError: badly formed hexadecimal UUID string
+{"timestamp": "2026-03-01T15:18:35.862502+00:00", "level": "ERROR", "logger": "src.main", "message": "Unhandled exception on POST /api/v1/tasks/", "exception": "  + Exception Group Traceback (most recent call last):\n  |   File \"/usr/local/lib/python3.12/site-packages/starlette/_utils.py\", line 81, in collapse_excgroups\n  |     yield\n  |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 192, in __call__\n  |     async with anyio.create_task_group() as task_group:\n  |                ^^^^^^^^^^^^^^^^^^^^^^^^^\n  |   File \"/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py\", line 783, in __aexit__\n  |     raise BaseExceptionGroup(\n  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)\n  +-+---------------- 1 ----------------\n    | Traceback (most recent call last):\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py\", line 164, in __call__\n    |     await self.app(scope, receive, _send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py\", line 95, in __call__\n    |     await self.simple_response(scope, receive, send, request_headers=headers)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py\", line 153, in simple_response\n    |     await self.app(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 191, in __call__\n    |     with recv_stream, send_stream, collapse_excgroups():\n    |                                    ^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/contextlib.py\", line 158, in __exit__\n    |     self.gen.throw(value)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/_utils.py\", line 87, in collapse_excgroups\n    |     raise exc\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 193, in __call__\n    |     response = await self.dispatch_func(request, call_next)\n    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/app/src/main.py\", line 84, in limit_body_size\n    |     return await call_next(request)\n    |            ^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 168, in call_next\n    |     raise app_exc from app_exc.__cause__ or app_exc.__context__\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 144, in coro\n    |     await self.app(scope, receive_or_disconnect, send_no_error)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 191, in __call__\n    |     with recv_stream, send_stream, collapse_excgroups():\n    |                                    ^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/contextlib.py\", line 158, in __exit__\n    |     self.gen.throw(value)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/_utils.py\", line 87, in collapse_excgroups\n    |     raise exc\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 193, in __call__\n    |     response = await self.dispatch_func(request, call_next)\n    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/app/src/main.py\", line 57, in dispatch\n    |     response = await call_next(request)\n    |                ^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 168, in call_next\n    |     raise app_exc from app_exc.__cause__ or app_exc.__context__\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 144, in coro\n    |     await self.app(scope, receive_or_disconnect, send_no_error)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/exceptions.py\", line 63, in __call__\n    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 53, in wrapped_app\n    |     raise exc\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 42, in wrapped_app\n    |     await app(scope, receive, sender)\n    |   File \"/usr/local/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py\", line 18, in __call__\n    |     await self.app(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/routing.py\", line 716, in __call__\n    |     await self.middleware_stack(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/routing.py\", line 736, in app\n    |     await route.handle(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/routing.py\", line 290, in handle\n    |     await self.app(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/fastapi/routing.py\", line 122, in app\n    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 53, in wrapped_app\n    |     raise exc\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 42, in wrapped_app\n    |     await app(scope, receive, sender)\n    |   File \"/usr/local/lib/python3.12/site-packages/fastapi/routing.py\", line 108, in app\n    |     response = await f(request)\n    |                ^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/site-packages/fastapi/routing.py\", line 444, in app\n    |     solved_result = await solve_dependencies(\n    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py\", line 646, in solve_dependencies\n    |     solved_result = await solve_dependencies(\n    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py\", line 675, in solve_dependencies\n    |     solved = await call(**solved_result.values)\n    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/app/src/core/auth.py\", line 213, in get_current_user_id\n    |     return UUID(current_user[\"id\"])\n    |            ^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/uuid.py\", line 178, in __init__\n    |     raise ValueError('badly formed hexadecimal UUID string')\n    | ValueError: badly formed hexadecimal UUID string\n    +------------------------------------\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py\", line 164, in __call__\n    await self.app(scope, receive, _send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py\", line 95, in __call__\n    await self.simple_response(scope, receive, send, request_headers=headers)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py\", line 153, in simple_response\n    await self.app(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 191, in __call__\n    with recv_stream, send_stream, collapse_excgroups():\n                                   ^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/contextlib.py\", line 158, in __exit__\n    self.gen.throw(value)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/_utils.py\", line 87, in collapse_excgroups\n    raise exc\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 193, in __call__\n    response = await self.dispatch_func(request, call_next)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/app/src/main.py\", line 84, in limit_body_size\n    return await call_next(request)\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 168, in call_next\n    raise app_exc from app_exc.__cause__ or app_exc.__context__\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 144, in coro\n    await self.app(scope, receive_or_disconnect, send_no_error)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 191, in __call__\n    with recv_stream, send_stream, collapse_excgroups():\n                                   ^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/contextlib.py\", line 158, in __exit__\n    self.gen.throw(value)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/_utils.py\", line 87, in collapse_excgroups\n    raise exc\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 193, in __call__\n    response = await self.dispatch_func(request, call_next)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/app/src/main.py\", line 57, in dispatch\n    response = await call_next(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 168, in call_next\n    raise app_exc from app_exc.__cause__ or app_exc.__context__\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 144, in coro\n    await self.app(scope, receive_or_disconnect, send_no_error)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/exceptions.py\", line 63, in __call__\n    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 53, in wrapped_app\n    raise exc\n  File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 42, in wrapped_app\n    await app(scope, receive, sender)\n  File \"/usr/local/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py\", line 18, in __call__\n    await self.app(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/routing.py\", line 716, in __call__\n    await self.middleware_stack(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/routing.py\", line 736, in app\n    await route.handle(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/routing.py\", line 290, in handle\n    await self.app(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/fastapi/routing.py\", line 122, in app\n    await wrap_app_handling_exceptions(app, request)(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 53, in wrapped_app\n    raise exc\n  File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 42, in wrapped_app\n    await app(scope, receive, sender)\n  File \"/usr/local/lib/python3.12/site-packages/fastapi/routing.py\", line 108, in app\n    response = await f(request)\n               ^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/site-packages/fastapi/routing.py\", line 444, in app\n    solved_result = await solve_dependencies(\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py\", line 646, in solve_dependencies\n    solved_result = await solve_dependencies(\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py\", line 675, in solve_dependencies\n    solved = await call(**solved_result.values)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/app/src/core/auth.py\", line 213, in get_current_user_id\n    return UUID(current_user[\"id\"])\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/uuid.py\", line 178, in __init__\n    raise ValueError('badly formed hexadecimal UUID string')\nValueError: badly formed hexadecimal UUID string"}
+INFO:     10.16.21.217:52059 - "POST /api/v1/tasks/ HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+  + Exception Group Traceback (most recent call last):
+  |   File "/usr/local/lib/python3.12/site-packages/starlette/_utils.py", line 81, in collapse_excgroups
+  |     yield
+  |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 192, in __call__
+  |     async with anyio.create_task_group() as task_group:
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 783, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "/usr/local/lib/python3.12/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    |     result = await app(  # type: ignore[func-returns-value]
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    |     return await self.app(scope, receive, send)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/applications.py", line 1160, in __call__
+    |     await super().__call__(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/applications.py", line 107, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    |     raise exc
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    |     await self.app(scope, receive, _send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py", line 95, in __call__
+    |     await self.simple_response(scope, receive, send, request_headers=headers)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py", line 153, in simple_response
+    |     await self.app(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |                                    ^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/contextlib.py", line 158, in __exit__
+    |     self.gen.throw(value)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    |     raise exc
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/app/src/main.py", line 84, in limit_body_size
+    |     return await call_next(request)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |                                    ^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/contextlib.py", line 158, in __exit__
+    |     self.gen.throw(value)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    |     raise exc
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/app/src/main.py", line 57, in dispatch
+    |     response = await call_next(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 716, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 736, in app
+    |     await route.handle(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 290, in handle
+    |     await self.app(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 122, in app
+    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 108, in app
+    |     response = await f(request)
+    |                ^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 444, in app
+    |     solved_result = await solve_dependencies(
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py", line 646, in solve_dependencies
+    |     solved_result = await solve_dependencies(
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py", line 675, in solve_dependencies
+    |     solved = await call(**solved_result.values)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/app/src/core/auth.py", line 213, in get_current_user_id
+    |     return UUID(current_user["id"])
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/uuid.py", line 178, in __init__
+    |     raise ValueError('badly formed hexadecimal UUID string')
+    | ValueError: badly formed hexadecimal UUID string
+    +------------------------------------
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/applications.py", line 1160, in __call__
+    await super().__call__(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/applications.py", line 107, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py", line 95, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py", line 153, in simple_response
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/src/main.py", line 84, in limit_body_size
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/src/main.py", line 57, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 122, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 108, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 444, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py", line 646, in solve_dependencies
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py", line 675, in solve_dependencies
+    solved = await call(**solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/src/core/auth.py", line 213, in get_current_user_id
+    return UUID(current_user["id"])
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/uuid.py", line 178, in __init__
+    raise ValueError('badly formed hexadecimal UUID string')
+ValueError: badly formed hexadecimal UUID string
+INFO:     10.16.21.217:54193 - "GET /api/v1/agents/?page=1&per_page=12&status=active HTTP/1.1" 200 OK
+INFO:     10.16.43.133:16996 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.21.217:48317 - "GET /api/v1/agents/?owner_id=019a91e9-a47d-4769-ad15-d5584ad9bd37 HTTP/1.1" 200 OK
+INFO:     10.16.43.133:37404 - "GET /api/v1/tasks/ HTTP/1.1" 200 OK
+INFO:     10.16.21.217:32161 - "GET /api/v1/credits/balance HTTP/1.1" 200 OK
+INFO:     10.16.43.133:63954 - "GET /api/v1/agents/?per_page=1 HTTP/1.1" 200 OK
+INFO:     10.16.43.133:63954 - "GET /api/v1/agents/?per_page=2 HTTP/1.1" 200 OK
+INFO:     10.16.21.217:17125 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:62082 - "GET /api/v1/agents/?per_page=1 HTTP/1.1" 200 OK
+INFO:     10.16.43.133:63110 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     10.16.21.217:62082 - "GET /api/v1/health/ HTTP/1.1" 404 Not Found
+INFO:     10.16.43.133:18852 - "GET /api/v1/agents/?per_page=1 HTTP/1.1" 200 OK
+INFO:     10.16.43.133:18852 - "GET /api/v1/health/ HTTP/1.1" 404 Not Found
+INFO:     10.16.21.217:8398 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.21.217:8398 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.21.217:32670 - "GET /api/v1/agents/?per_page=1 HTTP/1.1" 200 OK
+INFO:     10.16.43.133:2869 - "GET /api/v1/agents/?per_page=100 HTTP/1.1" 200 OK
+INFO:     10.16.21.217:56035 - "GET /api/v1/agents/?per_page=100 HTTP/1.1" 200 OK
+INFO:     10.16.43.133:13536 - "POST /api/v1/auth/firebase HTTP/1.1" 200 OK
+INFO:     10.16.43.133:13536 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+INFO:     10.16.21.217:13527 - "POST /api/v1/auth/firebase HTTP/1.1" 200 OK
+INFO:     10.16.21.217:13527 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+INFO:     10.16.21.217:57654 - "POST /api/v1/auth/firebase HTTP/1.1" 200 OK
+INFO:     10.16.43.133:25351 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+INFO:     10.16.43.133:25351 - "GET /api/v1/credits/balance HTTP/1.1" 200 OK
+INFO:     10.16.43.133:17504 - "GET /api/v1/agents/?page=1&per_page=12&status=active HTTP/1.1" 200 OK
+INFO:     10.16.43.133:27430 - "GET /api/v1/agents/7a4aa975-e0a5-4028-bf8e-12944b0b81ad/stats HTTP/1.1" 200 OK
+INFO:     10.16.43.133:17504 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1/stats HTTP/1.1" 200 OK
+INFO:     10.16.21.217:40202 - "GET /api/v1/agents/1e03ab82-e292-4f76-b3f5-9c0048ccd5de/stats HTTP/1.1" 200 OK
+INFO:     10.16.21.217:8054 - "GET /api/v1/agents/93ea8c44-56d8-4860-8c89-8ce0f2ccc004/stats HTTP/1.1" 200 OK
+INFO:     10.16.43.133:13244 - "GET /api/v1/agents/5d35067f-3ac9-4271-880b-f8181bb17391/stats HTTP/1.1" 200 OK
+INFO:     10.16.21.217:8054 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.43.133:13244 - "GET /api/v1/agents/?owner_id=019a91e9-a47d-4769-ad15-d5584ad9bd37 HTTP/1.1" 200 OK
+INFO:     10.16.21.217:40202 - "GET /api/v1/tasks/ HTTP/1.1" 200 OK
+INFO:     10.16.43.133:34721 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+{"timestamp": "2026-03-01T15:32:28.066710+00:00", "level": "ERROR", "logger": "sqlalchemy.pool.impl.AsyncAdaptedQueuePool", "message": "Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x7f7e03b0a120>>", "exception": "Traceback (most recent call last):\n  File \"/usr/local/lib/python3.12/site-packages/sqlalchemy/pool/base.py\", line 373, in _close_connection\n    self._dialect.do_terminate(connection)\n  File \"/usr/local/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py\", line 1127, in do_terminate\n    dbapi_connection.terminate()\n  File \"/usr/local/lib/python3.12/site-packages/sqlalchemy/connectors/asyncio.py\", line 402, in terminate\n    self.await_(asyncio.shield(self._terminate_graceful_close()))  # type: ignore[attr-defined] # noqa: E501\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py\", line 132, in await_only\n    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py\", line 196, in greenlet_spawn\n    value = await result\n            ^^^^^^^^^^^^\nasyncio.exceptions.CancelledError: Cancelled via cancel scope 7f7e038d90d0 by <Task pending name='starlette.middleware.base.BaseHTTPMiddleware.__call__.<locals>.call_next.<locals>.coro' coro=<BaseHTTPMiddleware.__call__.<locals>.call_next.<locals>.coro() running at /usr/local/lib/python3.12/site-packages/starlette/middleware/base.py:144> cb=[TaskGroup._spawn.<locals>.task_done() at /usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:805]>"}
+INFO:     10.16.43.133:35709 - "GET /api/v1/llm-keys/ HTTP/1.1" 200 OK
+INFO:     10.16.21.217:7838 - "GET /api/v1/billing/status HTTP/1.1" 200 OK
+INFO:     10.16.21.217:56032 - "GET /api/v1/credits/balance HTTP/1.1" 200 OK
+INFO:     10.16.43.133:36404 - "GET /api/v1/credits/transactions?per_page=20 HTTP/1.1" 200 OK
+INFO:     10.16.21.217:56032 - "GET /api/v1/organizations HTTP/1.1" 307 Temporary Redirect
+INFO:     10.16.21.217:56032 - "GET /api/v1/organizations HTTP/1.1" 307 Temporary Redirect
+INFO:     10.16.21.217:56032 - "GET /api/v1/organizations HTTP/1.1" 307 Temporary Redirect
+INFO:     10.16.21.217:56032 - "GET /api/v1/tasks/ HTTP/1.1" 200 OK
+INFO:     10.16.43.133:34797 - "GET /api/v1/agents/?page=1&per_page=12&status=active HTTP/1.1" 200 OK
+INFO:     10.16.43.133:52093 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.21.217:49917 - "GET /api/v1/agents/?owner_id=019a91e9-a47d-4769-ad15-d5584ad9bd37 HTTP/1.1" 200 OK
+INFO:     10.16.43.133:51920 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.21.217:11216 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.43.133:1204 - "GET /api/v1/credits/balance HTTP/1.1" 200 OK
+INFO:     10.16.21.217:35197 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1/a2a-card HTTP/1.1" 404 Not Found
+INFO:     10.16.43.133:12715 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1 HTTP/1.1" 200 OK
+INFO:     10.16.43.133:12715 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1/a2a-card HTTP/1.1" 404 Not Found
+INFO:     10.16.43.133:12715 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.21.217:18762 - "GET /api/v1/tasks/ HTTP/1.1" 200 OK
+INFO:     10.16.43.133:6983 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.21.217:26508 - "GET /api/v1/credits/transactions?per_page=20 HTTP/1.1" 200 OK
+INFO:     10.16.43.133:43628 - "POST /api/v1/credits/purchase HTTP/1.1" 201 Created
+INFO:     10.16.21.217:6737 - "GET /api/v1/credits/balance HTTP/1.1" 200 OK
+INFO:     10.16.43.133:43628 - "GET /api/v1/credits/transactions?per_page=20 HTTP/1.1" 200 OK
+INFO:     10.16.21.217:5270 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.43.133:41562 - "GET /api/v1/agents/?owner_id=019a91e9-a47d-4769-ad15-d5584ad9bd37 HTTP/1.1" 200 OK
+INFO:     10.16.21.217:1041 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.21.217:29806 - "GET /api/v1/agents/?page=1&per_page=12&status=active HTTP/1.1" 200 OK
+INFO:     10.16.21.217:11378 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.43.133:8439 - "GET /api/v1/tasks/ HTTP/1.1" 200 OK
+{"timestamp": "2026-03-01T15:34:24.464697+00:00", "level": "ERROR", "logger": "sqlalchemy.pool.impl.AsyncAdaptedQueuePool", "message": "Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x7f7e0387d5e0>>", "exception": "Traceback (most recent call last):\n  File \"/usr/local/lib/python3.12/site-packages/sqlalchemy/pool/base.py\", line 373, in _close_connection\n    self._dialect.do_terminate(connection)\n  File \"/usr/local/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py\", line 1127, in do_terminate\n    dbapi_connection.terminate()\n  File \"/usr/local/lib/python3.12/site-packages/sqlalchemy/connectors/asyncio.py\", line 402, in terminate\n    self.await_(asyncio.shield(self._terminate_graceful_close()))  # type: ignore[attr-defined] # noqa: E501\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py\", line 132, in await_only\n    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py\", line 196, in greenlet_spawn\n    value = await result\n            ^^^^^^^^^^^^\nasyncio.exceptions.CancelledError: Cancelled via cancel scope 7f7e038b6c00 by <Task pending name='starlette.middleware.base.BaseHTTPMiddleware.__call__.<locals>.call_next.<locals>.coro' coro=<BaseHTTPMiddleware.__call__.<locals>.call_next.<locals>.coro() running at /usr/local/lib/python3.12/site-packages/starlette/middleware/base.py:144> cb=[TaskGroup._spawn.<locals>.task_done() at /usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:805]>"}
+INFO:     10.16.21.217:10124 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.43.133:8558 - "GET /api/v1/organizations HTTP/1.1" 307 Temporary Redirect
+INFO:     10.16.21.217:35311 - "GET /api/v1/credits/balance HTTP/1.1" 200 OK
+INFO:     10.16.43.133:8558 - "GET /api/v1/credits/transactions?per_page=20 HTTP/1.1" 200 OK
+INFO:     10.16.21.217:35311 - "GET /api/v1/agents/?owner_id=019a91e9-a47d-4769-ad15-d5584ad9bd37 HTTP/1.1" 200 OK
+INFO:     10.16.43.133:8558 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.43.133:53674 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1/a2a-card HTTP/1.1" 404 Not Found
+INFO:     10.16.21.217:48642 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1 HTTP/1.1" 200 OK
+INFO:     10.16.43.133:53674 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1/a2a-card HTTP/1.1" 404 Not Found
+{"timestamp": "2026-03-01T15:34:52.258017+00:00", "level": "ERROR", "logger": "src.main", "message": "Unhandled exception on POST /api/v1/tasks/", "exception": "  + Exception Group Traceback (most recent call last):\n  |   File \"/usr/local/lib/python3.12/site-packages/starlette/_utils.py\", line 81, in collapse_excgroups\n  |     yield\n  |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 192, in __call__\n  |     async with anyio.create_task_group() as task_group:\n  |                ^^^^^^^^^^^^^^^^^^^^^^^^^\n  |   File \"/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py\", line 783, in __aexit__\n  |     raise BaseExceptionGroup(\n  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)\n  +-+---------------- 1 ----------------\n    | Traceback (most recent call last):\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py\", line 164, in __call__\n    |     await self.app(scope, receive, _send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py\", line 95, in __call__\n    |     await self.simple_response(scope, receive, send, request_headers=headers)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py\", line 153, in simple_response\n    |     await self.app(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 191, in __call__\n    |     with recv_stream, send_stream, collapse_excgroups():\n    |                                    ^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/contextlib.py\", line 158, in __exit__\n    |     self.gen.throw(value)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/_utils.py\", line 87, in collapse_excgroups\n    |     raise exc\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 193, in __call__\n    |     response = await self.dispatch_func(request, call_next)\n    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/app/src/main.py\", line 84, in limit_body_size\n    |     return await call_next(request)\n    |            ^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 168, in call_next\n    |     raise app_exc from app_exc.__cause__ or app_exc.__context__\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 144, in coro\n    |     await self.app(scope, receive_or_disconnect, send_no_error)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 191, in __call__\n    |     with recv_stream, send_stream, collapse_excgroups():\n    |                                    ^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/contextlib.py\", line 158, in __exit__\n    |     self.gen.throw(value)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/_utils.py\", line 87, in collapse_excgroups\n    |     raise exc\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 193, in __call__\n    |     response = await self.dispatch_func(request, call_next)\n    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/app/src/main.py\", line 57, in dispatch\n    |     response = await call_next(request)\n    |                ^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 168, in call_next\n    |     raise app_exc from app_exc.__cause__ or app_exc.__context__\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 144, in coro\n    |     await self.app(scope, receive_or_disconnect, send_no_error)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/exceptions.py\", line 63, in __call__\n    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 53, in wrapped_app\n    |     raise exc\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 42, in wrapped_app\n    |     await app(scope, receive, sender)\n    |   File \"/usr/local/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py\", line 18, in __call__\n    |     await self.app(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/routing.py\", line 716, in __call__\n    |     await self.middleware_stack(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/routing.py\", line 736, in app\n    |     await route.handle(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/routing.py\", line 290, in handle\n    |     await self.app(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/fastapi/routing.py\", line 122, in app\n    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 53, in wrapped_app\n    |     raise exc\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 42, in wrapped_app\n    |     await app(scope, receive, sender)\n    |   File \"/usr/local/lib/python3.12/site-packages/fastapi/routing.py\", line 108, in app\n    |     response = await f(request)\n    |                ^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/site-packages/fastapi/routing.py\", line 444, in app\n    |     solved_result = await solve_dependencies(\n    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py\", line 646, in solve_dependencies\n    |     solved_result = await solve_dependencies(\n    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py\", line 675, in solve_dependencies\n    |     solved = await call(**solved_result.values)\n    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/app/src/core/auth.py\", line 213, in get_current_user_id\n    |     return UUID(current_user[\"id\"])\n    |            ^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/uuid.py\", line 178, in __init__\n    |     raise ValueError('badly formed hexadecimal UUID string')\n    | ValueError: badly formed hexadecimal UUID string\n    +------------------------------------\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py\", line 164, in __call__\n    await self.app(scope, receive, _send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py\", line 95, in __call__\n    await self.simple_response(scope, receive, send, request_headers=headers)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py\", line 153, in simple_response\n    await self.app(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 191, in __call__\n    with recv_stream, send_stream, collapse_excgroups():\n                                   ^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/contextlib.py\", line 158, in __exit__\n    self.gen.throw(value)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/_utils.py\", line 87, in collapse_excgroups\n    raise exc\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 193, in __call__\n    response = await self.dispatch_func(request, call_next)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/app/src/main.py\", line 84, in limit_body_size\n    return await call_next(request)\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 168, in call_next\n    raise app_exc from app_exc.__cause__ or app_exc.__context__\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 144, in coro\n    await self.app(scope, receive_or_disconnect, send_no_error)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 191, in __call__\n    with recv_stream, send_stream, collapse_excgroups():\n                                   ^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/contextlib.py\", line 158, in __exit__\n    self.gen.throw(value)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/_utils.py\", line 87, in collapse_excgroups\n    raise exc\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 193, in __call__\n    response = await self.dispatch_func(request, call_next)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/app/src/main.py\", line 57, in dispatch\n    response = await call_next(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 168, in call_next\n    raise app_exc from app_exc.__cause__ or app_exc.__context__\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 144, in coro\n    await self.app(scope, receive_or_disconnect, send_no_error)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/exceptions.py\", line 63, in __call__\n    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 53, in wrapped_app\n    raise exc\n  File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 42, in wrapped_app\n    await app(scope, receive, sender)\n  File \"/usr/local/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py\", line 18, in __call__\n    await self.app(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/routing.py\", line 716, in __call__\n    await self.middleware_stack(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/routing.py\", line 736, in app\n    await route.handle(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/routing.py\", line 290, in handle\n    await self.app(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/fastapi/routing.py\", line 122, in app\n    await wrap_app_handling_exceptions(app, request)(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 53, in wrapped_app\n    raise exc\n  File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 42, in wrapped_app\n    await app(scope, receive, sender)\n  File \"/usr/local/lib/python3.12/site-packages/fastapi/routing.py\", line 108, in app\n    response = await f(request)\n               ^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/site-packages/fastapi/routing.py\", line 444, in app\n    solved_result = await solve_dependencies(\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py\", line 646, in solve_dependencies\n    solved_result = await solve_dependencies(\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py\", line 675, in solve_dependencies\n    solved = await call(**solved_result.values)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/app/src/core/auth.py\", line 213, in get_current_user_id\n    return UUID(current_user[\"id\"])\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/uuid.py\", line 178, in __init__\n    raise ValueError('badly formed hexadecimal UUID string')\nValueError: badly formed hexadecimal UUID string"}
+INFO:     10.16.43.133:40300 - "POST /api/v1/tasks/ HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+  + Exception Group Traceback (most recent call last):
+  |   File "/usr/local/lib/python3.12/site-packages/starlette/_utils.py", line 81, in collapse_excgroups
+  |     yield
+  |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 192, in __call__
+  |     async with anyio.create_task_group() as task_group:
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 783, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "/usr/local/lib/python3.12/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    |     result = await app(  # type: ignore[func-returns-value]
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    |     return await self.app(scope, receive, send)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/applications.py", line 1160, in __call__
+    |     await super().__call__(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/applications.py", line 107, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    |     raise exc
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    |     await self.app(scope, receive, _send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py", line 95, in __call__
+    |     await self.simple_response(scope, receive, send, request_headers=headers)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py", line 153, in simple_response
+    |     await self.app(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |                                    ^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/contextlib.py", line 158, in __exit__
+    |     self.gen.throw(value)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    |     raise exc
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/app/src/main.py", line 84, in limit_body_size
+    |     return await call_next(request)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |                                    ^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/contextlib.py", line 158, in __exit__
+    |     self.gen.throw(value)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    |     raise exc
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/app/src/main.py", line 57, in dispatch
+    |     response = await call_next(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 716, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 736, in app
+    |     await route.handle(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 290, in handle
+    |     await self.app(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 122, in app
+    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 108, in app
+    |     response = await f(request)
+    |                ^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 444, in app
+    |     solved_result = await solve_dependencies(
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py", line 646, in solve_dependencies
+    |     solved_result = await solve_dependencies(
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py", line 675, in solve_dependencies
+    |     solved = await call(**solved_result.values)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/app/src/core/auth.py", line 213, in get_current_user_id
+    |     return UUID(current_user["id"])
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/uuid.py", line 178, in __init__
+    |     raise ValueError('badly formed hexadecimal UUID string')
+    | ValueError: badly formed hexadecimal UUID string
+    +------------------------------------
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/applications.py", line 1160, in __call__
+    await super().__call__(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/applications.py", line 107, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py", line 95, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py", line 153, in simple_response
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/src/main.py", line 84, in limit_body_size
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/src/main.py", line 57, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 122, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 108, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 444, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py", line 646, in solve_dependencies
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py", line 675, in solve_dependencies
+    solved = await call(**solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/src/core/auth.py", line 213, in get_current_user_id
+    return UUID(current_user["id"])
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/uuid.py", line 178, in __init__
+    raise ValueError('badly formed hexadecimal UUID string')
+ValueError: badly formed hexadecimal UUID string
+INFO:     10.16.21.217:26091 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.43.133:54833 - "GET /api/v1/agents/?owner_id=019a91e9-a47d-4769-ad15-d5584ad9bd37 HTTP/1.1" 200 OK
+INFO:     10.16.21.217:21985 - "GET /api/v1/tasks/ HTTP/1.1" 200 OK
+INFO:     10.16.43.133:31232 - "GET /api/v1/credits/balance HTTP/1.1" 200 OK
+INFO:     10.16.21.217:40782 - "GET /api/v1/agents/?page=1&per_page=12&status=active HTTP/1.1" 200 OK
+INFO:     10.16.21.217:40782 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1/stats HTTP/1.1" 200 OK
+INFO:     10.16.21.217:50525 - "GET /api/v1/agents/1e03ab82-e292-4f76-b3f5-9c0048ccd5de/stats HTTP/1.1" 200 OK
+INFO:     10.16.43.133:21610 - "GET /api/v1/agents/5d35067f-3ac9-4271-880b-f8181bb17391/stats HTTP/1.1" 200 OK
+INFO:     10.16.43.133:19605 - "GET /api/v1/agents/7a4aa975-e0a5-4028-bf8e-12944b0b81ad/stats HTTP/1.1" 200 OK
+INFO:     10.16.21.217:52335 - "GET /api/v1/agents/93ea8c44-56d8-4860-8c89-8ce0f2ccc004/stats HTTP/1.1" 200 OK
+INFO:     10.16.43.133:19605 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.43.133:12824 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.21.217:23960 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.21.217:17057 - "GET /api/v1/credits/transactions?per_page=20 HTTP/1.1" 200 OK
+INFO:     10.16.43.133:4124 - "GET /api/v1/organizations HTTP/1.1" 307 Temporary Redirect
+INFO:     10.16.43.133:4124 - "GET /api/v1/tasks/ HTTP/1.1" 200 OK
+INFO:     10.16.43.133:4124 - "GET /api/v1/agents/?owner_id=019a91e9-a47d-4769-ad15-d5584ad9bd37 HTTP/1.1" 200 OK
+INFO:     10.16.43.133:4124 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.21.217:10017 - "GET /api/v1/credits/balance HTTP/1.1" 200 OK
+INFO:     10.16.43.133:34758 - "GET /api/v1/llm-keys/ HTTP/1.1" 200 OK
+INFO:     10.16.21.217:43024 - "GET /api/v1/billing/status HTTP/1.1" 200 OK
+INFO:     10.16.21.217:43024 - "GET /api/v1/organizations HTTP/1.1" 307 Temporary Redirect
+INFO:     10.16.43.133:56957 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.21.217:50335 - "GET /api/v1/agents/?page=1&per_page=12&status=active HTTP/1.1" 200 OK
+INFO:     10.16.43.133:41648 - "GET /api/v1/agents/5d35067f-3ac9-4271-880b-f8181bb17391/stats HTTP/1.1" 200 OK
+INFO:     10.16.21.217:50335 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1/stats HTTP/1.1" 200 OK
+INFO:     10.16.21.217:6819 - "GET /api/v1/agents/1e03ab82-e292-4f76-b3f5-9c0048ccd5de/stats HTTP/1.1" 200 OK
+INFO:     10.16.43.133:64182 - "GET /api/v1/agents/93ea8c44-56d8-4860-8c89-8ce0f2ccc004/stats HTTP/1.1" 200 OK
+INFO:     10.16.21.217:57768 - "GET /api/v1/agents/7a4aa975-e0a5-4028-bf8e-12944b0b81ad/stats HTTP/1.1" 200 OK
+INFO:     10.16.43.133:64182 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.21.217:6819 - "GET /api/v1/agents/?owner_id=019a91e9-a47d-4769-ad15-d5584ad9bd37 HTTP/1.1" 200 OK
+INFO:     10.16.21.217:57768 - "GET /api/v1/tasks/ HTTP/1.1" 200 OK
+INFO:     10.16.43.133:41648 - "GET /api/v1/credits/balance HTTP/1.1" 200 OK
+INFO:     10.16.43.133:23115 - "POST /api/v1/auth/firebase HTTP/1.1" 200 OK
+INFO:     10.16.43.133:23115 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+INFO:     10.16.21.217:12974 - "GET /api/v1/credits/balance HTTP/1.1" 200 OK
+INFO:     10.16.21.217:12974 - "GET /api/v1/agents/?page=1&per_page=12&status=active HTTP/1.1" 200 OK
+INFO:     10.16.21.217:12974 - "GET /api/v1/agents/5d35067f-3ac9-4271-880b-f8181bb17391/stats HTTP/1.1" 200 OK
+INFO:     10.16.43.133:46447 - "GET /api/v1/agents/7a4aa975-e0a5-4028-bf8e-12944b0b81ad/stats HTTP/1.1" 200 OK
+INFO:     10.16.21.217:58377 - "GET /api/v1/agents/93ea8c44-56d8-4860-8c89-8ce0f2ccc004/stats HTTP/1.1" 200 OK
+INFO:     10.16.43.133:65371 - "GET /api/v1/agents/1e03ab82-e292-4f76-b3f5-9c0048ccd5de/stats HTTP/1.1" 200 OK
+INFO:     10.16.21.217:31638 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1/stats HTTP/1.1" 200 OK
+INFO:     10.16.43.133:65371 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.43.133:46447 - "GET /api/v1/agents/?owner_id=019a91e9-a47d-4769-ad15-d5584ad9bd37 HTTP/1.1" 200 OK
+INFO:     10.16.21.217:31638 - "GET /api/v1/tasks/ HTTP/1.1" 200 OK
+INFO:     10.16.43.133:29189 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.43.133:62434 - "POST /api/v1/auth/firebase HTTP/1.1" 200 OK
+INFO:     10.16.43.133:62434 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+INFO:     10.16.43.133:62434 - "GET /api/v1/credits/balance HTTP/1.1" 200 OK
+INFO:     10.16.43.133:37840 - "POST /api/v1/auth/firebase HTTP/1.1" 200 OK
+INFO:     10.16.43.133:37840 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+INFO:     10.16.21.217:2351 - "GET /api/v1/credits/balance HTTP/1.1" 200 OK
+INFO:     10.16.21.217:32434 - "POST /api/v1/auth/firebase HTTP/1.1" 200 OK
+INFO:     10.16.21.217:32434 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+INFO:     10.16.43.133:14059 - "GET /api/v1/credits/balance HTTP/1.1" 200 OK
+INFO:     10.16.21.217:32434 - "POST /api/v1/auth/firebase HTTP/1.1" 200 OK
+INFO:     10.16.21.217:32434 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+INFO:     10.16.21.217:22949 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.21.217:25608 - "GET /api/v1/credits/balance HTTP/1.1" 200 OK
+INFO:     10.16.21.217:62322 - "GET /api/v1/agents/?owner_id=019a91e9-a47d-4769-ad15-d5584ad9bd37 HTTP/1.1" 200 OK
+INFO:     10.16.43.133:24721 - "GET /api/v1/tasks/ HTTP/1.1" 200 OK
+INFO:     10.16.21.217:32404 - "GET /api/v1/agents/?per_page=1 HTTP/1.1" 200 OK
+INFO:     10.16.43.133:6489 - "GET /api/v1/agents/?per_page=100 HTTP/1.1" 200 OK
+INFO:     10.16.21.217:63654 - "GET /api/v1/agents/?per_page=100 HTTP/1.1" 200 OK
+INFO:     10.16.43.133:49370 - "GET /api/v1/agents/?page=1&per_page=12&status=active HTTP/1.1" 200 OK
+INFO:     10.16.43.133:62512 - "GET /api/v1/agents/5d35067f-3ac9-4271-880b-f8181bb17391/stats HTTP/1.1" 200 OK
+INFO:     10.16.21.217:23720 - "GET /api/v1/agents/1e03ab82-e292-4f76-b3f5-9c0048ccd5de/stats HTTP/1.1" 200 OK
+INFO:     10.16.21.217:40781 - "GET /api/v1/agents/7a4aa975-e0a5-4028-bf8e-12944b0b81ad/stats HTTP/1.1" 200 OK
+INFO:     10.16.43.133:22116 - "GET /api/v1/agents/93ea8c44-56d8-4860-8c89-8ce0f2ccc004/stats HTTP/1.1" 200 OK
+INFO:     10.16.43.133:49370 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1/stats HTTP/1.1" 200 OK
+INFO:     10.16.21.217:2390 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1/a2a-card HTTP/1.1" 404 Not Found
+INFO:     10.16.43.133:16056 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1 HTTP/1.1" 200 OK
+INFO:     10.16.21.217:2390 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1/a2a-card HTTP/1.1" 404 Not Found
+INFO:     10.16.21.217:55270 - "POST /api/v1/auth/firebase HTTP/1.1" 200 OK
+INFO:     10.16.43.133:48737 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+INFO:     10.16.21.217:53143 - "POST /api/v1/auth/firebase HTTP/1.1" 200 OK
+INFO:     10.16.21.217:53143 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+INFO:     10.16.21.217:53143 - "POST /api/v1/auth/firebase HTTP/1.1" 200 OK
+INFO:     10.16.21.217:53143 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+INFO:     10.16.21.217:12515 - "GET /api/v1/activity/stream HTTP/1.1" 401 Unauthorized
+INFO:     10.16.43.133:55379 - "POST /api/v1/auth/firebase HTTP/1.1" 200 OK
+INFO:     10.16.43.133:55379 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.21.217:12515 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+INFO:     10.16.21.217:17990 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.21.217:54890 - "GET /api/v1/agents/?owner_id=019a91e9-a47d-4769-ad15-d5584ad9bd37 HTTP/1.1" 200 OK
+INFO:     10.16.43.133:6891 - "GET /api/v1/tasks/ HTTP/1.1" 200 OK
+INFO:     10.16.21.217:53775 - "GET /api/v1/credits/balance HTTP/1.1" 200 OK
+INFO:     10.16.43.133:7612 - "GET /api/v1/agents/?per_page=20 HTTP/1.1" 200 OK
+INFO:     10.16.43.133:7612 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.21.217:33235 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.21.217:22402 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1/a2a-card HTTP/1.1" 404 Not Found
+INFO:     10.16.43.133:51298 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1 HTTP/1.1" 200 OK
+INFO:     10.16.21.217:22402 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1/a2a-card HTTP/1.1" 404 Not Found
+INFO:     10.16.43.133:12156 - "GET /api/v1/agents/?page=1&per_page=12&status=active HTTP/1.1" 200 OK
+INFO:     10.16.43.133:12156 - "GET /api/v1/agents/7a4aa975-e0a5-4028-bf8e-12944b0b81ad/stats HTTP/1.1" 200 OK
+INFO:     10.16.21.217:7296 - "GET /api/v1/agents/93ea8c44-56d8-4860-8c89-8ce0f2ccc004/stats HTTP/1.1" 200 OK
+INFO:     10.16.43.133:3064 - "GET /api/v1/agents/5d35067f-3ac9-4271-880b-f8181bb17391/stats HTTP/1.1" 200 OK
+INFO:     10.16.21.217:17473 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1/stats HTTP/1.1" 200 OK
+INFO:     10.16.21.217:1038 - "GET /api/v1/agents/1e03ab82-e292-4f76-b3f5-9c0048ccd5de/stats HTTP/1.1" 200 OK
+INFO:     10.16.21.217:21013 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.43.133:50382 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+INFO:     10.16.43.133:50382 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.43.133:8461 - "GET /api/v1/agents/?owner_id=019a91e9-a47d-4769-ad15-d5584ad9bd37 HTTP/1.1" 200 OK
+INFO:     10.16.21.217:23936 - "GET /api/v1/tasks/ HTTP/1.1" 200 OK
+INFO:     10.16.21.217:54340 - "GET /api/v1/agents/?per_page=20 HTTP/1.1" 200 OK
+INFO:     10.16.43.133:6883 - "GET /api/v1/credits/balance HTTP/1.1" 200 OK
+{"timestamp": "2026-03-02T12:12:10.611182+00:00", "level": "ERROR", "logger": "sqlalchemy.pool.impl.AsyncAdaptedQueuePool", "message": "Exception terminating connection <AdaptedConnection <asyncpg.connection.Connection object at 0x7f7e0387c6e0>>", "exception": "Traceback (most recent call last):\n  File \"/usr/local/lib/python3.12/site-packages/sqlalchemy/pool/base.py\", line 373, in _close_connection\n    self._dialect.do_terminate(connection)\n  File \"/usr/local/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py\", line 1127, in do_terminate\n    dbapi_connection.terminate()\n  File \"/usr/local/lib/python3.12/site-packages/sqlalchemy/connectors/asyncio.py\", line 402, in terminate\n    self.await_(asyncio.shield(self._terminate_graceful_close()))  # type: ignore[attr-defined] # noqa: E501\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py\", line 132, in await_only\n    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py\", line 196, in greenlet_spawn\n    value = await result\n            ^^^^^^^^^^^^\nasyncio.exceptions.CancelledError: Cancelled via cancel scope 7f7e0389d9d0 by <Task pending name='starlette.middleware.base.BaseHTTPMiddleware.__call__.<locals>.call_next.<locals>.coro' coro=<BaseHTTPMiddleware.__call__.<locals>.call_next.<locals>.coro() running at /usr/local/lib/python3.12/site-packages/starlette/middleware/base.py:144> cb=[TaskGroup._spawn.<locals>.task_done() at /usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:805]>"}
+{"timestamp": "2026-03-02T12:12:11.102971+00:00", "level": "ERROR", "logger": "sqlalchemy.pool.impl.AsyncAdaptedQueuePool", "message": "The garbage collector is trying to clean up non-checked-in connection <AdaptedConnection <asyncpg.connection.Connection object at 0x7f7e0387c6e0>>, which will be terminated.  Please ensure that SQLAlchemy pooled connections are returned to the pool explicitly, either by calling ``close()`` or by using appropriate context managers to manage their lifecycle."}
+sys:1: SAWarning: The garbage collector is trying to clean up non-checked-in connection <AdaptedConnection <asyncpg.connection.Connection object at 0x7f7e0387c6e0>>, which will be terminated.  Please ensure that SQLAlchemy pooled connections are returned to the pool explicitly, either by calling ``close()`` or by using appropriate context managers to manage their lifecycle.
+INFO:     10.16.43.133:20378 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+INFO:     10.16.43.133:52613 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.43.133:20378 - "GET /api/v1/agents/?owner_id=019a91e9-a47d-4769-ad15-d5584ad9bd37 HTTP/1.1" 200 OK
+INFO:     10.16.21.217:25480 - "GET /api/v1/credits/balance HTTP/1.1" 200 OK
+INFO:     10.16.21.217:56257 - "GET /api/v1/tasks/ HTTP/1.1" 200 OK
+INFO:     10.16.21.217:19640 - "GET /api/v1/agents/?per_page=20 HTTP/1.1" 200 OK
+INFO:     10.16.43.133:20378 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.43.133:27599 - "GET /api/v1/agents/?page=1&per_page=12&status=active HTTP/1.1" 200 OK
+INFO:     10.16.43.133:27599 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.43.133:24742 - "GET /api/v1/agents/?owner_id=019a91e9-a47d-4769-ad15-d5584ad9bd37 HTTP/1.1" 200 OK
+INFO:     10.16.21.217:57483 - "GET /api/v1/credits/balance HTTP/1.1" 200 OK
+INFO:     10.16.43.133:56394 - "GET /api/v1/tasks/ HTTP/1.1" 200 OK
+INFO:     10.16.21.217:15769 - "GET /api/v1/agents/?per_page=20 HTTP/1.1" 200 OK
+INFO:     10.16.43.133:38487 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.21.217:26858 - "GET /api/v1/organizations HTTP/1.1" 307 Temporary Redirect
+INFO:     10.16.21.217:26858 - "GET /api/v1/credits/transactions?per_page=20 HTTP/1.1" 200 OK
+INFO:     10.16.43.133:18538 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.21.217:59457 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.43.133:55379 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+INFO:     10.16.21.217:34760 - "GET /api/v1/agents/1e03ab82-e292-4f76-b3f5-9c0048ccd5de/stats HTTP/1.1" 200 OK
+INFO:     10.16.43.133:27438 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1/stats HTTP/1.1" 200 OK
+INFO:     10.16.43.133:61548 - "GET /api/v1/agents/5d35067f-3ac9-4271-880b-f8181bb17391/stats HTTP/1.1" 200 OK
+INFO:     10.16.43.133:63047 - "GET /api/v1/agents/7a4aa975-e0a5-4028-bf8e-12944b0b81ad/stats HTTP/1.1" 200 OK
+INFO:     10.16.21.217:45805 - "GET /api/v1/agents/93ea8c44-56d8-4860-8c89-8ce0f2ccc004/stats HTTP/1.1" 200 OK
+INFO:     10.16.21.217:44433 - "GET /api/v1/agents/?page=1&per_page=12&status=active HTTP/1.1" 200 OK
+INFO:     10.16.21.217:44433 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1/a2a-card HTTP/1.1" 404 Not Found
+INFO:     10.16.43.133:63047 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1 HTTP/1.1" 200 OK
+INFO:     10.16.21.217:44433 - "GET /api/v1/agents/69d017da-c422-402a-80c5-feeaaaa9c0c1/a2a-card HTTP/1.1" 404 Not Found
+INFO:     10.16.21.217:33235 - "GET /api/v1/activity/stream HTTP/1.1" 200 OK
+{"timestamp": "2026-03-02T12:14:13.586846+00:00", "level": "ERROR", "logger": "src.main", "message": "Unhandled exception on POST /api/v1/tasks/", "exception": "  + Exception Group Traceback (most recent call last):\n  |   File \"/usr/local/lib/python3.12/site-packages/starlette/_utils.py\", line 81, in collapse_excgroups\n  |     yield\n  |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 192, in __call__\n  |     async with anyio.create_task_group() as task_group:\n  |                ^^^^^^^^^^^^^^^^^^^^^^^^^\n  |   File \"/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py\", line 783, in __aexit__\n  |     raise BaseExceptionGroup(\n  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)\n  +-+---------------- 1 ----------------\n    | Traceback (most recent call last):\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py\", line 164, in __call__\n    |     await self.app(scope, receive, _send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py\", line 95, in __call__\n    |     await self.simple_response(scope, receive, send, request_headers=headers)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py\", line 153, in simple_response\n    |     await self.app(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 191, in __call__\n    |     with recv_stream, send_stream, collapse_excgroups():\n    |                                    ^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/contextlib.py\", line 158, in __exit__\n    |     self.gen.throw(value)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/_utils.py\", line 87, in collapse_excgroups\n    |     raise exc\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 193, in __call__\n    |     response = await self.dispatch_func(request, call_next)\n    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/app/src/main.py\", line 84, in limit_body_size\n    |     return await call_next(request)\n    |            ^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 168, in call_next\n    |     raise app_exc from app_exc.__cause__ or app_exc.__context__\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 144, in coro\n    |     await self.app(scope, receive_or_disconnect, send_no_error)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 191, in __call__\n    |     with recv_stream, send_stream, collapse_excgroups():\n    |                                    ^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/contextlib.py\", line 158, in __exit__\n    |     self.gen.throw(value)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/_utils.py\", line 87, in collapse_excgroups\n    |     raise exc\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 193, in __call__\n    |     response = await self.dispatch_func(request, call_next)\n    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/app/src/main.py\", line 57, in dispatch\n    |     response = await call_next(request)\n    |                ^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 168, in call_next\n    |     raise app_exc from app_exc.__cause__ or app_exc.__context__\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 144, in coro\n    |     await self.app(scope, receive_or_disconnect, send_no_error)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/exceptions.py\", line 63, in __call__\n    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 53, in wrapped_app\n    |     raise exc\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 42, in wrapped_app\n    |     await app(scope, receive, sender)\n    |   File \"/usr/local/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py\", line 18, in __call__\n    |     await self.app(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/routing.py\", line 716, in __call__\n    |     await self.middleware_stack(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/routing.py\", line 736, in app\n    |     await route.handle(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/routing.py\", line 290, in handle\n    |     await self.app(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/fastapi/routing.py\", line 122, in app\n    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 53, in wrapped_app\n    |     raise exc\n    |   File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 42, in wrapped_app\n    |     await app(scope, receive, sender)\n    |   File \"/usr/local/lib/python3.12/site-packages/fastapi/routing.py\", line 108, in app\n    |     response = await f(request)\n    |                ^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/site-packages/fastapi/routing.py\", line 444, in app\n    |     solved_result = await solve_dependencies(\n    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py\", line 646, in solve_dependencies\n    |     solved_result = await solve_dependencies(\n    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py\", line 675, in solve_dependencies\n    |     solved = await call(**solved_result.values)\n    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/app/src/core/auth.py\", line 213, in get_current_user_id\n    |     return UUID(current_user[\"id\"])\n    |            ^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"/usr/local/lib/python3.12/uuid.py\", line 178, in __init__\n    |     raise ValueError('badly formed hexadecimal UUID string')\n    | ValueError: badly formed hexadecimal UUID string\n    +------------------------------------\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py\", line 164, in __call__\n    await self.app(scope, receive, _send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py\", line 95, in __call__\n    await self.simple_response(scope, receive, send, request_headers=headers)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py\", line 153, in simple_response\n    await self.app(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 191, in __call__\n    with recv_stream, send_stream, collapse_excgroups():\n                                   ^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/contextlib.py\", line 158, in __exit__\n    self.gen.throw(value)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/_utils.py\", line 87, in collapse_excgroups\n    raise exc\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 193, in __call__\n    response = await self.dispatch_func(request, call_next)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/app/src/main.py\", line 84, in limit_body_size\n    return await call_next(request)\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 168, in call_next\n    raise app_exc from app_exc.__cause__ or app_exc.__context__\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 144, in coro\n    await self.app(scope, receive_or_disconnect, send_no_error)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 191, in __call__\n    with recv_stream, send_stream, collapse_excgroups():\n                                   ^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/contextlib.py\", line 158, in __exit__\n    self.gen.throw(value)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/_utils.py\", line 87, in collapse_excgroups\n    raise exc\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 193, in __call__\n    response = await self.dispatch_func(request, call_next)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/app/src/main.py\", line 57, in dispatch\n    response = await call_next(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 168, in call_next\n    raise app_exc from app_exc.__cause__ or app_exc.__context__\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py\", line 144, in coro\n    await self.app(scope, receive_or_disconnect, send_no_error)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/middleware/exceptions.py\", line 63, in __call__\n    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 53, in wrapped_app\n    raise exc\n  File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 42, in wrapped_app\n    await app(scope, receive, sender)\n  File \"/usr/local/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py\", line 18, in __call__\n    await self.app(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/routing.py\", line 716, in __call__\n    await self.middleware_stack(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/routing.py\", line 736, in app\n    await route.handle(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/routing.py\", line 290, in handle\n    await self.app(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/fastapi/routing.py\", line 122, in app\n    await wrap_app_handling_exceptions(app, request)(scope, receive, send)\n  File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 53, in wrapped_app\n    raise exc\n  File \"/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 42, in wrapped_app\n    await app(scope, receive, sender)\n  File \"/usr/local/lib/python3.12/site-packages/fastapi/routing.py\", line 108, in app\n    response = await f(request)\n               ^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/site-packages/fastapi/routing.py\", line 444, in app\n    solved_result = await solve_dependencies(\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py\", line 646, in solve_dependencies\n    solved_result = await solve_dependencies(\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py\", line 675, in solve_dependencies\n    solved = await call(**solved_result.values)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/app/src/core/auth.py\", line 213, in get_current_user_id\n    return UUID(current_user[\"id\"])\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/uuid.py\", line 178, in __init__\n    raise ValueError('badly formed hexadecimal UUID string')\nValueError: badly formed hexadecimal UUID string"}
+INFO:     10.16.21.217:55571 - "POST /api/v1/tasks/ HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+  + Exception Group Traceback (most recent call last):
+  |   File "/usr/local/lib/python3.12/site-packages/starlette/_utils.py", line 81, in collapse_excgroups
+  |     yield
+  |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 192, in __call__
+  |     async with anyio.create_task_group() as task_group:
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/usr/local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 783, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "/usr/local/lib/python3.12/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    |     result = await app(  # type: ignore[func-returns-value]
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    |     return await self.app(scope, receive, send)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/applications.py", line 1160, in __call__
+    |     await super().__call__(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/applications.py", line 107, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    |     raise exc
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    |     await self.app(scope, receive, _send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py", line 95, in __call__
+    |     await self.simple_response(scope, receive, send, request_headers=headers)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py", line 153, in simple_response
+    |     await self.app(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |                                    ^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/contextlib.py", line 158, in __exit__
+    |     self.gen.throw(value)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    |     raise exc
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/app/src/main.py", line 84, in limit_body_size
+    |     return await call_next(request)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |                                    ^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/contextlib.py", line 158, in __exit__
+    |     self.gen.throw(value)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    |     raise exc
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/app/src/main.py", line 57, in dispatch
+    |     response = await call_next(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 716, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 736, in app
+    |     await route.handle(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 290, in handle
+    |     await self.app(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 122, in app
+    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 108, in app
+    |     response = await f(request)
+    |                ^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 444, in app
+    |     solved_result = await solve_dependencies(
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py", line 646, in solve_dependencies
+    |     solved_result = await solve_dependencies(
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py", line 675, in solve_dependencies
+    |     solved = await call(**solved_result.values)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/app/src/core/auth.py", line 213, in get_current_user_id
+    |     return UUID(current_user["id"])
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.12/uuid.py", line 178, in __init__
+    |     raise ValueError('badly formed hexadecimal UUID string')
+    | ValueError: badly formed hexadecimal UUID string
+    +------------------------------------
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/applications.py", line 1160, in __call__
+    await super().__call__(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/applications.py", line 107, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py", line 95, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/cors.py", line 153, in simple_response
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/src/main.py", line 84, in limit_body_size
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/src/main.py", line 57, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/usr/local/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 122, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 108, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/routing.py", line 444, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py", line 646, in solve_dependencies
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/fastapi/dependencies/utils.py", line 675, in solve_dependencies
+    solved = await call(**solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/src/core/auth.py", line 213, in get_current_user_id
+    return UUID(current_user["id"])
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/uuid.py", line 178, in __init__
+    raise ValueError('badly formed hexadecimal UUID string')
+ValueError: badly formed hexadecimal UUID string
+INFO:     10.16.43.133:4039 - "GET / HTTP/1.1" 404 Not Found
+INFO:     10.16.43.133:52207 - "GET / HTTP/1.1" 404 Not Found
+INFO:     10.16.43.133:51023 - "GET /api/v1/health/ HTTP/1.1" 404 Not Found

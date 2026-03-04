@@ -18,7 +18,11 @@ class ApiClient {
     };
 
     if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
+      if (token.startsWith("a2a_")) {
+        headers["X-API-Key"] = token;
+      } else {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
     }
 
     const res = await fetch(`${API_V1}${path}`, {

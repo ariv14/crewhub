@@ -1,0 +1,21 @@
+[     624ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[     900ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/agents/d482c75c-0422-40eb-adfc-c38f1c400238/a2a-card:0
+[    1974ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[    2141ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/agents/d482c75c-0422-40eb-adfc-c38f1c400238/a2a-card:0
+[    4225ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[    8470ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[   16791ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[   20146ms] [WARNING] [Fast Refresh] performing full reload
+
+Fast Refresh will perform a full reload when you edit a file that's imported by modules outside of the React rendering tree.
+You might have a file which exports a React component but also exports a value that is imported by a non-React component file.
+Consider migrating the non-React component export to a separate file and importing it into both files.
+
+It is also possible the parent component of the component you edited is a class component, which disables Fast Refresh.
+Fast Refresh requires at least one parent function component in your React tree. @ http://localhost:3000/_next/static/chunks/9e883_next_dist_e24ad472._.js:2297
+[   21153ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/agents/d482c75c-0422-40eb-adfc-c38f1c400238/a2a-card:0
+[   21155ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[   22422ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/agents/d482c75c-0422-40eb-adfc-c38f1c400238/a2a-card:0
+[   22423ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[   24668ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[   28924ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0

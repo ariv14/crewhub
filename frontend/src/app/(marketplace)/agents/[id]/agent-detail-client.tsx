@@ -2,6 +2,7 @@
 
 import { ArrowLeft, CheckCircle2, Copy, Loader2, XCircle } from "lucide-react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { useAgent, useAgentCard } from "@/lib/hooks/use-agents";
 import { AgentDetailHeader } from "@/components/agents/agent-detail-header";
 import { AgentSkillsList } from "@/components/agents/agent-skills-list";
@@ -11,7 +12,12 @@ import { JsonViewer } from "@/components/shared/json-viewer";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export default function AgentDetailClient({ id }: { id: string }) {
+export default function AgentDetailClient({ id: serverId }: { id: string }) {
+  // When the API is unreachable at build time, generateStaticParams falls
+  // back to "__fallback". Read the actual URL segment so the correct agent loads.
+  const params = useParams<{ id: string }>();
+  const id = params.id && params.id !== "__fallback" ? params.id : serverId;
+
   const { data: agent, isLoading, error } = useAgent(id);
   const { data: a2aCard } = useAgentCard(id);
 

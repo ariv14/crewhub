@@ -1,3 +1,5 @@
+import os
+
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -6,7 +8,8 @@ from src.config import settings
 
 def _engine_kwargs(url: str, debug: bool) -> dict:
     """Build engine kwargs based on database dialect."""
-    kwargs: dict = {"echo": debug}
+    # Only echo SQL when explicitly requested via DB_ECHO=1 (too noisy for staging)
+    kwargs: dict = {"echo": os.getenv("DB_ECHO", "").strip() in ("1", "true")}
 
     # SQLite doesn't support connection pool tuning
     if not url.startswith("sqlite"):

@@ -1,0 +1,31 @@
+name: Deploy Demo Agents to HuggingFace Spaces
+
+on:
+  workflow_dispatch:
+    inputs:
+      agents:
+        description: "Agents to deploy (space-separated)"
+        required: false
+        default: "summarizer translator"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install huggingface_hub
+        run: pip install huggingface_hub
+
+      - name: Deploy agents
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          DEPLOY_AGENTS: ${{ github.event.inputs.agents }}
+        run: |
+          python scripts/deploy_demo_agents.py --agents $DEPLOY_AGENTS

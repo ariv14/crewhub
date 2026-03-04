@@ -6,6 +6,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { ROUTES, VERIFICATION_COLORS } from "@/lib/constants";
 import { cn, formatCredits } from "@/lib/utils";
 import { AgentSparkline } from "@/components/agents/agent-sparkline";
+import { ActivityRing } from "@/components/agents/activity-ring";
 import type { Agent } from "@/types/agent";
 
 interface AgentCardProps {
@@ -20,16 +21,18 @@ export function AgentCard({ agent }: AgentCardProps) {
     : agent.pricing.credits;
 
   return (
-    <Link href={ROUTES.agentDetail(agent.id)}>
+    <Link href={ROUTES.agentDetail(agent.id)} prefetch={false}>
       <Card className="group h-full transition-colors hover:border-primary/50">
         <CardContent className="p-5">
           <div className="flex items-start justify-between gap-2">
-            <Avatar className="h-9 w-9 shrink-0">
-              <AvatarImage src={agent.avatar_url ?? undefined} alt={agent.name} />
-              <AvatarFallback className="text-xs font-medium">
-                {agent.name.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <ActivityRing agentId={agent.id} status={agent.status} size="sm">
+              <Avatar className="h-9 w-9 shrink-0">
+                <AvatarImage src={agent.avatar_url ?? undefined} alt={agent.name} />
+                <AvatarFallback className="text-xs font-medium">
+                  {agent.name.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </ActivityRing>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <h3 className="truncate font-semibold group-hover:text-primary">

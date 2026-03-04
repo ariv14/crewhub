@@ -1,5 +1,7 @@
 """Task broker service -- create, manage, and rate tasks between agents."""
 
+import asyncio
+import logging
 from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import UUID
@@ -15,12 +17,30 @@ from src.models.task import Task, TaskStatus
 from src.schemas.task import TaskCreate, TaskMessage, TaskRating
 from src.services.credit_ledger import CreditLedgerService
 
+logger = logging.getLogger(__name__)
+
 
 class TaskBrokerService:
     """Orchestrates task lifecycle between client and provider agents."""
 
     # Shared rate limiter for quota RPM enforcement (class-level singleton)
     _quota_limiters: dict[str, "RateLimiter"] = {}
+
+    # Terminal task states (no further transitions allowed)
+    TERMINAL_STATUSES = {TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELED}
+    _TERMINAL_VALUES = {"completed", "failed", "canceled"}
+
+    @staticmethod
+    def _is_terminal(status) -> bool:
+        """Check if a status is terminal, handling both enum and string values."""
+        if hasattr(status, "value"):
+            return status.value in TaskBrokerService._TERMINAL_VALUES
+        return str(status) in TaskBrokerService._TERMINAL_VALUES
+
+    @staticmethod
+    def _status_value(status) -> str:
+        """Get the string value of a status, handling both enum and string."""
+        return status.value if hasattr(status, "value") else str(status)
 
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -105,7 +125,79 @@ class TaskBrokerService:
         self.db.add(task)
         await self.db.commit()
         await self.db.refresh(task)
+
+        # Dispatch task to the agent's A2A endpoint in the background
+        if initial_status == TaskStatus.SUBMITTED and provider.endpoint:
+            asyncio.create_task(
+                self._dispatch_to_agent(
+                    task_id=task.id,
+                    agent_endpoint=provider.endpoint,
+                    skill_id=data.skill_id,
+                    messages=[m.model_dump() for m in data.messages],
+                )
+            )
+
         return task
+
+    # ------------------------------------------------------------------
+    # A2A dispatch (background)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    async def _dispatch_to_agent(
+        task_id: UUID,
+        agent_endpoint: str,
+        skill_id: str,
+        messages: list[dict],
+    ) -> None:
+        """Call the agent's A2A endpoint and update the task with the result.
+
+        Runs as a background task after create_task returns. If the agent
+        responds synchronously with a completed result, we update the task
+        status and artifacts. On failure, the task status is set to 'failed'.
+        """
+        from src.database import async_session
+        from src.services.a2a_gateway import A2AGatewayService
+
+        try:
+            async with async_session() as db:
+                gateway = A2AGatewayService(db)
+                response = await gateway.send_task(
+                    agent_endpoint=agent_endpoint.rstrip("/") + "/",
+                    task_data={
+                        "id": str(task_id),
+                        "skill_id": skill_id,
+                        "messages": messages,
+                    },
+                )
+
+                result = response.get("result", {})
+                agent_status = result.get("status", {}).get("state")
+                artifacts = result.get("artifacts", [])
+
+                broker = TaskBrokerService(db)
+
+                if agent_status == "completed" and artifacts:
+                    await broker.update_task_status(
+                        task_id, TaskStatus.COMPLETED, artifacts=artifacts
+                    )
+                elif agent_status == "failed":
+                    await broker.update_task_status(task_id, TaskStatus.FAILED)
+                elif "error" in response:
+                    logger.warning(
+                        "A2A dispatch error for task %s: %s",
+                        task_id, response["error"],
+                    )
+                    await broker.update_task_status(task_id, TaskStatus.FAILED)
+
+        except Exception:
+            logger.exception("A2A dispatch failed for task %s to %s", task_id, agent_endpoint)
+            try:
+                async with async_session() as db:
+                    broker = TaskBrokerService(db)
+                    await broker.update_task_status(task_id, TaskStatus.FAILED)
+            except Exception:
+                logger.exception("Failed to mark task %s as failed", task_id)
 
     # ------------------------------------------------------------------
     # Get task
@@ -163,11 +255,18 @@ class TaskBrokerService:
                 | (Task.provider_agent_id == agent_id)
             )
         if user_id:
-            # Tasks where the user owns either the client or provider agent
-            stmt = stmt.outerjoin(
-                Agent,
-                (Agent.id == Task.client_agent_id) | (Agent.id == Task.provider_agent_id),
-            ).where(Agent.owner_id == user_id)
+            # Tasks where the user owns either the client or provider agent.
+            # Use a subquery to find agent IDs owned by the user, then filter
+            # tasks by those IDs.  This avoids the outerjoin + where pattern
+            # that silently drops rows with NULL agent IDs.
+            from sqlalchemy import or_
+            owned_ids_sq = select(Agent.id).where(Agent.owner_id == user_id).subquery()
+            stmt = stmt.where(
+                or_(
+                    Task.client_agent_id.in_(select(owned_ids_sq.c.id)),
+                    Task.provider_agent_id.in_(select(owned_ids_sq.c.id)),
+                )
+            )
         if status:
             stmt = stmt.where(Task.status == status)
 
@@ -230,7 +329,10 @@ class TaskBrokerService:
             task.completed_at = now
             # Calculate latency
             if task.created_at:
-                delta = now - task.created_at
+                created = task.created_at
+                if created.tzinfo is None:
+                    created = created.replace(tzinfo=timezone.utc)
+                delta = now - created
                 task.latency_ms = int(delta.total_seconds() * 1000)
 
             # Charge credits
@@ -294,10 +396,9 @@ class TaskBrokerService:
             raise ForbiddenError(detail="You do not own the client agent for this task")
 
         # Guard: only cancel tasks that are still in progress
-        terminal = {TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELED}
-        if task.status in terminal:
+        if self._is_terminal(task.status):
             raise ForbiddenError(
-                detail=f"Cannot cancel task in '{task.status.value}' state"
+                detail=f"Cannot cancel task in '{self._status_value(task.status)}' state"
             )
 
         task.status = TaskStatus.CANCELED
@@ -577,6 +678,105 @@ class TaskBrokerService:
             return skill_avg_credits
 
         return 0
+
+    # ------------------------------------------------------------------
+    # Webhook handlers (called by provider agents via /webhooks/a2a)
+    # ------------------------------------------------------------------
+
+    async def handle_status_update(
+        self, agent_id: UUID, params: dict
+    ) -> dict:
+        """Handle a tasks/statusUpdate callback from a provider agent.
+
+        The provider sends this when a task's status changes (e.g.
+        submitted → working → completed, or working → failed).
+
+        Expected params:
+            id: str          -- task UUID
+            status: str      -- new status value
+            artifacts: list  -- optional list of artifact dicts
+        """
+        task_id_str = params.get("id")
+        new_status_str = params.get("status")
+
+        if not task_id_str or not new_status_str:
+            raise MarketplaceError(
+                status_code=400,
+                detail="Required: id and status in params",
+            )
+
+        task_id = UUID(task_id_str)
+        task = await self.get_task(task_id)
+
+        # Verify the callback is from the correct provider agent
+        if task.provider_agent_id != agent_id:
+            raise ForbiddenError(
+                detail="Agent is not the provider for this task"
+            )
+
+        # Parse the new status
+        try:
+            new_status = TaskStatus(new_status_str)
+        except ValueError:
+            raise MarketplaceError(
+                status_code=400,
+                detail=f"Invalid status: {new_status_str}",
+            )
+
+        # Don't allow updates to tasks already in a terminal state
+        if self._is_terminal(task.status):
+            raise ForbiddenError(
+                detail=f"Cannot update task in terminal state '{self._status_value(task.status)}'"
+            )
+
+        artifacts = params.get("artifacts")
+        updated = await self.update_task_status(task_id, new_status, artifacts)
+        return {
+            "id": str(updated.id),
+            "status": updated.status.value if hasattr(updated.status, "value") else updated.status,
+        }
+
+    async def handle_artifact_update(
+        self, agent_id: UUID, params: dict
+    ) -> dict:
+        """Handle a tasks/artifactUpdate callback from a provider agent.
+
+        Appends new artifacts to the task without changing its status.
+
+        Expected params:
+            id: str          -- task UUID
+            artifacts: list  -- list of artifact dicts to append
+        """
+        task_id_str = params.get("id")
+        new_artifacts = params.get("artifacts", [])
+
+        if not task_id_str:
+            raise MarketplaceError(
+                status_code=400,
+                detail="Required: id in params",
+            )
+
+        task_id = UUID(task_id_str)
+        task = await self.get_task(task_id)
+
+        # Verify the callback is from the correct provider agent
+        if task.provider_agent_id != agent_id:
+            raise ForbiddenError(
+                detail="Agent is not the provider for this task"
+            )
+
+        # Append new artifacts
+        existing = list(task.artifacts or [])
+        existing.extend(new_artifacts)
+        task.artifacts = existing
+
+        await self.db.commit()
+        await self.db.refresh(task)
+
+        return {
+            "id": str(task.id),
+            "artifact_count": len(task.artifacts),
+        }
 
     async def _update_provider_stats(self, provider: Agent) -> None:
         """Recalculate total_tasks_completed, success_rate, and avg_latency_ms."""

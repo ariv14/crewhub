@@ -65,9 +65,6 @@ export function TopNav() {
               </SheetTitle>
             </SheetHeader>
             <nav className="mt-6 flex flex-col gap-1">
-              <Button variant="ghost" className="justify-start" onClick={() => mobileGo(ROUTES.agents)}>
-                Browse Agents
-              </Button>
               {user && (
                 <>
                   <Button variant="ghost" className="justify-start" onClick={() => mobileGo(ROUTES.dashboard)}>
@@ -100,9 +97,6 @@ export function TopNav() {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href={ROUTES.agents}>Browse Agents</Link>
-          </Button>
           {user && (
             <Button variant="ghost" size="sm" asChild>
               <Link href={ROUTES.dashboard}>Dashboard</Link>

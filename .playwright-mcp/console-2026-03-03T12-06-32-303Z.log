@@ -1,0 +1,14 @@
+[     556ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/agents/d482c75c-0422-40eb-adfc-c38f1c400238/a2a-card:0
+[     643ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[    1798ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/agents/d482c75c-0422-40eb-adfc-c38f1c400238/a2a-card:0
+[    1889ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[    4267ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[    8565ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[   10322ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/agents/d482c75c-0422-40eb-adfc-c38f1c400238/a2a-card:0
+[   10322ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[   11568ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[   11600ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/agents/d482c75c-0422-40eb-adfc-c38f1c400238/a2a-card:0
+[   13889ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[   18191ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[   26439ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0
+[   42766ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/activity/stream:0

@@ -27,10 +27,36 @@ jobs:
           if [ "$BRANCH" = "main" ]; then
             echo "api_url=https://arimatch1-crewhub.hf.space" >> "$GITHUB_OUTPUT"
             echo "cf_project=crewhub-marketplace" >> "$GITHUB_OUTPUT"
+            echo "fb_api_key=AIzaSyDq4iZ6y90S9KOsPRP0774iYGu4fXzH-4s" >> "$GITHUB_OUTPUT"
+            echo "fb_auth_domain=ai-digital-crew.firebaseapp.com" >> "$GITHUB_OUTPUT"
+            echo "fb_project_id=ai-digital-crew" >> "$GITHUB_OUTPUT"
+            echo "fb_storage_bucket=ai-digital-crew.firebasestorage.app" >> "$GITHUB_OUTPUT"
+            echo "fb_messaging_sender_id=67125394484" >> "$GITHUB_OUTPUT"
+            echo "fb_app_id=1:67125394484:web:85f3da113a0b09aeb39e61" >> "$GITHUB_OUTPUT"
           else
             echo "api_url=https://arimatch1-crewhub-staging.hf.space" >> "$GITHUB_OUTPUT"
             echo "cf_project=crewhub-marketplace-staging" >> "$GITHUB_OUTPUT"
+            echo "fb_api_key=AIzaSyAH9dWeeHoH6v_UvnhpvLUKoqsm3rrdCPQ" >> "$GITHUB_OUTPUT"
+            echo "fb_auth_domain=ai-digital-crew-staging.firebaseapp.com" >> "$GITHUB_OUTPUT"
+            echo "fb_project_id=ai-digital-crew-staging" >> "$GITHUB_OUTPUT"
+            echo "fb_storage_bucket=ai-digital-crew-staging.firebasestorage.app" >> "$GITHUB_OUTPUT"
+            echo "fb_messaging_sender_id=155089534574" >> "$GITHUB_OUTPUT"
+            echo "fb_app_id=1:155089534574:web:542a7df0b8c809f22c707f" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Wake up API (HF Space may be sleeping)
+        run: |
+          API_URL="${{ steps.env.outputs.api_url }}"
+          echo "Waking up $API_URL..."
+          for i in 1 2 3 4 5; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL/api/v1/agents/?per_page=1" --max-time 30 || echo "000")
+            echo "  Attempt $i: HTTP $STATUS"
+            if [ "$STATUS" = "200" ]; then
+              echo "API is up!"
+              break
+            fi
+            sleep 10
+          done
 
       - name: Install dependencies
         working-directory: frontend
@@ -40,6 +66,12 @@ jobs:
         working-directory: frontend
         env:
           NEXT_PUBLIC_API_URL: ${{ steps.env.outputs.api_url }}
+          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ steps.env.outputs.fb_api_key }}
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ steps.env.outputs.fb_auth_domain }}
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ steps.env.outputs.fb_project_id }}
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ steps.env.outputs.fb_storage_bucket }}
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ steps.env.outputs.fb_messaging_sender_id }}
+          NEXT_PUBLIC_FIREBASE_APP_ID: ${{ steps.env.outputs.fb_app_id }}
         run: STATIC_EXPORT=true npm run build
 
       - name: Deploy to Cloudflare Pages

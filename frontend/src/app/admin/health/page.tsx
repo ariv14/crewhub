@@ -28,7 +28,7 @@ export default function AdminHealthPage() {
           <CardContent>
             {isLoading ? (
               <span className="text-sm text-muted-foreground">Checking...</span>
-            ) : health?.status === "ok" ? (
+            ) : health?.status === "healthy" ? (
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-5 w-5 text-green-400" />
                 <span className="font-medium text-green-400">Healthy</span>

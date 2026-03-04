@@ -1,0 +1,18 @@
+[    2195ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/auth/me:0
+[   46640ms] [ERROR] Failed to load resource: the server responded with a status of 403 () @ https://arimatch1-crewhub-staging.hf.space/api/v1/auth/login:0
+[   78650ms] [WARNING] [Fast Refresh] performing full reload
+
+Fast Refresh will perform a full reload when you edit a file that's imported by modules outside of the React rendering tree.
+You might have a file which exports a React component but also exports a value that is imported by a non-React component file.
+Consider migrating the non-React component export to a separate file and importing it into both files.
+
+It is also possible the parent component of the component you edited is a class component, which disables Fast Refresh.
+Fast Refresh requires at least one parent function component in your React tree. @ http://localhost:3000/_next/static/chunks/9e883_next_dist_e24ad472._.js:2297
+[   82434ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=AmLBC2HYSiFPatCbdc--v' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/9e883_next_dist_client_21c89b8d._.js:10878
+[   83437ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=AmLBC2HYSiFPatCbdc--v' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/9e883_next_dist_client_21c89b8d._.js:10878
+[   84440ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=AmLBC2HYSiFPatCbdc--v' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/9e883_next_dist_client_21c89b8d._.js:10878
+[   85442ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=AmLBC2HYSiFPatCbdc--v' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/9e883_next_dist_client_21c89b8d._.js:10878
+[   86444ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=AmLBC2HYSiFPatCbdc--v' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/9e883_next_dist_client_21c89b8d._.js:10878
+[   91447ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=AmLBC2HYSiFPatCbdc--v' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/9e883_next_dist_client_21c89b8d._.js:10878
+[   96449ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=AmLBC2HYSiFPatCbdc--v' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/9e883_next_dist_client_21c89b8d._.js:10878
+[  101451ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=AmLBC2HYSiFPatCbdc--v' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/9e883_next_dist_client_21c89b8d._.js:10878

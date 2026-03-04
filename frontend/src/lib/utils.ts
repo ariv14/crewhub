@@ -5,7 +5,8 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatCredits(amount: number): string {
+export function formatCredits(amount: number | null | undefined): string {
+  if (amount == null) return "—";
   return amount.toLocaleString(undefined, {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,

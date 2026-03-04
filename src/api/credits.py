@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.auth import get_current_user
+from src.core.auth import resolve_db_user_id
 from src.database import get_db
 from src.schemas.credits import (
     BalanceResponse,
@@ -22,14 +22,14 @@ router = APIRouter(prefix="/credits", tags=["credits"])
 @router.get("/balance", response_model=BalanceResponse)
 async def get_balance(
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    user_id: UUID = Depends(resolve_db_user_id),
 ) -> BalanceResponse:
     """Check the current credit balance for the authenticated user.
 
     Returns total balance, reserved amount, available credits, and currency.
     """
     service = CreditLedgerService(db)
-    balance = await service.get_balance(owner_id=UUID(current_user["id"]))
+    balance = await service.get_balance(owner_id=user_id)
     return balance
 
 
@@ -37,7 +37,7 @@ async def get_balance(
 async def purchase_credits(
     data: PurchaseRequest,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    user_id: UUID = Depends(resolve_db_user_id),
 ) -> TransactionResponse:
     """Purchase additional credits.
 
@@ -54,7 +54,7 @@ async def purchase_credits(
 
     service = CreditLedgerService(db)
     transaction = await service.purchase_credits(
-        owner_id=UUID(current_user["id"]),
+        owner_id=user_id,
         amount=data.amount,
     )
     return transaction
@@ -65,7 +65,7 @@ async def list_transactions(
     page: int = Query(1, ge=1, description="Page number"),
     per_page: int = Query(20, ge=1, le=100, description="Items per page"),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    user_id: UUID = Depends(resolve_db_user_id),
 ) -> TransactionListResponse:
     """Get paginated transaction history for the authenticated user.
 
@@ -73,7 +73,7 @@ async def list_transactions(
     """
     service = CreditLedgerService(db)
     transactions, total = await service.get_transactions(
-        owner_id=UUID(current_user["id"]),
+        owner_id=user_id,
         page=page,
         per_page=per_page,
     )
@@ -84,7 +84,7 @@ async def list_transactions(
 async def get_usage(
     period: str = Query("30d", description="Usage period: 7d, 30d, 90d", pattern="^(7d|30d|90d)$"),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    user_id: UUID = Depends(resolve_db_user_id),
 ) -> UsageResponse:
     """Get credit usage analytics for the authenticated user.
 
@@ -93,7 +93,7 @@ async def get_usage(
     """
     service = CreditLedgerService(db)
     usage = await service.get_usage(
-        owner_id=UUID(current_user["id"]),
+        owner_id=user_id,
         period=period,
     )
     return usage

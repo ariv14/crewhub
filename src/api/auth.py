@@ -43,6 +43,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 DEFAULT_SIGNUP_BONUS = 100.0
 
 
+
 # ---------------------------------------------------------------------------
 # Firebase Auth flow — used in production
 # ---------------------------------------------------------------------------

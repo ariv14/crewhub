@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useState } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Bot } from "lucide-react";
 import { useAgents } from "@/lib/hooks/use-agents";
@@ -37,9 +37,10 @@ function AgentsPageContent() {
   });
 
   const syncUrl = useCallback(
-    (f: AgentFilterState, p: number) => {
+    (f: AgentFilterState, p: number, q?: string) => {
+      const searchValue = q ?? search;
       const params = new URLSearchParams();
-      if (search) params.set("q", search);
+      if (searchValue) params.set("q", searchValue);
       if (f.category) params.set("category", f.category);
       if (f.minReputation) params.set("minRep", f.minReputation);
       if (f.maxCredits) params.set("maxCredits", f.maxCredits);
@@ -57,14 +58,52 @@ function AgentsPageContent() {
     syncUrl(f, 1);
   }
 
+  function handleSearchChange(value: string) {
+    setSearch(value);
+    setPage(1);
+    syncUrl(filters, 1, value);
+  }
+
   const { data, isLoading } = useAgents({
     page,
     per_page: 12,
     category: filters.category || undefined,
     status: filters.status || "active",
+    q: search || undefined,
   });
 
-  const agents = data?.agents ?? [];
+  // Client-side post-filtering for search, reputation, and credits
+  const agents = useMemo(() => {
+    let result = data?.agents ?? [];
+
+    // Client-side name/description filter (fallback if API doesn't support q)
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (a) =>
+          a.name.toLowerCase().includes(q) ||
+          a.description.toLowerCase().includes(q)
+      );
+    }
+
+    // Reputation filter
+    if (filters.minReputation) {
+      const min = parseFloat(filters.minReputation);
+      if (!isNaN(min)) {
+        result = result.filter((a) => a.reputation_score >= min);
+      }
+    }
+
+    // Credits filter
+    if (filters.maxCredits) {
+      const max = parseFloat(filters.maxCredits);
+      if (!isNaN(max)) {
+        result = result.filter((a) => a.pricing.credits <= max);
+      }
+    }
+
+    return result;
+  }, [data?.agents, search, filters.minReputation, filters.maxCredits]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
@@ -78,7 +117,7 @@ function AgentsPageContent() {
       <div className="mb-6">
         <AgentSearchBar
           value={search}
-          onChange={setSearch}
+          onChange={handleSearchChange}
           onSubmit={() => syncUrl(filters, 1)}
         />
       </div>

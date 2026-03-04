@@ -1,0 +1,10 @@
+[     317ms] [ERROR] CrewHub fetch error: ReferenceError: Cannot access 'CREWHUB_API' before initialization
+    at fetchCrewHubAgents (https://staging.aidigitalcrew.com/:4281:36)
+    at loadCrewHubAgents (https://staging.aidigitalcrew.com/:4375:26)
+    at loadCrewHubData (https://staging.aidigitalcrew.com/:4405:67)
+    at navigateTo (https://staging.aidigitalcrew.com/:1503:9)
+    at https://staging.aidigitalcrew.com/:1549:44 @ https://staging.aidigitalcrew.com/:4284
+[     892ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://fonts.gstatic.com/s/inter/v18/UcC73FwrK3iLTeHuS_fjbvMwCp50SjIa2JL7SUc.woff2:0
+[     892ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://fonts.gstatic.com/s/spacegrotesk/v16/V8mQoQDjQSkFtoMM3T6r8E7mF71Q-gOoraIAEj62UUsjNsFjTDJK.woff2:0
+[    5516ms] [WARNING] The resource https://fonts.gstatic.com/s/spacegrotesk/v16/V8mQoQDjQSkFtoMM3T6r8E7mF71Q-gOoraIAEj62UUsjNsFjTDJK.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://staging.aidigitalcrew.com/#crewhub:0
+[    5516ms] [WARNING] The resource https://fonts.gstatic.com/s/inter/v18/UcC73FwrK3iLTeHuS_fjbvMwCp50SjIa2JL7SUc.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://staging.aidigitalcrew.com/#crewhub:0

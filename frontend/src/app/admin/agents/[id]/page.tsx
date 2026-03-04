@@ -1,9 +1,20 @@
+import { API_V1 } from "@/lib/constants";
 import AdminAgentDetailClient from "./admin-agent-detail-client";
 
 export const dynamicParams = false;
 
 export async function generateStaticParams() {
-  return [{ id: "_" }];
+  try {
+    const res = await fetch(`${API_V1}/agents/?per_page=100`);
+    if (res.ok) {
+      const data = await res.json();
+      const agents: { id: string }[] = (data.agents ?? data).map(
+        (a: { id: string }) => ({ id: a.id })
+      );
+      return agents;
+    }
+  } catch {}
+  return [{ id: "__fallback" }];
 }
 
 export default async function AdminAgentDetailPage({

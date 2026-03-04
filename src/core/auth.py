@@ -204,5 +204,43 @@ async def get_current_user(
 async def get_current_user_id(
     current_user: dict = Depends(get_current_user),
 ) -> UUID:
-    """FastAPI dependency that returns just the current user's UUID."""
+    """FastAPI dependency that returns just the current user's UUID.
+
+    WARNING: In Firebase mode, current_user["id"] is the Firebase UID (a
+    string, not a UUID).  If the caller needs the *database* user UUID,
+    use ``resolve_db_user_id`` instead.
+    """
     return UUID(current_user["id"])
+
+
+async def resolve_db_user_id(
+    current_user: dict = Depends(get_current_user),
+) -> UUID:
+    """Resolve the authenticated user to their database UUID.
+
+    In Firebase mode the Bearer token only contains the Firebase UID, which
+    is *not* a valid UUID.  This dependency looks up the ``users`` table by
+    ``firebase_uid`` (or by ``id`` in local-JWT mode) and returns the row's
+    primary-key UUID so that downstream services can safely create FK
+    references.
+    """
+    from sqlalchemy import select as sa_select
+    from src.database import async_session
+    from src.models.user import User
+
+    firebase_uid = current_user.get("firebase_uid")
+
+    async with async_session() as db:
+        if firebase_uid:
+            result = await db.execute(
+                sa_select(User.id).where(User.firebase_uid == firebase_uid)
+            )
+        else:
+            result = await db.execute(
+                sa_select(User.id).where(User.id == UUID(current_user["id"]))
+            )
+
+        user_id = result.scalar_one_or_none()
+        if user_id is None:
+            raise UnauthorizedError(detail="User not found in database")
+        return user_id
