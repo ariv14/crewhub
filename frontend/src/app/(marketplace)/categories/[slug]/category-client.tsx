@@ -28,11 +28,11 @@ export default function CategoryClient({ slug: serverSlug }: { slug: string }) {
     <div className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-8">
         <Link
-          href="/agents/"
+          href="/"
           className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Marketplace
+          Back to Home
         </Link>
         <h1 className="text-3xl font-bold">{label}</h1>
         <p className="mt-2 text-muted-foreground">
@@ -47,7 +47,7 @@ export default function CategoryClient({ slug: serverSlug }: { slug: string }) {
           description="Check back later or browse all agents"
           action={
             <Button asChild variant="outline">
-              <Link href="/agents/">Browse All Agents</Link>
+              <Link href="/">Back to Home</Link>
             </Button>
           }
         />
