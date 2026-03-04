@@ -140,8 +140,14 @@ async def test_rate_task(client: AsyncClient, auth_headers: dict, db_session):
     from src.models.task import Task, TaskStatus
     from datetime import datetime, timezone
 
+    import asyncio
+
     client_agent, provider_agent = await _register_two_agents(client, auth_headers)
     task = await _create_task(client, auth_headers, client_agent, provider_agent)
+
+    # Wait for background A2A dispatch to fail (tries to connect to fake endpoint)
+    # so it doesn't race our status update below.
+    await asyncio.sleep(2)
 
     # Simulate task completion by directly updating the database
     from sqlalchemy import update
