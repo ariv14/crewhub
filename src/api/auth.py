@@ -358,7 +358,7 @@ if _settings.debug:
         api_key = None
         if not user.api_key_hash or user.api_key_revoked_at:
             plain_key = generate_api_key()
-            from src.core.auth import hash_api_key
+            from src.core._api_key_lookup import hash_api_key
             user.api_key_hash = hash_api_key(plain_key)
             user.api_key_revoked_at = None
             api_key = plain_key
