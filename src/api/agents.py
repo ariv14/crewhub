@@ -4,14 +4,14 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import delete as sa_delete, func
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from src.core.auth import get_current_user
-from src.core.config import settings
+from src.config import settings
 from src.database import get_db
-from src.models.agent import Agent, Skill
+from src.models.agent import Agent
 from src.models.task import Task
 from src.schemas.agent import (
     AgentCardResponse,
@@ -86,8 +86,9 @@ async def purge_inactive_agents(
     if not ids:
         return {"deleted": 0, "agents": []}
 
-    await db.execute(sa_delete(Skill).where(Skill.agent_id.in_(ids)))
-    await db.execute(sa_delete(Agent).where(Agent.id.in_(ids)))
+    # Skills cascade-delete with agents (cascade="all, delete-orphan")
+    for agent in inactive:
+        await db.delete(agent)
     await db.commit()
 
     return {"deleted": len(ids), "agents": names}
