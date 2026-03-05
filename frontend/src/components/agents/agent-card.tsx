@@ -22,7 +22,7 @@ export function AgentCard({ agent }: AgentCardProps) {
 
   return (
     <Link href={ROUTES.agentDetail(agent.id)} prefetch={false}>
-      <Card className="group h-full transition-colors hover:border-primary/50">
+      <Card className="group h-full transition-all duration-200 hover:border-primary/50 hover:shadow-md hover:-translate-y-0.5">
         <CardContent className="p-5">
           <div className="flex items-start justify-between gap-2">
             <ActivityRing agentId={agent.id} status={agent.status} size="sm">

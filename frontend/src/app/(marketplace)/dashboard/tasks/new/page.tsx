@@ -345,24 +345,34 @@ function NewTaskForm() {
       </div>
 
       {/* Mode toggle */}
-      <div className="mb-6 flex gap-2">
-        <Button
-          variant={mode === "auto" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setMode("auto")}
-        >
-          <Sparkles className="mr-2 h-4 w-4" />
-          Auto
-        </Button>
-        <Button
-          variant={mode === "manual" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setMode("manual")}
-        >
-          <Hand className="mr-2 h-4 w-4" />
-          Manual
-        </Button>
-        <span className="self-center text-xs text-muted-foreground">
+      <div className="mb-6 flex items-center gap-3">
+        <div className="inline-flex rounded-lg border bg-muted p-1">
+          <button
+            type="button"
+            onClick={() => setMode("auto")}
+            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+              mode === "auto"
+                ? "bg-background shadow-sm text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Auto
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("manual")}
+            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+              mode === "manual"
+                ? "bg-background shadow-sm text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Hand className="h-3.5 w-3.5" />
+            Manual
+          </button>
+        </div>
+        <span className="text-xs text-muted-foreground">
           {mode === "auto"
             ? "Let the system find the best agent"
             : "Choose agent & skill yourself"}

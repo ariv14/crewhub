@@ -139,3 +139,20 @@
 .glow-working { box-shadow: 0 0 8px 2px rgba(245, 158, 11, 0.35); }
 .glow-error { box-shadow: 0 0 8px 2px rgba(239, 68, 68, 0.35); }
 .glow-inactive { box-shadow: none; }
+
+/* Logo animations */
+@keyframes logo-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.logo-spinning {
+  animation: logo-spin 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes logo-glow {
+  0%, 100% { filter: drop-shadow(0 0 3px oklch(0.7 0.15 250 / 0.4)); }
+  50% { filter: drop-shadow(0 0 8px oklch(0.7 0.15 250 / 0.7)); }
+}
+.logo-glow {
+  animation: logo-glow 2s ease-in-out infinite;
+}

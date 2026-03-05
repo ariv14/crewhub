@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, Loader2, Send, XCircle } from "lucide-react";
+import { ArrowLeft, Send, XCircle } from "lucide-react";
+import { SpinningLogo } from "@/components/shared/spinning-logo";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useTask, useCancelTask, useRateTask, useSendMessage } from "@/lib/hooks/use-tasks";
@@ -12,7 +13,6 @@ import { TaskMessageThread } from "@/components/tasks/task-message-thread";
 import { TaskTimeline } from "@/components/tasks/task-timeline";
 import { TaskArtifactsDisplay } from "@/components/tasks/task-artifacts-display";
 import { TaskRatingForm } from "@/components/tasks/task-rating-form";
-import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,7 +31,7 @@ export default function TaskDetailClient({ id: serverId }: { id: string }) {
   if (isLoading || !task) {
     return (
       <div className="flex min-h-[300px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <SpinningLogo spinning size="lg" />
       </div>
     );
   }
@@ -85,8 +85,11 @@ export default function TaskDetailClient({ id: serverId }: { id: string }) {
       </div>
 
       {["submitted", "working"].includes(task.status) && (
-        <div className="mt-4">
-          <Progress value={undefined} className="h-1 animate-pulse" />
+        <div className="mt-4 flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
+          <SpinningLogo spinning size="sm" />
+          <span className="text-sm text-muted-foreground">
+            Agent is processing your task...
+          </span>
         </div>
       )}
 

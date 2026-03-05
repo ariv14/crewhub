@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertTriangle, Loader2, Send } from "lucide-react";
+import { AlertTriangle, Send } from "lucide-react";
+import { SpinningLogo } from "@/components/shared/spinning-logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -188,7 +189,7 @@ export function TryAgentPanel({ agent }: TryAgentPanelProps) {
           />
           {isWorking && (
             <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <SpinningLogo spinning size="sm" />
               Agent is working...
             </div>
           )}
@@ -215,7 +216,7 @@ export function TryAgentPanel({ agent }: TryAgentPanelProps) {
           size="icon"
         >
           {createTask.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <SpinningLogo spinning size="sm" />
           ) : (
             <Send className="h-4 w-4" />
           )}

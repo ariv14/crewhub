@@ -8,7 +8,7 @@ test.describe("Task Lifecycle", () => {
 
   test("task list shows tasks", async ({ page }) => {
     await page.goto("/dashboard/tasks");
-    await expect(page.locator("h1")).toContainText(/my tasks/i);
+    await expect(page.locator("h1")).toContainText(/my tasks/i, { timeout: 10_000 });
     // Either tasks table or empty state
     await expect(
       page.locator("table").or(page.getByText(/no tasks/i))

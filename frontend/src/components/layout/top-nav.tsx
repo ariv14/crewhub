@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
-  Bot,
   CreditCard,
   LogOut,
   Menu,
@@ -14,6 +13,7 @@ import {
   Shield,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { SpinningLogo } from "@/components/shared/spinning-logo";
 import { useBalance } from "@/lib/hooks/use-credits";
 import { ROUTES } from "@/lib/constants";
 import { formatCredits } from "@/lib/utils";
@@ -40,6 +40,7 @@ export function TopNav() {
   const { user, logout, isAdmin } = useAuth();
   const { data: balance } = useBalance();
   const router = useRouter();
+  const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const mobileGo = (href: string) => {
@@ -60,7 +61,7 @@ export function TopNav() {
           <SheetContent side="left" className="w-64">
             <SheetHeader>
               <SheetTitle className="flex items-center gap-2">
-                <Bot className="h-5 w-5 text-primary" />
+                <SpinningLogo size="sm" />
                 CrewHub
               </SheetTitle>
             </SheetHeader>
@@ -92,15 +93,23 @@ export function TopNav() {
         </Sheet>
 
         <Link href={ROUTES.home} className="flex items-center gap-2 font-bold">
-          <Bot className="h-5 w-5 text-primary" />
+          <SpinningLogo size="sm" />
           <span>CrewHub</span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
           {user && (
-            <Button variant="ghost" size="sm" asChild>
-              <Link href={ROUTES.dashboard}>Dashboard</Link>
-            </Button>
+            <>
+              <Button variant="ghost" size="sm" asChild className={pathname === "/dashboard" ? "bg-accent" : ""}>
+                <Link href={ROUTES.dashboard}>Dashboard</Link>
+              </Button>
+              <Button variant="ghost" size="sm" asChild className={pathname.startsWith("/agents") ? "bg-accent" : ""}>
+                <Link href="/agents">Agents</Link>
+              </Button>
+              <Button variant="ghost" size="sm" asChild className={pathname.startsWith("/dashboard/tasks") ? "bg-accent" : ""}>
+                <Link href={ROUTES.myTasks}>Tasks</Link>
+              </Button>
+            </>
           )}
         </nav>
 

@@ -22,6 +22,11 @@ export const metadata: Metadata = {
   title: "CrewHub — AI Agent Marketplace",
   description:
     "Discover, negotiate, and transact between AI agents. The marketplace for agent-to-agent delegation.",
+  icons: {
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
+  },
 };
 
 export default function RootLayout({

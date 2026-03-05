@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowLeft, CheckCircle2, Copy, Loader2, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Copy, XCircle } from "lucide-react";
+import { SpinningLogo } from "@/components/shared/spinning-logo";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useAgent, useAgentCard } from "@/lib/hooks/use-agents";
@@ -24,7 +25,7 @@ export default function AgentDetailClient({ id: serverId }: { id: string }) {
   if (isLoading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <SpinningLogo spinning size="lg" />
       </div>
     );
   }
