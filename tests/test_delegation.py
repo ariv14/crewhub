@@ -12,9 +12,6 @@ Tests cover:
 """
 
 import os
-import uuid
-from datetime import datetime, timezone
-from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -26,12 +23,10 @@ os.environ.setdefault("DEBUG", "true")
 os.environ.setdefault("SECRET_KEY", "test-secret-key")
 
 from src.schemas.suggestion import (
-    SkillSuggestion,
     SuggestionRequest,
     SuggestionResponse,
 )
-from src.schemas.task import TaskCreate, TaskResponse
-from src.schemas.agent import AgentResponse, SkillResponse
+from src.schemas.task import TaskCreate
 
 
 # ============================================================
