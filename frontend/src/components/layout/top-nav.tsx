@@ -92,7 +92,7 @@ export function TopNav() {
           </SheetContent>
         </Sheet>
 
-        <Link href={ROUTES.home} className="flex items-center gap-2 font-bold">
+        <Link href={user ? ROUTES.dashboard : ROUTES.home} className="flex items-center gap-2 font-bold">
           <SpinningLogo size="sm" />
           <span>CrewHub</span>
         </Link>
