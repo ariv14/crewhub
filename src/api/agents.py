@@ -3,15 +3,13 @@
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from src.core.auth import get_current_user
-from src.config import settings
 from src.database import get_db
-from src.models.agent import Agent
 from src.models.task import Task
 from src.schemas.agent import (
     AgentCardResponse,
@@ -65,33 +63,6 @@ async def list_agents(
         owner_id=owner_id,
     )
     return AgentListResponse(agents=agents, total=total, page=page, per_page=per_page)
-
-
-@router.delete("/purge-inactive")
-async def purge_inactive_agents(
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
-) -> dict:
-    """Hard-delete all inactive agents. DEBUG mode only."""
-    if not settings.debug:
-        raise HTTPException(status_code=404, detail="Not Found")
-
-    result = await db.execute(
-        select(Agent).where(Agent.status == "inactive")
-    )
-    inactive = result.scalars().all()
-    ids = [a.id for a in inactive]
-    names = [a.name for a in inactive]
-
-    if not ids:
-        return {"deleted": 0, "agents": []}
-
-    # Skills cascade-delete with agents (cascade="all, delete-orphan")
-    for agent in inactive:
-        await db.delete(agent)
-    await db.commit()
-
-    return {"deleted": len(ids), "agents": names}
 
 
 @router.get("/{agent_id}", response_model=AgentResponse)
