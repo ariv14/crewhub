@@ -97,8 +97,16 @@ export default function TaskDetailClient({ id: serverId }: { id: string }) {
         <div className="lg:col-span-2 space-y-6">
           <TaskMessageThread
             messages={task.messages}
-            artifacts={[]}
+            artifacts={task.artifacts}
           />
+
+          {task.status === "completed" &&
+            (!task.artifacts || task.artifacts.length === 0) &&
+            task.messages.length <= 1 && (
+              <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+                Task completed — no output was returned by the agent.
+              </div>
+            )}
 
           <TaskArtifactsDisplay artifacts={task.artifacts} />
 

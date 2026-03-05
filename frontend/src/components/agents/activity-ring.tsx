@@ -18,10 +18,16 @@ const SIZE_CLASSES = {
 } as const;
 
 const GLOW_CLASSES: Record<AgentStatus | "working", string> = {
-  active: "glow-active",
-  inactive: "glow-inactive",
+  active: "",
+  inactive: "",
   suspended: "glow-error",
   working: "glow-working",
+};
+
+const DOT_COLORS: Record<AgentStatus, string> = {
+  active: "bg-green-500",
+  inactive: "bg-gray-400",
+  suspended: "bg-red-500",
 };
 
 const RING_COLORS: Record<string, string> = {
@@ -69,6 +75,14 @@ export function ActivityRing({
         />
       )}
       {children}
+      {!activity?.isActive && (
+        <span
+          className={cn(
+            "absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background",
+            DOT_COLORS[status],
+          )}
+        />
+      )}
     </div>
   );
 }

@@ -1,2 +1,5 @@
 # Cloudflare Pages serves static files directly (pretty URLs).
-# No catch-all rewrite needed — all dynamic routes are pre-rendered.
+# Task detail IDs are not known at build time (auth-gated API),
+# so rewrite to the __fallback page and let client-side routing handle it.
+/dashboard/tasks/new    /dashboard/tasks/new/index.html    200
+/dashboard/tasks/:id    /dashboard/tasks/__fallback/index.html    200
