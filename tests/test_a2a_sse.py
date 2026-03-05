@@ -112,7 +112,6 @@ async def test_a2a_send_subscribe_returns_sse(client: AsyncClient, auth_headers:
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="Background A2A dispatch races teardown, causing SQLite table lock", strict=False)
 async def test_a2a_full_task_lifecycle(
     client: AsyncClient, auth_headers: dict, registered_agent: dict
 ):
