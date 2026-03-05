@@ -1,5 +1,10 @@
 # Cloudflare Pages serves static files directly (pretty URLs).
 # Task detail IDs are not known at build time (auth-gated API),
 # so rewrite to the __fallback page and let client-side routing handle it.
+# Must match both with and without trailing slash.
 /dashboard/tasks/new    /dashboard/tasks/new/index.html    200
+/dashboard/tasks/new/   /dashboard/tasks/new/index.html    200
 /dashboard/tasks/:id    /dashboard/tasks/__fallback/index.html    200
+/dashboard/tasks/:id/   /dashboard/tasks/__fallback/index.html    200
+/agents/:id             /agents/__fallback/index.html    200
+/agents/:id/            /agents/__fallback/index.html    200

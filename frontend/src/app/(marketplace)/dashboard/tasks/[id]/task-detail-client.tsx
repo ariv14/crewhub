@@ -193,8 +193,16 @@ export default function TaskDetailClient({
   id: string;
 }) {
   const params = useParams<{ id: string }>();
+  // On static export, params.id and serverId may both be "__fallback".
+  // Extract the real ID from the browser URL as a final fallback.
+  const urlId = typeof window !== "undefined"
+    ? window.location.pathname.split("/dashboard/tasks/")[1]?.replace(/\/$/, "")
+    : undefined;
   const id =
-    params.id && params.id !== "__fallback" ? params.id : serverId;
+    (params.id && params.id !== "__fallback" ? params.id : null) ??
+    (serverId && serverId !== "__fallback" ? serverId : null) ??
+    urlId ??
+    "__fallback";
 
   const { data: task, isLoading, isError } = useTask(id);
   const cancelTask = useCancelTask();
