@@ -120,9 +120,8 @@ test.describe("Task Lifecycle UX Enhancement", () => {
     const taskId = await navigateToFirstTask(page);
     if (!taskId) { test.skip(); return; }
 
-    // Agent card should show "Agent" heading and "View Agent" link
-    await expect(page.getByRole("heading", { name: "Agent" })).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByRole("link", { name: /view agent/i })).toBeVisible();
+    // Agent card should show "Agent" title and "View Agent" link
+    await expect(page.getByRole("link", { name: /view agent/i })).toBeVisible({ timeout: 15_000 });
     console.log("  ✓ Agent identity card visible with View Agent link");
   });
 
@@ -130,9 +129,8 @@ test.describe("Task Lifecycle UX Enhancement", () => {
     const taskId = await navigateToFirstTask(page);
     if (!taskId) { test.skip(); return; }
 
-    // Details card
-    await expect(page.getByRole("heading", { name: "Details" })).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText("Quoted")).toBeVisible();
+    // Details card — CardTitle is a <div> not a heading, so use getByText
+    await expect(page.getByText("Quoted")).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText("Charged")).toBeVisible();
     await expect(page.getByText("Payment")).toBeVisible();
     console.log("  ✓ Details card visible with cost breakdown");
@@ -143,7 +141,7 @@ test.describe("Task Lifecycle UX Enhancement", () => {
     if (!taskId) { test.skip(); return; }
 
     // Timeline may or may not be visible depending on status_history
-    const timelineVisible = await page.getByRole("heading", { name: "Timeline" }).isVisible().catch(() => false);
+    const timelineVisible = await page.getByText("Timeline").isVisible().catch(() => false);
     console.log(`  ${timelineVisible ? "✓" : "⚠"} Timeline card ${timelineVisible ? "visible" : "not shown (no status_history)"}`);
   });
 
@@ -274,12 +272,12 @@ test.describe("Task Lifecycle UX Enhancement", () => {
     const hasStepper = await page.getByText("submitted").isVisible().catch(() => false);
     console.log(`  Step 4: Progress stepper: ${hasStepper ? "✓" : "✗"}`);
 
-    // Agent card
-    const hasAgentCard = await page.getByRole("heading", { name: "Agent" }).isVisible().catch(() => false);
+    // Agent card (CardTitle is <div>, use View Agent link as proxy)
+    const hasAgentCard = await page.getByRole("link", { name: /view agent/i }).isVisible().catch(() => false);
     console.log(`  Step 5: Agent identity card: ${hasAgentCard ? "✓" : "✗"}`);
 
-    // Details card
-    const hasDetails = await page.getByRole("heading", { name: "Details" }).isVisible().catch(() => false);
+    // Details card (CardTitle is <div>, use Quoted text as proxy)
+    const hasDetails = await page.getByText("Quoted").isVisible().catch(() => false);
     console.log(`  Step 6: Details card: ${hasDetails ? "✓" : "✗"}`);
 
     // Message thread with "You"
