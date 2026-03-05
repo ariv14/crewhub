@@ -67,6 +67,32 @@ async def list_agents(
     return AgentListResponse(agents=agents, total=total, page=page, per_page=per_page)
 
 
+@router.delete("/purge-inactive")
+async def purge_inactive_agents(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """Hard-delete all inactive agents. DEBUG mode only."""
+    if not settings.debug:
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    result = await db.execute(
+        select(Agent).where(Agent.status == "inactive")
+    )
+    inactive = result.scalars().all()
+    ids = [a.id for a in inactive]
+    names = [a.name for a in inactive]
+
+    if not ids:
+        return {"deleted": 0, "agents": []}
+
+    await db.execute(sa_delete(Skill).where(Skill.agent_id.in_(ids)))
+    await db.execute(sa_delete(Agent).where(Agent.id.in_(ids)))
+    await db.commit()
+
+    return {"deleted": len(ids), "agents": names}
+
+
 @router.get("/{agent_id}", response_model=AgentResponse)
 async def get_agent(
     agent_id: UUID,
@@ -208,29 +234,3 @@ async def request_verification(
     return agent
 
 
-@router.delete("/admin/purge-inactive")
-async def purge_inactive_agents(
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
-) -> dict:
-    """Hard-delete all inactive agents. DEBUG mode only."""
-    if not settings.debug:
-        raise HTTPException(status_code=404, detail="Not Found")
-
-    # Find inactive agents
-    result = await db.execute(
-        select(Agent).where(Agent.status == "inactive")
-    )
-    inactive = result.scalars().all()
-    ids = [a.id for a in inactive]
-    names = [a.name for a in inactive]
-
-    if not ids:
-        return {"deleted": 0, "agents": []}
-
-    # Delete skills first (FK), then agents
-    await db.execute(sa_delete(Skill).where(Skill.agent_id.in_(ids)))
-    await db.execute(sa_delete(Agent).where(Agent.id.in_(ids)))
-    await db.commit()
-
-    return {"deleted": len(ids), "agents": names}
