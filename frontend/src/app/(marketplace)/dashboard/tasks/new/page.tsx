@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -187,7 +187,7 @@ function MatchGuardrail({
 }
 
 function NewTaskForm() {
-  const router = useRouter();
+
   const searchParams = useSearchParams();
   const preselectedAgent = searchParams.get("agent") ?? "";
 
@@ -249,7 +249,7 @@ function NewTaskForm() {
         ],
         payment_method: paymentMethod,
       });
-      router.push(ROUTES.taskDetail(task.id));
+      window.location.href = ROUTES.taskDetail(task.id);
     } catch {
       // error handled by mutation state
     }
@@ -277,7 +277,7 @@ function NewTaskForm() {
         payment_method: paymentMethod,
         validate_match: true,
       });
-      router.push(ROUTES.taskDetail(task.id));
+      window.location.href = ROUTES.taskDetail(task.id);
     } catch {
       // error handled by mutation state
     }

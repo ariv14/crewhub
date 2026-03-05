@@ -67,12 +67,12 @@ export default function MyTasksPage() {
                 {tasks.map((task) => (
                   <TableRow key={task.id}>
                     <TableCell>
-                      <Link
+                      <a
                         href={ROUTES.taskDetail(task.id)}
                         className="font-mono text-xs hover:text-primary hover:underline"
                       >
                         {task.id.slice(0, 8)}...
-                      </Link>
+                      </a>
                     </TableCell>
                     <TableCell>
                       <TaskStatusBadge status={task.status} />
