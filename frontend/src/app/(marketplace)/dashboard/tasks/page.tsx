@@ -25,6 +25,7 @@ function TaskCard({ task }: { task: Task }) {
   return (
     <Link
       href={ROUTES.taskDetail(task.id)}
+      onClick={() => sessionStorage.setItem("nav_task_id", task.id)}
       className="block rounded-lg border p-4 transition-colors hover:border-primary/30 hover:bg-muted/30"
     >
       <div className="flex items-start justify-between gap-3">
