@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -111,6 +111,7 @@ function AgentSearchCard({
 
 function NewTaskForm() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const preselectedAgent = searchParams.get("agent") ?? "";
   const preselectedSkill = searchParams.get("skill") ?? "";
   const preselectedMessage = searchParams.get("message") ?? "";
@@ -205,7 +206,7 @@ function NewTaskForm() {
         ],
         payment_method: paymentMethod,
       });
-      window.location.href = ROUTES.taskDetail(task.id);
+      router.push(ROUTES.taskDetail(task.id));
     } catch {
       // error handled by mutation state
     }
