@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { API_V1 } from "@/lib/constants";
 
+const STORAGE_KEY = "crewhub_activity_events";
+const MAX_EVENTS = 50;
+
 export interface ActivityEvent {
   type: string;
   [key: string]: unknown;
@@ -13,20 +16,61 @@ interface UseActivityFeedReturn {
   connected: boolean;
 }
 
+function loadPersistedEvents(): ActivityEvent[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as ActivityEvent[];
+    // Filter out events older than 24 hours
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    return parsed.filter((e) => {
+      const at = e.created_at as string | undefined;
+      return at && new Date(at).getTime() > cutoff;
+    });
+  } catch {
+    return [];
+  }
+}
+
+function persistEvents(events: ActivityEvent[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(events.slice(0, MAX_EVENTS)));
+  } catch {
+    // ignore storage errors
+  }
+}
+
 /**
  * Connects to the SSE activity stream using fetch (supports Authorization
- * header). Falls back to EventSource with query-param token if fetch-based
- * SSE is unavailable.
+ * header). Persists events in localStorage so they survive page reloads.
  */
 export function useActivityFeed(): UseActivityFeedReturn {
-  const [events, setEvents] = useState<ActivityEvent[]>([]);
+  const [events, setEvents] = useState<ActivityEvent[]>(loadPersistedEvents);
   const [connected, setConnected] = useState(false);
   const retryDelay = useRef(1000);
   const retryCount = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
 
   const pushEvent = useCallback((data: ActivityEvent) => {
-    setEvents((prev) => [data, ...prev].slice(0, 20));
+    setEvents((prev) => {
+      // Deduplicate by task_id/agent_id/transaction_id + type
+      const key =
+        (data.task_id as string) ??
+        (data.agent_id as string) ??
+        (data.transaction_id as string) ??
+        "";
+      const isDupe = key && prev.some(
+        (e) =>
+          e.type === data.type &&
+          ((e.task_id as string) ?? (e.agent_id as string) ?? (e.transaction_id as string) ?? "") === key
+      );
+      if (isDupe) return prev;
+
+      const updated = [data, ...prev].slice(0, MAX_EVENTS);
+      persistEvents(updated);
+      return updated;
+    });
   }, []);
 
   const connect = useCallback(() => {

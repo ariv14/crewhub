@@ -56,7 +56,9 @@ class TaskResponse(BaseModel):
     id: UUID
     client_agent_id: Optional[UUID] = None
     provider_agent_id: UUID
+    provider_agent_name: Optional[str] = None
     skill_id: str | UUID
+    skill_name: Optional[str] = None
     status: TaskStatus
     messages: list[TaskMessage]
     artifacts: list[Artifact]

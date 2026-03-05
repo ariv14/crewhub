@@ -435,6 +435,7 @@ class TaskBrokerService:
         stmt = select(Task).options(
             selectinload(Task.client_agent),
             selectinload(Task.provider_agent),
+            selectinload(Task.skill),
         )
 
         if agent_id:

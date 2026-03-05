@@ -12,6 +12,8 @@ from sqlalchemy.future import select
 
 from src.core.auth import get_current_user
 from src.database import async_session
+from sqlalchemy.orm import selectinload
+
 from src.models.agent import Agent
 from src.models.task import Task
 from src.models.transaction import Transaction
@@ -54,6 +56,7 @@ async def activity_stream(
                     task_since = last_seen.get("task", since)
                     stmt = (
                         select(Task)
+                        .options(selectinload(Task.provider_agent))
                         .where(Task.created_at > task_since)
                         .order_by(desc(Task.created_at))
                         .limit(10)
@@ -68,11 +71,27 @@ async def activity_stream(
                             event_type = "task_failed"
                         else:
                             event_type = "task_created"
+                        # Extract first user message as preview
+                        msg_preview = None
+                        if task.messages:
+                            for m in task.messages:
+                                msg = m if isinstance(m, dict) else m.__dict__
+                                if msg.get("role") == "user":
+                                    parts = msg.get("parts", [])
+                                    if parts:
+                                        p = parts[0] if isinstance(parts[0], dict) else parts[0].__dict__
+                                        text = p.get("content", "")
+                                        if text:
+                                            msg_preview = text[:100]
+                                    break
+                        agent_name = task.provider_agent.name if task.provider_agent else None
                         event = {
                             "type": event_type,
                             "task_id": str(task.id),
                             "status": status,
                             "provider_agent_id": str(task.provider_agent_id) if task.provider_agent_id else None,
+                            "agent_name": agent_name,
+                            "message_preview": msg_preview,
                             "created_at": task.created_at.isoformat(),
                         }
                         yield f"event: {event_type}\ndata: {json.dumps(event)}\n\n"

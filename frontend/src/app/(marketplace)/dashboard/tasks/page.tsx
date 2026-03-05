@@ -8,14 +8,52 @@ import { ROUTES } from "@/lib/constants";
 import { TaskStatusBadge } from "@/components/tasks/task-status-badge";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import type { Task } from "@/types/task";
+
+function getMessagePreview(task: Task): string {
+  const userMsg = task.messages?.find((m) => m.role === "user");
+  if (!userMsg) return "";
+  const text = userMsg.parts?.find((p) => p.type === "text")?.content;
+  return text ?? "";
+}
+
+function TaskCard({ task }: { task: Task }) {
+  const preview = getMessagePreview(task);
+  const agentName = task.provider_agent_name ?? task.provider_agent_id.slice(0, 8);
+  const skillName = task.skill_name;
+
+  return (
+    <a
+      href={ROUTES.taskDetail(task.id)}
+      className="block rounded-lg border p-4 transition-colors hover:border-primary/30 hover:bg-muted/30"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium">
+            {preview || "No message"}
+          </p>
+          <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+            <span>{agentName}</span>
+            {skillName && (
+              <>
+                <span>&middot;</span>
+                <span>{skillName}</span>
+              </>
+            )}
+          </div>
+        </div>
+        <TaskStatusBadge status={task.status} />
+      </div>
+
+      <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
+        <span>{formatCredits(task.credits_charged || task.credits_quoted)} credits</span>
+        <span>{formatRelativeTime(task.created_at)}</span>
+        {task.latency_ms != null && <span>{task.latency_ms}ms</span>}
+        {task.client_rating != null && <span>{task.client_rating}/5</span>}
+      </div>
+    </a>
+  );
+}
 
 export default function MyTasksPage() {
   const { data, isLoading } = useTasks();
@@ -38,7 +76,7 @@ export default function MyTasksPage() {
         </Button>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-6 space-y-2">
         {!isLoading && tasks.length === 0 ? (
           <EmptyState
             icon={ListTodo}
@@ -51,51 +89,7 @@ export default function MyTasksPage() {
             }
           />
         ) : (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Task ID</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Skill</TableHead>
-                  <TableHead>Credits</TableHead>
-                  <TableHead>Payment</TableHead>
-                  <TableHead>Created</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tasks.map((task) => (
-                  <TableRow key={task.id}>
-                    <TableCell>
-                      <a
-                        href={ROUTES.taskDetail(task.id)}
-                        className="font-mono text-xs hover:text-primary hover:underline"
-                      >
-                        {task.id.slice(0, 8)}...
-                      </a>
-                    </TableCell>
-                    <TableCell>
-                      <TaskStatusBadge status={task.status} />
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {typeof task.skill_id === "string"
-                        ? task.skill_id.slice(0, 20)
-                        : "—"}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {formatCredits(task.credits_charged || task.credits_quoted)}
-                    </TableCell>
-                    <TableCell className="text-sm capitalize">
-                      {task.payment_method}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {formatRelativeTime(task.created_at)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          tasks.map((task) => <TaskCard key={task.id} task={task} />)
         )}
       </div>
     </div>

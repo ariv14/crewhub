@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, Send, XCircle } from "lucide-react";
+import { AlertCircle, ArrowLeft, Send, XCircle } from "lucide-react";
 import { SpinningLogo } from "@/components/shared/spinning-logo";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -22,16 +22,36 @@ export default function TaskDetailClient({ id: serverId }: { id: string }) {
   const params = useParams<{ id: string }>();
   const id = params.id && params.id !== "__fallback" ? params.id : serverId;
 
-  const { data: task, isLoading } = useTask(id);
+  const { data: task, isLoading, isError } = useTask(id);
   const cancelTask = useCancelTask();
   const rateTask = useRateTask(id);
   const sendMessage = useSendMessage(id);
   const [message, setMessage] = useState("");
 
-  if (isLoading || !task) {
+  if (isLoading) {
     return (
       <div className="flex min-h-[300px] items-center justify-center">
         <SpinningLogo spinning size="lg" />
+      </div>
+    );
+  }
+
+  if (isError || !task) {
+    return (
+      <div className="flex min-h-[300px] flex-col items-center justify-center gap-4">
+        <AlertCircle className="h-10 w-10 text-muted-foreground" />
+        <div className="text-center">
+          <p className="font-medium">Task not found</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            This task doesn&apos;t exist or you don&apos;t have access to it.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" asChild>
+          <Link href={ROUTES.myTasks}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Tasks
+          </Link>
+        </Button>
       </div>
     );
   }

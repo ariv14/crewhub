@@ -30,6 +30,16 @@ from src.services.x402 import X402PaymentService
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
+def _enrich_task(task) -> TaskResponse:
+    """Build TaskResponse with provider agent name and skill name."""
+    resp = TaskResponse.model_validate(task)
+    if hasattr(task, "provider_agent") and task.provider_agent:
+        resp.provider_agent_name = task.provider_agent.name
+    if hasattr(task, "skill") and task.skill:
+        resp.skill_name = task.skill.name
+    return resp
+
+
 @router.post("/", response_model=TaskResponse, status_code=201,
                dependencies=[Depends(rate_limit_dependency)])
 async def create_task(
@@ -48,7 +58,7 @@ async def create_task(
     service = TaskBrokerService(db)
     task = await service.create_task(data=data, user_id=user_id)
 
-    response = TaskResponse.model_validate(task)
+    response = _enrich_task(task)
 
     if data.validate_match:
         warning = await service.check_skill_mismatch(
@@ -153,7 +163,7 @@ async def list_tasks(
         page=page,
         per_page=per_page,
     )
-    return TaskListResponse(tasks=tasks, total=total)
+    return TaskListResponse(tasks=[_enrich_task(t) for t in tasks], total=total)
 
 
 @router.post("/{task_id}/x402-receipt", response_model=X402ReceiptResponse)

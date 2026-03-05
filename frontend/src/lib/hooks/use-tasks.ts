@@ -18,8 +18,10 @@ export function useTask(id: string) {
   return useQuery({
     queryKey: ["tasks", id],
     queryFn: () => tasksApi.getTask(id),
-    enabled: !!id,
+    enabled: !!id && id !== "__fallback",
+    retry: 1,
     refetchInterval: (query) => {
+      if (query.state.error) return false;
       const status = query.state.data?.status;
       if (status && TERMINAL_STATUSES.includes(status)) return false;
       return 5000;
