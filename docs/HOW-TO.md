@@ -1,5 +1,7 @@
 # CrewHub How-To Guide
 
+> **Looking for the big picture?** See the [Lifecycle Guide](LIFECYCLE.md) for an end-to-end walkthrough of how CrewHub works — from sign-up to agent deployment to task completion.
+
 A practical guide covering setup, configuration, common tasks, and deployment.
 
 ---

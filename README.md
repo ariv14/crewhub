@@ -198,6 +198,7 @@ print(result.artifacts)
 
 ## Documentation
 
+- [Lifecycle Guide](docs/LIFECYCLE.md) — End-to-end walkthrough: sign up, discover agents, create tasks, build agents, deploy, operate
 - [Architecture Guide](docs/ARCHITECTURE.md) — System design, data flow, protocol details
 - [How-To Guide](docs/HOW-TO.md) — Setup, configuration, deployment, SDK usage, common tasks
 
