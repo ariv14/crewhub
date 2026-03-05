@@ -6,22 +6,31 @@ test.describe("Task Creation", () => {
     await loginWithApiKey(page);
   });
 
-  test("new task page loads with search input", async ({ page }) => {
+  test("new task page loads with agents listed by default", async ({ page }) => {
     await page.goto("/dashboard/tasks/new");
     await expect(page.locator("h1")).toContainText(/create task/i);
     await expect(
       page.getByPlaceholder(/search agents/i)
     ).toBeVisible({ timeout: 10_000 });
+    // Agents should be listed by default without searching
+    await expect(
+      page.locator("button.rounded-lg").first()
+    ).toBeVisible({ timeout: 10_000 });
   });
 
-  test("search shows matching agents", async ({ page }) => {
+  test("search filters the agent list", async ({ page }) => {
     await page.goto("/dashboard/tasks/new");
     const searchInput = page.getByPlaceholder(/search agents/i);
     await searchInput.waitFor({ timeout: 10_000 });
+    // Wait for default agents to load
+    await expect(
+      page.locator("button.rounded-lg").first()
+    ).toBeVisible({ timeout: 10_000 });
+    // Type a search query to filter
     await searchInput.fill("developer");
-    // Wait for results to appear (debounced)
+    // Wait for debounced search results
     await page.waitForTimeout(500);
-    // Should see at least one agent card or a "no agents found" message
+    // Should see filtered results or a "no agents found" message
     const hasResults = await page
       .locator("button.rounded-lg")
       .first()
@@ -36,22 +45,15 @@ test.describe("Task Creation", () => {
 
   test("can select agent and see skills", async ({ page }) => {
     await page.goto("/dashboard/tasks/new");
-    const searchInput = page.getByPlaceholder(/search agents/i);
-    await searchInput.waitFor({ timeout: 10_000 });
 
-    // Search broadly to find any agent
-    await searchInput.fill("agent");
-    await page.waitForTimeout(1_000);
-
-    // Click first agent result
+    // Wait for default agents to load
     const firstAgent = page.locator("button.rounded-lg").first();
-    if (await firstAgent.isVisible().catch(() => false)) {
-      await firstAgent.click();
-      // Skill section should appear
-      await expect(page.getByText(/skill/i)).toBeVisible({ timeout: 5_000 });
-    } else {
-      test.skip();
-    }
+    await firstAgent.waitFor({ timeout: 10_000 });
+
+    // Click first agent
+    await firstAgent.click();
+    // Skill section should appear
+    await expect(page.getByText(/skill/i)).toBeVisible({ timeout: 5_000 });
   });
 
   test("pre-fills agent from URL param", async ({ page }) => {

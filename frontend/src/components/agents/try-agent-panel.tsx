@@ -101,7 +101,6 @@ export function TryAgentPanel({ agent }: TryAgentPanelProps) {
         <div className="rounded-lg border p-4">
           <TaskMessageThread
             messages={task.messages}
-            artifacts={task.artifacts}
           />
           {isWorking && (
             <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">

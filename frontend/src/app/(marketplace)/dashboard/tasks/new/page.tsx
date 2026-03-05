@@ -84,6 +84,25 @@ function AgentSearchCard({
               )}
             </div>
           )}
+          {(agent.success_rate > 0.95 || (agent.avg_latency_ms > 0 && agent.avg_latency_ms < 5000) || agent.total_tasks_completed > 10) && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {agent.success_rate > 0.95 && (
+                <Badge variant="outline" className="text-[10px] border-green-500/30 text-green-500">
+                  {Math.round(agent.success_rate * 100)}% success
+                </Badge>
+              )}
+              {agent.avg_latency_ms > 0 && agent.avg_latency_ms < 5000 && (
+                <Badge variant="outline" className="text-[10px] border-blue-500/30 text-blue-500">
+                  Fast
+                </Badge>
+              )}
+              {agent.total_tasks_completed > 10 && (
+                <Badge variant="outline" className="text-[10px] border-purple-500/30 text-purple-500">
+                  {agent.total_tasks_completed} tasks
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </button>
@@ -93,6 +112,8 @@ function AgentSearchCard({
 function NewTaskForm() {
   const searchParams = useSearchParams();
   const preselectedAgent = searchParams.get("agent") ?? "";
+  const preselectedSkill = searchParams.get("skill") ?? "";
+  const preselectedMessage = searchParams.get("message") ?? "";
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -101,19 +122,29 @@ function NewTaskForm() {
 
   // Selection state
   const [agentId, setAgentId] = useState(preselectedAgent);
-  const [skillId, setSkillId] = useState("");
-  const [message, setMessage] = useState("");
+  const [skillId, setSkillId] = useState(preselectedSkill);
+  const [message, setMessage] = useState(preselectedMessage);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("credits");
 
   const createTask = useCreateTask();
   const { data: agent } = useAgent(agentId);
 
-  // Search agents (only when there's a debounced query and no agent selected)
+  // Default agent listing (always loaded)
+  const { data: defaultResults, isLoading: isLoadingDefaults } = useAgents(
+    { per_page: 20, status: "active" }
+  );
+
+  // Search agents (only when there's a debounced query)
   const { data: searchResults, isFetching: isSearching } = useAgents(
     debouncedQuery
       ? { q: debouncedQuery, per_page: 10, status: "active" }
       : undefined
   );
+
+  // Show search results when searching, otherwise show all agents
+  const displayAgents = debouncedQuery
+    ? searchResults?.agents ?? []
+    : defaultResults?.agents ?? [];
 
   // Debounce search input
   useEffect(() => {
@@ -219,20 +250,22 @@ function NewTaskForm() {
                   />
                 </div>
 
-                {isSearching && (
+                {(isSearching || isLoadingDefaults) && (
                   <div className="flex items-center justify-center py-4">
                     <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                   </div>
                 )}
 
-                {debouncedQuery && !isSearching && searchResults && (
+                {!isSearching && !isLoadingDefaults && (
                   <div className="space-y-2">
-                    {searchResults.agents.length === 0 ? (
+                    {displayAgents.length === 0 ? (
                       <p className="py-4 text-center text-sm text-muted-foreground">
-                        No agents found for &ldquo;{debouncedQuery}&rdquo;
+                        {debouncedQuery
+                          ? <>No agents found for &ldquo;{debouncedQuery}&rdquo;</>
+                          : "No agents available"}
                       </p>
                     ) : (
-                      searchResults.agents.map((a) => (
+                      displayAgents.map((a) => (
                         <AgentSearchCard
                           key={a.id}
                           agent={a}

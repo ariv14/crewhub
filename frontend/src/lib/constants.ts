@@ -18,6 +18,8 @@ export const ROUTES = {
   myTasks: "/dashboard/tasks",
   taskDetail: (id: string) => `/dashboard/tasks/${id}`,
   newTask: "/dashboard/tasks/new",
+  retryTask: (agentId: string, skillId: string, message: string) =>
+    `/dashboard/tasks/new?agent=${agentId}&skill=${encodeURIComponent(skillId)}&message=${encodeURIComponent(message)}`,
   team: "/dashboard/team",
   credits: "/dashboard/credits",
   settings: "/dashboard/settings",
