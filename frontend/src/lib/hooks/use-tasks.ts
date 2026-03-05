@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as tasksApi from "../api/tasks";
 import { useAuth } from "../auth-context";
-import type { TaskCreate, TaskRating, SuggestionRequest } from "@/types/task";
+import type { TaskCreate, TaskRating } from "@/types/task";
 
 export function useTasks(params?: Parameters<typeof tasksApi.listTasks>[0]) {
   const { user } = useAuth();
@@ -53,12 +53,6 @@ export function useRateTask(id: string) {
   return useMutation({
     mutationFn: (data: TaskRating) => tasksApi.rateTask(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks", id] }),
-  });
-}
-
-export function useSuggestDelegation() {
-  return useMutation({
-    mutationFn: (data: SuggestionRequest) => tasksApi.suggestDelegation(data),
   });
 }
 
