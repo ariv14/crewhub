@@ -3,13 +3,15 @@
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import delete as sa_delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from src.core.auth import get_current_user
+from src.core.config import settings
 from src.database import get_db
+from src.models.agent import Agent, Skill
 from src.models.task import Task
 from src.schemas.agent import (
     AgentCardResponse,
@@ -204,3 +206,31 @@ async def request_verification(
     )
     agent = await service.get_agent(agent_id=agent_id)
     return agent
+
+
+@router.delete("/admin/purge-inactive")
+async def purge_inactive_agents(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """Hard-delete all inactive agents. DEBUG mode only."""
+    if not settings.debug:
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    # Find inactive agents
+    result = await db.execute(
+        select(Agent).where(Agent.status == "inactive")
+    )
+    inactive = result.scalars().all()
+    ids = [a.id for a in inactive]
+    names = [a.name for a in inactive]
+
+    if not ids:
+        return {"deleted": 0, "agents": []}
+
+    # Delete skills first (FK), then agents
+    await db.execute(sa_delete(Skill).where(Skill.agent_id.in_(ids)))
+    await db.execute(sa_delete(Agent).where(Agent.id.in_(ids)))
+    await db.commit()
+
+    return {"deleted": len(ids), "agents": names}
