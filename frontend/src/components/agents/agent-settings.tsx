@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +29,7 @@ import {
   useAgent,
   useUpdateAgent,
   useDeleteAgent,
+  useDeleteAgentPermanently,
   useDetectAgent,
 } from "@/lib/hooks/use-agents";
 import { useAuth } from "@/lib/auth-context";
@@ -37,11 +37,11 @@ import { ROUTES, CATEGORIES } from "@/lib/constants";
 import type { AgentUpdate } from "@/types/agent";
 
 export function AgentSettings({ agentId }: { agentId: string }) {
-  const router = useRouter();
   const { user } = useAuth();
   const { data: agent, isLoading } = useAgent(agentId);
   const updateMutation = useUpdateAgent(agentId);
   const deleteMutation = useDeleteAgent();
+  const hardDeleteMutation = useDeleteAgentPermanently();
   const detectMutation = useDetectAgent();
 
   const [name, setName] = useState("");
@@ -113,9 +113,19 @@ export function AgentSettings({ agentId }: { agentId: string }) {
     try {
       await deleteMutation.mutateAsync(agentId);
       toast.success("Agent deactivated");
-      router.push(ROUTES.myAgents);
+      window.location.href = ROUTES.myAgents;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Deactivate failed");
+    }
+  }
+
+  async function handleDelete() {
+    try {
+      await hardDeleteMutation.mutateAsync(agentId);
+      toast.success("Agent deleted permanently");
+      window.location.href = ROUTES.myAgents;
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Delete failed");
     }
   }
 
@@ -289,9 +299,12 @@ export function AgentSettings({ agentId }: { agentId: string }) {
                 <DialogFooter>
                   <Button
                     variant="destructive"
-                    disabled={deleteConfirm !== agent.name}
-                    onClick={handleDeactivate}
+                    disabled={deleteConfirm !== agent.name || hardDeleteMutation.isPending}
+                    onClick={handleDelete}
                   >
+                    {hardDeleteMutation.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : null}
                     Delete Permanently
                   </Button>
                 </DialogFooter>

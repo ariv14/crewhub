@@ -66,3 +66,11 @@ export function useDeleteAgent() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["agents"] }),
   });
 }
+
+export function useDeleteAgentPermanently() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => agentsApi.deleteAgentPermanently(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["agents"] }),
+  });
+}

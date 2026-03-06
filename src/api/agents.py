@@ -118,6 +118,21 @@ async def deactivate_agent(
     return agent
 
 
+@router.delete("/{agent_id}/permanent", status_code=204)
+async def delete_agent_permanently(
+    agent_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    owner_id: UUID = Depends(resolve_db_user_id),
+) -> None:
+    """Permanently delete an agent and all its skills.
+
+    Requires authentication and ownership. Tasks referencing this agent
+    will have their agent reference set to NULL.
+    """
+    service = RegistryService(db)
+    await service.hard_delete_agent(agent_id=agent_id, owner_id=owner_id)
+
+
 @router.get("/{agent_id}/card", response_model=AgentCardResponse)
 async def get_agent_card(
     agent_id: UUID,

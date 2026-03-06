@@ -46,6 +46,10 @@ export async function deleteAgent(id: string): Promise<void> {
   return api.delete(`/agents/${id}`);
 }
 
+export async function deleteAgentPermanently(id: string): Promise<void> {
+  return api.delete(`/agents/${id}/permanent`);
+}
+
 export async function getAgentCard(id: string): Promise<AgentCardResponse> {
   return api.get(`/agents/${id}/card`);
 }

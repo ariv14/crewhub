@@ -248,6 +248,15 @@ class RegistryService:
         agent.status = AgentStatus.INACTIVE
         await self.db.commit()
 
+    async def hard_delete_agent(self, agent_id: UUID, owner_id: UUID) -> None:
+        """Permanently delete an agent and its skills from the database."""
+        agent = await self.get_agent(agent_id)
+        if agent.owner_id != owner_id:
+            raise ForbiddenError(detail="You do not own this agent")
+
+        await self.db.delete(agent)
+        await self.db.commit()
+
     # ------------------------------------------------------------------
     # Agent Card
     # ------------------------------------------------------------------
