@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TaskMessageThread } from "@/components/tasks/task-message-thread";
+import { TaskArtifactsDisplay } from "@/components/tasks/task-artifacts-display";
 import { useCreateTask } from "@/lib/hooks/use-tasks";
 import { useTask } from "@/lib/hooks/use-tasks";
 import type { Agent } from "@/types/agent";
@@ -33,6 +34,8 @@ export function TryAgentPanel({ agent }: TryAgentPanelProps) {
 
   const isWorking =
     task && ["submitted", "working", "input_required"].includes(task.status);
+  const isDone =
+    task && ["completed", "failed", "canceled", "rejected"].includes(task.status);
 
   async function handleSend() {
     if (!input.trim() || !selectedSkill) return;
@@ -96,9 +99,9 @@ export function TryAgentPanel({ agent }: TryAgentPanelProps) {
         </div>
       )}
 
-      {/* Message thread */}
+      {/* Message thread + results */}
       {task && (
-        <div className="rounded-lg border p-4">
+        <div className="rounded-lg border p-4 space-y-4">
           <TaskMessageThread
             messages={task.messages}
           />
@@ -106,6 +109,14 @@ export function TryAgentPanel({ agent }: TryAgentPanelProps) {
             <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
               <SpinningLogo spinning size="sm" />
               Agent is working...
+            </div>
+          )}
+          {isDone && task.artifacts && task.artifacts.length > 0 && (
+            <TaskArtifactsDisplay artifacts={task.artifacts} />
+          )}
+          {task.status === "failed" && (
+            <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+              Task failed. Try again with different input.
             </div>
           )}
         </div>
@@ -128,6 +139,7 @@ export function TryAgentPanel({ agent }: TryAgentPanelProps) {
             createTask.isPending ||
             !!isWorking
           }
+          title={isDone ? "Send another message" : undefined}
           size="icon"
         >
           {createTask.isPending ? (
