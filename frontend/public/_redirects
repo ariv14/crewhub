@@ -1,14 +1,13 @@
-# Cloudflare Pages serves static files directly (pretty URLs).
-# Dynamic IDs not known at build time are rewritten to the __fallback page
-# and client-side routing resolves the real ID from the browser URL.
-# Cloudflare's pretty-URL feature auto-redirects /path/index.html → /path/,
-# so rewrite targets use directory paths (not index.html) to avoid 308 loops.
-# Non-trailing-slash variants 301-redirect to add the slash first.
-/agents/:id             /agents/:id/ 301
+# Cloudflare Pages: Dynamic IDs not known at build time are rewritten to
+# the __fallback page. Client-side JS extracts the real ID from the URL.
+#
+# IMPORTANT: Only use 200 (rewrite) rules here — NOT 301 redirects.
+# Cloudflare 301s take priority over static files, which would catch
+# Next.js RSC data files (index.txt, __next._tree.txt) and break
+# client-side navigation. 200 rewrites only fire when no static file exists.
+#
+# With trailingSlash: true, all client-side links include trailing slashes.
 /agents/:id/            /agents/__fallback/ 200
-/dashboard/tasks/:id    /dashboard/tasks/:id/ 301
 /dashboard/tasks/:id/   /dashboard/tasks/__fallback/ 200
-/dashboard/agents/:id   /dashboard/agents/:id/ 301
 /dashboard/agents/:id/  /dashboard/agents/__fallback/ 200
-/admin/agents/:id       /admin/agents/:id/ 301
 /admin/agents/:id/      /admin/agents/__fallback/ 200
