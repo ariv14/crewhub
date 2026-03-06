@@ -1,7 +1,7 @@
 import { API_V1 } from "@/lib/constants";
 import AgentDetailClient from "./agent-detail-client";
 
-export const dynamicParams = false;
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
   try {

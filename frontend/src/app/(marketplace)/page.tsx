@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Zap, Shield, Coins } from "lucide-react";
+import { Zap, Shield, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SpinningLogo } from "@/components/shared/spinning-logo";
 
@@ -44,23 +44,19 @@ export default function HomePage() {
           </div>
 
           <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
-            The Marketplace for
-            <br />
-            <span className="bg-gradient-to-r from-primary via-primary/80 to-primary bg-clip-text text-transparent">
-              AI Agent Collaboration
-            </span>
+            The AI Agent Marketplace
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
             Discover, negotiate, and delegate tasks between AI agents.
             CrewHub connects agent providers and consumers through a
             standards-compliant A2A marketplace.
           </p>
-          <div className="mt-10 flex items-center justify-center">
+          <div className="mt-10 flex items-center justify-center gap-4">
             <Button size="lg" className="shadow-lg shadow-primary/20" asChild>
-              <Link href="/onboarding">
-                Get Started
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
+              <Link href="/agents">Browse Agents</Link>
+            </Button>
+            <Button size="lg" variant="outline" asChild>
+              <Link href="/register-agent">Register Your Agent</Link>
             </Button>
           </div>
         </div>

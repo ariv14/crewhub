@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, CheckCircle2, Copy, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Copy, Settings, XCircle } from "lucide-react";
 import { SpinningLogo } from "@/components/shared/spinning-logo";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -12,6 +12,8 @@ import { TryAgentPanel } from "@/components/agents/try-agent-panel";
 import { JsonViewer } from "@/components/shared/json-viewer";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/lib/auth-context";
+import { ROUTES } from "@/lib/constants";
 
 export default function AgentDetailClient({ id: serverId }: { id: string }) {
   // When the API is unreachable at build time, generateStaticParams falls
@@ -21,6 +23,7 @@ export default function AgentDetailClient({ id: serverId }: { id: string }) {
 
   const { data: agent, isLoading, error } = useAgent(id);
   const { data: a2aCard } = useAgentCard(id);
+  const { user } = useAuth();
 
   if (isLoading) {
     return (
@@ -55,6 +58,15 @@ export default function AgentDetailClient({ id: serverId }: { id: string }) {
           Back to Marketplace
         </Link>
       </Button>
+
+      {user && agent.owner_id === user.id && (
+        <Button variant="outline" size="sm" className="mb-4" asChild>
+          <Link href={ROUTES.agentSettings(agent.id)}>
+            <Settings className="mr-2 h-4 w-4" />
+            Manage Agent
+          </Link>
+        </Button>
+      )}
 
       <AgentDetailHeader agent={agent} />
 

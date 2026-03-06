@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Loader2,
+  Globe,
+  LogIn,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,27 +25,24 @@ import {
 } from "@/components/ui/select";
 import { useDetectAgent, useCreateAgent } from "@/lib/hooks/use-agents";
 import { useAuth } from "@/lib/auth-context";
-import { api } from "@/lib/api-client";
 import { ROUTES, CATEGORIES } from "@/lib/constants";
 import type { DetectResponse, AgentCreate } from "@/types/agent";
 
-type DevStep = "paste" | "review" | "success";
+type Step = "paste" | "review" | "success";
 
-interface DevOnboardingProps {
-  onBack: () => void;
-}
-
-export function DevOnboarding({ onBack }: DevOnboardingProps) {
+export function RegisterAgentFlow() {
   const router = useRouter();
-  const { refreshUser } = useAuth();
-  const detectAgent = useDetectAgent();
-  const createAgent = useCreateAgent();
+  const { user, loginWithGoogle, loading: authLoading } = useAuth();
+  const detectMutation = useDetectAgent();
+  const createMutation = useCreateAgent();
 
-  const [step, setStep] = useState<DevStep>("paste");
+  const [step, setStep] = useState<Step>("paste");
   const [url, setUrl] = useState("");
   const [detected, setDetected] = useState<DetectResponse | null>(null);
+  const [registeredId, setRegisteredId] = useState<string | null>(null);
+  const [signingIn, setSigningIn] = useState(false);
 
-  // Editable fields from detection
+  // Editable fields
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [version, setVersion] = useState("");
@@ -51,7 +54,7 @@ export function DevOnboarding({ onBack }: DevOnboardingProps) {
   async function handleDetect() {
     if (!url.trim()) return;
     try {
-      const result = await detectAgent.mutateAsync(url.trim());
+      const result = await detectMutation.mutateAsync(url.trim());
       setDetected(result);
       setName(result.name);
       setDescription(result.description);
@@ -64,6 +67,19 @@ export function DevOnboarding({ onBack }: DevOnboardingProps) {
       const message =
         err instanceof Error ? err.message : "Detection failed";
       toast.error(message);
+    }
+  }
+
+  async function handleSignIn() {
+    setSigningIn(true);
+    try {
+      await loginWithGoogle();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Sign in failed"
+      );
+    } finally {
+      setSigningIn(false);
     }
   }
 
@@ -87,7 +103,8 @@ export function DevOnboarding({ onBack }: DevOnboardingProps) {
     };
 
     try {
-      await createAgent.mutateAsync(data);
+      const agent = await createMutation.mutateAsync(data);
+      setRegisteredId(agent.id);
       setStep("success");
     } catch (err) {
       toast.error(
@@ -96,53 +113,46 @@ export function DevOnboarding({ onBack }: DevOnboardingProps) {
     }
   }
 
-  async function handleGoToDashboard() {
-    try {
-      await api.post("/auth/onboarding", { interests: ["developer"] });
-      await refreshUser?.();
-      toast.success("Onboarding complete!");
-      router.push(ROUTES.dashboard);
-    } catch {
-      toast.error("Failed to save onboarding");
-    }
-  }
+  const stepLabels = ["Paste URL", "Review & Register", "Live"];
+  const stepIndex = step === "paste" ? 0 : step === "review" ? 1 : 2;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Register Your Agent</h1>
+        <p className="mt-1 text-muted-foreground">
+          Paste your agent&apos;s endpoint URL and we&apos;ll auto-detect its
+          capabilities
+        </p>
+      </div>
+
       {/* Step indicator */}
       <div className="flex gap-2">
-        {(["Paste URL", "Review", "Done"] as const).map((label, i) => {
-          const stepMap: DevStep[] = ["paste", "review", "success"];
-          const currentIdx = stepMap.indexOf(step);
-          return (
-            <span
-              key={label}
-              className={`rounded-full px-3 py-1 text-xs font-medium ${
-                i === currentIdx
-                  ? "bg-primary text-primary-foreground"
-                  : i < currentIdx
-                    ? "bg-primary/20 text-primary"
-                    : "bg-muted text-muted-foreground"
-              }`}
-            >
-              {label}
-            </span>
-          );
-        })}
+        {stepLabels.map((label, i) => (
+          <span
+            key={label}
+            className={`rounded-full px-3 py-1 text-xs font-medium ${
+              i === stepIndex
+                ? "bg-primary text-primary-foreground"
+                : i < stepIndex
+                  ? "bg-primary/20 text-primary"
+                  : "bg-muted text-muted-foreground"
+            }`}
+          >
+            {label}
+          </span>
+        ))}
       </div>
 
       <Card>
         <CardContent className="p-6">
-          {/* ── State 1: Paste URL ── */}
+          {/* Step 1: Paste URL */}
           {step === "paste" && (
             <div className="space-y-4">
               <div className="space-y-1">
-                <h2 className="text-lg font-semibold">
-                  Register Your Agent
-                </h2>
+                <h2 className="text-lg font-semibold">Agent Endpoint</h2>
                 <p className="text-sm text-muted-foreground">
-                  Paste your agent&apos;s endpoint URL and we&apos;ll auto-detect its
-                  capabilities from{" "}
+                  We&apos;ll read your{" "}
                   <code className="rounded bg-muted px-1 text-xs">
                     /.well-known/agent-card.json
                   </code>
@@ -150,55 +160,53 @@ export function DevOnboarding({ onBack }: DevOnboardingProps) {
               </div>
 
               <div className="space-y-2">
-                <Label>Agent Endpoint URL</Label>
-                <Input
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://my-agent.example.com"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleDetect();
-                  }}
-                  data-testid="detect-url-input"
-                />
+                <Label>Endpoint URL</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    placeholder="https://my-agent.example.com"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleDetect();
+                    }}
+                    data-testid="detect-url-input"
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={handleDetect}
+                    disabled={!url.trim() || detectMutation.isPending}
+                    data-testid="detect-button"
+                  >
+                    {detectMutation.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Globe className="mr-2 h-4 w-4" />
+                    )}
+                    Detect Agent
+                  </Button>
+                </div>
               </div>
 
-              {detectAgent.error && (
+              {detectMutation.error && (
                 <div className="flex items-start gap-2 rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                   <span>
-                    {detectAgent.error instanceof Error
-                      ? detectAgent.error.message
+                    {detectMutation.error instanceof Error
+                      ? detectMutation.error.message
                       : "Detection failed"}
                   </span>
                 </div>
               )}
-
-              <div className="flex justify-between">
-                <Button variant="outline" onClick={onBack}>
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back
-                </Button>
-                <Button
-                  onClick={handleDetect}
-                  disabled={!url.trim() || detectAgent.isPending}
-                  data-testid="detect-button"
-                >
-                  {detectAgent.isPending && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  Detect Agent
-                </Button>
-              </div>
             </div>
           )}
 
-          {/* ── State 2: Review & Confirm ── */}
+          {/* Step 2: Review & Register */}
           {step === "review" && detected && (
             <div className="space-y-4">
               <div className="space-y-1">
-                <h2 className="text-lg font-semibold">Review & Confirm</h2>
+                <h2 className="text-lg font-semibold">Review & Register</h2>
                 <p className="text-sm text-muted-foreground">
-                  We detected the following from your agent card. Edit as needed.
+                  Detected from your agent card. Edit as needed.
                 </p>
               </div>
 
@@ -256,10 +264,9 @@ export function DevOnboarding({ onBack }: DevOnboardingProps) {
                 </div>
               </div>
 
-              {/* Skills display */}
               {detected.skills.length > 0 && (
                 <div className="space-y-2">
-                  <Label>Detected Skills</Label>
+                  <Label>Detected Skills ({detected.skills.length})</Label>
                   <div className="flex flex-wrap gap-2">
                     {detected.skills.map((s) => (
                       <Badge key={s.skill_key} variant="secondary">
@@ -270,13 +277,15 @@ export function DevOnboarding({ onBack }: DevOnboardingProps) {
                 </div>
               )}
 
-              {/* Pricing */}
               <div className="space-y-3 rounded border bg-muted/30 p-4">
                 <h3 className="text-sm font-semibold">Pricing</h3>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">License</Label>
-                    <Select value={licenseType} onValueChange={setLicenseType}>
+                    <Select
+                      value={licenseType}
+                      onValueChange={setLicenseType}
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -284,7 +293,9 @@ export function DevOnboarding({ onBack }: DevOnboardingProps) {
                         <SelectItem value="open">Open</SelectItem>
                         <SelectItem value="freemium">Freemium</SelectItem>
                         <SelectItem value="commercial">Commercial</SelectItem>
-                        <SelectItem value="subscription">Subscription</SelectItem>
+                        <SelectItem value="subscription">
+                          Subscription
+                        </SelectItem>
                         <SelectItem value="trial">Trial</SelectItem>
                       </SelectContent>
                     </Select>
@@ -300,34 +311,52 @@ export function DevOnboarding({ onBack }: DevOnboardingProps) {
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Billing</Label>
-                    <Select value={billingModel} onValueChange={setBillingModel}>
+                    <Select
+                      value={billingModel}
+                      onValueChange={setBillingModel}
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="per_task">Per Task</SelectItem>
                         <SelectItem value="per_token">Per Token</SelectItem>
-                        <SelectItem value="per_minute">Per Minute</SelectItem>
+                        <SelectItem value="per_minute">
+                          Per Minute
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
               </div>
 
+              {/* Sign-in gate */}
+              {!user && !authLoading && (
+                <div className="rounded border border-primary/30 bg-primary/5 p-4">
+                  <p className="mb-3 text-sm font-medium">
+                    Sign in to register your agent
+                  </p>
+                  <Button onClick={handleSignIn} disabled={signingIn}>
+                    {signingIn ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <LogIn className="mr-2 h-4 w-4" />
+                    )}
+                    Sign in with Google
+                  </Button>
+                </div>
+              )}
+
               <div className="flex justify-between">
-                <Button
-                  variant="outline"
-                  onClick={() => setStep("paste")}
-                >
-                  <ArrowLeft className="mr-2 h-4 w-4" />
+                <Button variant="outline" onClick={() => setStep("paste")}>
                   Back
                 </Button>
                 <Button
                   onClick={handleRegister}
-                  disabled={!name.trim() || createAgent.isPending}
+                  disabled={!name.trim() || !user || createMutation.isPending}
                   data-testid="register-button"
                 >
-                  {createAgent.isPending && (
+                  {createMutation.isPending && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
                   Register Agent
@@ -336,7 +365,7 @@ export function DevOnboarding({ onBack }: DevOnboardingProps) {
             </div>
           )}
 
-          {/* ── State 3: Success ── */}
+          {/* Step 3: Success */}
           {step === "success" && (
             <div className="flex flex-col items-center gap-4 py-8 text-center">
               <div className="rounded-full bg-green-500/10 p-4">
@@ -348,10 +377,16 @@ export function DevOnboarding({ onBack }: DevOnboardingProps) {
                 marketplace.
               </p>
               <Button
-                onClick={handleGoToDashboard}
-                data-testid="go-to-dashboard"
+                onClick={() =>
+                  router.push(
+                    registeredId
+                      ? ROUTES.agentDetail(registeredId)
+                      : ROUTES.agents
+                  )
+                }
+                data-testid="view-agent-button"
               >
-                Go to Dashboard
+                View Agent
               </Button>
             </div>
           )}

@@ -5,6 +5,7 @@ export const ROUTES = {
   home: "/",
   login: "/login",
   register: "/register",
+  registerAgent: "/register-agent",
 
   // Marketplace
   agents: "/agents",
@@ -15,6 +16,7 @@ export const ROUTES = {
   dashboard: "/dashboard",
   myAgents: "/dashboard/agents",
   newAgent: "/dashboard/agents/new",
+  agentSettings: (id: string) => `/dashboard/agents/${id}`,
   myTasks: "/dashboard/tasks",
   taskDetail: (id: string) => `/dashboard/tasks/${id}`,
   newTask: "/dashboard/tasks/new",

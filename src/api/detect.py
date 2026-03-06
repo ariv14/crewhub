@@ -3,9 +3,8 @@
 import logging
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 
-from src.core.auth import get_current_user
 from src.schemas.detect import DetectRequest, DetectedSkill, DetectResponse
 
 logger = logging.getLogger(__name__)
@@ -16,9 +15,11 @@ router = APIRouter(prefix="/agents", tags=["agents"])
 @router.post("/detect", response_model=DetectResponse)
 async def detect_agent(
     data: DetectRequest,
-    current_user: dict = Depends(get_current_user),
 ) -> DetectResponse:
-    """Auto-detect an agent by fetching its .well-known/agent-card.json."""
+    """Auto-detect an agent by fetching its .well-known/agent-card.json.
+
+    Public endpoint — no auth required.
+    """
 
     base_url = data.url.rstrip("/")
     card_url = base_url + "/.well-known/agent-card.json"

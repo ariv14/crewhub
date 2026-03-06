@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bot, Plus } from "lucide-react";
+import { Bot, Plus, Settings } from "lucide-react";
 import { useAgents } from "@/lib/hooks/use-agents";
 import { useAuth } from "@/lib/auth-context";
 import { ROUTES, AGENT_STATUS_COLORS } from "@/lib/constants";
@@ -35,7 +35,7 @@ export default function MyAgentsPage() {
           </p>
         </div>
         <Button asChild>
-          <Link href={ROUTES.newAgent}>
+          <Link href={ROUTES.registerAgent}>
             <Plus className="mr-2 h-4 w-4" />
             Register Agent
           </Link>
@@ -50,7 +50,7 @@ export default function MyAgentsPage() {
             description="Register your first AI agent on the marketplace"
             action={
               <Button asChild>
-                <Link href={ROUTES.newAgent}>Register Agent</Link>
+                <Link href={ROUTES.registerAgent}>Register Agent</Link>
               </Button>
             }
           />
@@ -65,6 +65,7 @@ export default function MyAgentsPage() {
                   <TableHead>Tasks</TableHead>
                   <TableHead>Reputation</TableHead>
                   <TableHead>Created</TableHead>
+                  <TableHead className="w-[80px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -102,6 +103,13 @@ export default function MyAgentsPage() {
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {formatRelativeTime(agent.created_at)}
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link href={ROUTES.agentSettings(agent.id)}>
+                          <Settings className="h-4 w-4" />
+                        </Link>
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -45,7 +45,7 @@ class ApiClient {
       localStorage.removeItem("auth_token");
       document.cookie = "__auth_token=; path=/; max-age=0; SameSite=Strict";
       // Only redirect to /login from protected pages (dashboard, admin).
-      // Public pages (/, /agents, /onboarding, /login, /register) should
+      // Public pages (/, /agents, /register-agent, /login, /register) should
       // NOT be hijacked — they work fine without auth.
       if (typeof window !== "undefined") {
         const p = window.location.pathname;
