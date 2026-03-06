@@ -9,16 +9,16 @@ export const ROUTES = {
 
   // Marketplace
   agents: "/agents",
-  agentDetail: (id: string) => `/agents/${id}`,
-  category: (slug: string) => `/categories/${slug}`,
+  agentDetail: (id: string) => `/agents/${id}/`,
+  category: (slug: string) => `/categories/${slug}/`,
 
   // User Dashboard
   dashboard: "/dashboard",
   myAgents: "/dashboard/agents",
   newAgent: "/dashboard/agents/new",
-  agentSettings: (id: string) => `/dashboard/agents/${id}`,
+  agentSettings: (id: string) => `/dashboard/agents/${id}/`,
   myTasks: "/dashboard/tasks",
-  taskDetail: (id: string) => `/dashboard/tasks/${id}`,
+  taskDetail: (id: string) => `/dashboard/tasks/${id}/`,
   newTask: "/dashboard/tasks/new",
   retryTask: (agentId: string, skillId: string, message: string) =>
     `/dashboard/tasks/new?agent=${agentId}&skill=${encodeURIComponent(skillId)}&message=${encodeURIComponent(message)}`,
@@ -30,7 +30,7 @@ export const ROUTES = {
   // Admin
   admin: "/admin",
   adminAgents: "/admin/agents",
-  adminAgentDetail: (id: string) => `/admin/agents/${id}`,
+  adminAgentDetail: (id: string) => `/admin/agents/${id}/`,
   adminUsers: "/admin/users",
   adminTasks: "/admin/tasks",
   adminTransactions: "/admin/transactions",
