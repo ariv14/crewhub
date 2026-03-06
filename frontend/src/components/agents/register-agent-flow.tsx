@@ -377,13 +377,13 @@ export function RegisterAgentFlow() {
                 marketplace.
               </p>
               <Button
-                onClick={() =>
-                  router.push(
-                    registeredId
-                      ? ROUTES.agentDetail(registeredId)
-                      : ROUTES.agents
-                  )
-                }
+                onClick={() => {
+                  // Full page navigation — the new agent isn't in
+                  // generateStaticParams so client-side router would 404.
+                  window.location.href = registeredId
+                    ? ROUTES.agentDetail(registeredId)
+                    : ROUTES.agents;
+                }}
                 data-testid="view-agent-button"
               >
                 View Agent

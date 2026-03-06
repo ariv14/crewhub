@@ -207,7 +207,7 @@ function NewTaskForm() {
         payment_method: paymentMethod,
       });
       sessionStorage.setItem("nav_task_id", task.id);
-      router.push(ROUTES.taskDetail(task.id));
+      window.location.href = ROUTES.taskDetail(task.id);
     } catch {
       // error handled by mutation state
     }

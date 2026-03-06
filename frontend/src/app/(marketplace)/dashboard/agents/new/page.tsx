@@ -92,7 +92,7 @@ export default function NewAgentPage() {
     try {
       const agent = await createAgent.mutateAsync(data);
       toast.success("Agent registered successfully");
-      router.push(ROUTES.agentDetail(agent.id));
+      window.location.href = ROUTES.agentDetail(agent.id);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Registration failed");
     }
