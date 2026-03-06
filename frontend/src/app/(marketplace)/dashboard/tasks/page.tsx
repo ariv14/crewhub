@@ -23,7 +23,7 @@ function TaskCard({ task }: { task: Task }) {
   const skillName = task.skill_name;
 
   return (
-    <Link
+    <a
       href={ROUTES.taskDetail(task.id)}
       onClick={() => sessionStorage.setItem("nav_task_id", task.id)}
       className="block rounded-lg border p-4 transition-colors hover:border-primary/30 hover:bg-muted/30"
@@ -52,7 +52,7 @@ function TaskCard({ task }: { task: Task }) {
         {task.latency_ms != null && <span>{task.latency_ms}ms</span>}
         {task.client_rating != null && <span>{task.client_rating}/5</span>}
       </div>
-    </Link>
+    </a>
   );
 }
 

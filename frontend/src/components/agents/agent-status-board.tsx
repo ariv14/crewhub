@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ActivityRing } from "@/components/agents/activity-ring";
@@ -35,7 +35,7 @@ export function AgentStatusBoard({ agents }: AgentStatusBoardProps) {
       <CardContent>
         <div className="flex flex-wrap gap-4">
           {agents.map((agent) => (
-            <Link
+            <a
               key={agent.id}
               href={ROUTES.agentDetail(agent.id)}
               className="group flex flex-col items-center gap-1.5"
@@ -59,7 +59,7 @@ export function AgentStatusBoard({ agents }: AgentStatusBoardProps) {
               <span className="max-w-[4rem] truncate text-xs text-muted-foreground group-hover:text-foreground">
                 {agent.name.split(" ")[0]}
               </span>
-            </Link>
+            </a>
           ))}
         </div>
       </CardContent>

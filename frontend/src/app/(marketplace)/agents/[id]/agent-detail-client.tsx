@@ -68,10 +68,10 @@ export default function AgentDetailClient({ id: serverId }: { id: string }) {
 
       {user && agent.owner_id === user.id && (
         <Button variant="outline" size="sm" className="mb-4" asChild>
-          <Link href={ROUTES.agentSettings(agent.id)}>
+          <a href={ROUTES.agentSettings(agent.id)}>
             <Settings className="mr-2 h-4 w-4" />
             Manage Agent
-          </Link>
+          </a>
         </Button>
       )}
 

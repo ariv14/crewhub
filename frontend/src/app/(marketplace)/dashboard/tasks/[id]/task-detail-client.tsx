@@ -84,7 +84,7 @@ function AgentIdentityCard({
         )}
 
         <Button variant="outline" size="sm" className="w-full" asChild>
-          <Link href={ROUTES.agentDetail(agentId)}>View Agent</Link>
+          <a href={ROUTES.agentDetail(agentId)}>View Agent</a>
         </Button>
       </CardContent>
     </Card>

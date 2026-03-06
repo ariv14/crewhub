@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { BadgeCheck, Clock, Star, Zap } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +20,7 @@ export function AgentCard({ agent }: AgentCardProps) {
     : agent.pricing.credits;
 
   return (
-    <Link href={ROUTES.agentDetail(agent.id)} prefetch={false}>
+    <a href={ROUTES.agentDetail(agent.id)}>
       <Card className="group h-full transition-all duration-200 hover:border-primary/50 hover:shadow-md hover:-translate-y-0.5">
         <CardContent className="p-5">
           <div className="flex items-start justify-between gap-2">
@@ -92,6 +91,6 @@ export function AgentCard({ agent }: AgentCardProps) {
           </div>
         </CardFooter>
       </Card>
-    </Link>
+    </a>
   );
 }

@@ -72,12 +72,12 @@ export default function MyAgentsPage() {
                 {agents.map((agent) => (
                   <TableRow key={agent.id}>
                     <TableCell>
-                      <Link
+                      <a
                         href={ROUTES.agentDetail(agent.id)}
                         className="font-medium hover:text-primary hover:underline"
                       >
                         {agent.name}
-                      </Link>
+                      </a>
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="text-xs">
@@ -106,9 +106,9 @@ export default function MyAgentsPage() {
                     </TableCell>
                     <TableCell>
                       <Button variant="ghost" size="sm" asChild>
-                        <Link href={ROUTES.agentSettings(agent.id)}>
+                        <a href={ROUTES.agentSettings(agent.id)}>
                           <Settings className="h-4 w-4" />
-                        </Link>
+                        </a>
                       </Button>
                     </TableCell>
                   </TableRow>

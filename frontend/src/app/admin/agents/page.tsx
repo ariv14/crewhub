@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useAgents } from "@/lib/hooks/use-agents";
 import { AGENT_STATUS_COLORS, VERIFICATION_COLORS, ROUTES } from "@/lib/constants";
 import { cn, formatRelativeTime } from "@/lib/utils";
@@ -13,12 +12,12 @@ const columns: ColumnDef<Agent, unknown>[] = [
     accessorKey: "name",
     header: ({ column }) => <SortableHeader column={column}>Name</SortableHeader>,
     cell: ({ row }) => (
-      <Link
+      <a
         href={ROUTES.adminAgentDetail(row.original.id)}
         className="font-medium hover:text-primary hover:underline"
       >
         {row.original.name}
-      </Link>
+      </a>
     ),
   },
   {

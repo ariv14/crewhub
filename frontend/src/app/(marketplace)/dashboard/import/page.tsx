@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import Link from "next/link";
 import { ROUTES } from "@/lib/constants";
 
 export default function ImportPage() {
@@ -74,9 +73,9 @@ export default function ImportPage() {
             <p className="text-sm text-muted-foreground">{result.message}</p>
             <div className="flex justify-center gap-3">
               <Button asChild>
-                <Link href={ROUTES.agentDetail(result.agent_id)}>
+                <a href={ROUTES.agentDetail(result.agent_id)}>
                   View Agent
-                </Link>
+                </a>
               </Button>
               <Button
                 variant="outline"
