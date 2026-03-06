@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   CreditCard,
   LogOut,
@@ -39,14 +38,8 @@ import {
 export function TopNav() {
   const { user, logout, isAdmin } = useAuth();
   const { data: balance } = useBalance();
-  const router = useRouter();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  const mobileGo = (href: string) => {
-    setMobileOpen(false);
-    router.push(href);
-  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm">
@@ -68,22 +61,24 @@ export function TopNav() {
             <nav className="mt-6 flex flex-col gap-1">
               {user && (
                 <>
-                  <Button variant="ghost" className="justify-start" onClick={() => mobileGo(ROUTES.dashboard)}>
-                    Dashboard
+                  <Button variant="ghost" className="justify-start" asChild>
+                    <a href={ROUTES.dashboard}>Dashboard</a>
                   </Button>
-                  <Button variant="ghost" className="justify-start" onClick={() => mobileGo(ROUTES.myTasks)}>
-                    My Tasks
+                  <Button variant="ghost" className="justify-start" asChild>
+                    <a href={ROUTES.myTasks}>My Tasks</a>
                   </Button>
-                  <Button variant="ghost" className="justify-start" onClick={() => mobileGo(ROUTES.credits)}>
-                    Credits
+                  <Button variant="ghost" className="justify-start" asChild>
+                    <a href={ROUTES.credits}>Credits</a>
                   </Button>
-                  <Button variant="ghost" className="justify-start" onClick={() => mobileGo(ROUTES.settings)}>
-                    Settings
+                  <Button variant="ghost" className="justify-start" asChild>
+                    <a href={ROUTES.settings}>Settings</a>
                   </Button>
                   {isAdmin && (
-                    <Button variant="ghost" className="justify-start" onClick={() => mobileGo(ROUTES.admin)}>
-                      <Shield className="mr-2 h-4 w-4" />
-                      Admin
+                    <Button variant="ghost" className="justify-start" asChild>
+                      <a href={ROUTES.admin}>
+                        <Shield className="mr-2 h-4 w-4" />
+                        Admin
+                      </a>
                     </Button>
                   )}
                 </>
@@ -92,22 +87,22 @@ export function TopNav() {
           </SheetContent>
         </Sheet>
 
-        <Link href={user ? ROUTES.dashboard : ROUTES.home} className="flex items-center gap-2 font-bold">
+        <a href={user ? ROUTES.dashboard : ROUTES.home} className="flex items-center gap-2 font-bold">
           <SpinningLogo size="sm" />
           <span>CrewHub</span>
-        </Link>
+        </a>
 
         <nav className="hidden items-center gap-1 md:flex">
           {user && (
             <>
               <Button variant="ghost" size="sm" asChild className={pathname === "/dashboard" ? "bg-accent" : ""}>
-                <Link href={ROUTES.dashboard}>Dashboard</Link>
+                <a href={ROUTES.dashboard}>Dashboard</a>
               </Button>
               <Button variant="ghost" size="sm" asChild className={pathname.startsWith("/agents") ? "bg-accent" : ""}>
-                <Link href="/agents">Agents</Link>
+                <a href="/agents">Agents</a>
               </Button>
               <Button variant="ghost" size="sm" asChild className={pathname.startsWith("/dashboard/tasks") ? "bg-accent" : ""}>
-                <Link href={ROUTES.myTasks}>Tasks</Link>
+                <a href={ROUTES.myTasks}>Tasks</a>
               </Button>
             </>
           )}
@@ -119,7 +114,7 @@ export function TopNav() {
           </Button>
 
           {user && balance && (
-            <Link href={ROUTES.credits}>
+            <a href={ROUTES.credits}>
               <Badge
                 variant="secondary"
                 className="cursor-pointer gap-1 px-2.5 py-1"
@@ -127,7 +122,7 @@ export function TopNav() {
                 <CreditCard className="h-3 w-3" />
                 {formatCredits(balance.available)}
               </Badge>
-            </Link>
+            </a>
           )}
 
           <ThemeToggle />
@@ -153,18 +148,24 @@ export function TopNav() {
                   <p className="text-xs text-muted-foreground">{user.email}</p>
                 </div>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push(ROUTES.dashboard)}>
-                  <User className="mr-2 h-4 w-4" />
-                  Dashboard
+                <DropdownMenuItem asChild>
+                  <a href={ROUTES.dashboard}>
+                    <User className="mr-2 h-4 w-4" />
+                    Dashboard
+                  </a>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push(ROUTES.settings)}>
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
+                <DropdownMenuItem asChild>
+                  <a href={ROUTES.settings}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    Settings
+                  </a>
                 </DropdownMenuItem>
                 {isAdmin && (
-                  <DropdownMenuItem onClick={() => router.push(ROUTES.admin)}>
-                    <Shield className="mr-2 h-4 w-4" />
-                    Admin
+                  <DropdownMenuItem asChild>
+                    <a href={ROUTES.admin}>
+                      <Shield className="mr-2 h-4 w-4" />
+                      Admin
+                    </a>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
@@ -176,7 +177,7 @@ export function TopNav() {
             </DropdownMenu>
           ) : (
             <Button size="sm" asChild>
-              <Link href={ROUTES.login}>Sign In</Link>
+              <a href={ROUTES.login}>Sign In</a>
             </Button>
           )}
         </div>

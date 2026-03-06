@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -36,7 +35,7 @@ export function UserSidebar() {
             (item.href !== ROUTES.dashboard &&
               pathname.startsWith(item.href));
           return (
-            <Link
+            <a
               key={item.href}
               href={item.href}
               className={cn(
@@ -48,7 +47,7 @@ export function UserSidebar() {
             >
               <item.icon className="h-4 w-4" />
               {item.label}
-            </Link>
+            </a>
           );
         })}
       </nav>
