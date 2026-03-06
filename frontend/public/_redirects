@@ -3,7 +3,12 @@
 # and client-side routing resolves the real ID from the browser URL.
 # Cloudflare's pretty-URL feature auto-redirects /path/index.html → /path/,
 # so rewrite targets use directory paths (not index.html) to avoid 308 loops.
-/dashboard/tasks/:id/   /dashboard/tasks/__fallback/ 200
+# Non-trailing-slash variants 301-redirect to add the slash first.
+/agents/:id             /agents/:id/ 301
 /agents/:id/            /agents/__fallback/ 200
+/dashboard/tasks/:id    /dashboard/tasks/:id/ 301
+/dashboard/tasks/:id/   /dashboard/tasks/__fallback/ 200
+/dashboard/agents/:id   /dashboard/agents/:id/ 301
 /dashboard/agents/:id/  /dashboard/agents/__fallback/ 200
+/admin/agents/:id       /admin/agents/:id/ 301
 /admin/agents/:id/      /admin/agents/__fallback/ 200
