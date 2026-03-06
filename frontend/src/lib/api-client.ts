@@ -41,11 +41,19 @@ class ApiClient {
       } catch {
         // refresh failed — fall through to clear auth
       }
-      // Refresh failed or no user — clear auth state and redirect
+      // Refresh failed or no user — clear auth state
       localStorage.removeItem("auth_token");
       document.cookie = "__auth_token=; path=/; max-age=0; SameSite=Strict";
+      // Only redirect to /login from protected pages (dashboard, admin).
+      // Public pages (/, /agents, /onboarding, /login, /register) should
+      // NOT be hijacked — they work fine without auth.
       if (typeof window !== "undefined") {
-        window.location.href = "/login";
+        const p = window.location.pathname;
+        const isProtected =
+          p.startsWith("/dashboard") || p.startsWith("/admin");
+        if (isProtected) {
+          window.location.href = "/login";
+        }
       }
       throw new ApiError(401, "Session expired");
     }
