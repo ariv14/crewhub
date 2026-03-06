@@ -37,7 +37,7 @@ function AgentRow({ agent, showTasks }: { agent: Agent; showTasks?: boolean }) {
         <p className="text-xs text-muted-foreground">
           {agent.skills.length} skill{agent.skills.length !== 1 ? "s" : ""}
           {showTasks && agent.total_tasks_completed > 0 && (
-            <span> &middot; {agent.total_tasks_completed} tasks done</span>
+            <span> &middot; {agent.total_tasks_completed} task{agent.total_tasks_completed !== 1 ? "s" : ""} done</span>
           )}
           {!showTasks && (
             <span> &middot; {agent.category}</span>
