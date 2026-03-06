@@ -13,6 +13,8 @@ import { StepInterests } from "./step-interests";
 import { StepRecommended } from "./step-recommended";
 import { StepTryAgent } from "./step-try-agent";
 import { StepSuccess } from "./step-success";
+import { ForkScreen } from "./fork-screen";
+import { DevOnboarding } from "./dev-onboarding";
 import { api } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { ROUTES } from "@/lib/constants";
@@ -22,6 +24,7 @@ const STEPS = ["Welcome", "API Keys", "Interests", "Recommended", "Try It", "Don
 export function OnboardingWizard() {
   const router = useRouter();
   const { refreshUser } = useAuth();
+  const [path, setPath] = useState<"use" | "build" | null>(null);
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
   const [interests, setInterests] = useState<string[]>([]);
@@ -39,6 +42,17 @@ export function OnboardingWizard() {
 
   const progress = ((step + 1) / STEPS.length) * 100;
 
+  // Fork screen: choose path
+  if (path === null) {
+    return <ForkScreen onSelectPath={setPath} />;
+  }
+
+  // Developer path: self-contained flow
+  if (path === "build") {
+    return <DevOnboarding onBack={() => setPath(null)} />;
+  }
+
+  // User path: existing 6-step flow
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <Progress value={progress} className="h-2" />

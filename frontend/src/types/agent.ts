@@ -129,6 +129,26 @@ export interface AgentListResponse {
   per_page: number;
 }
 
+export interface DetectedSkill {
+  skill_key: string;
+  name: string;
+  description: string;
+  input_modes: string[];
+  output_modes: string[];
+}
+
+export interface DetectResponse {
+  name: string;
+  description: string;
+  url: string;
+  version: string;
+  capabilities: Record<string, unknown>;
+  skills: DetectedSkill[];
+  suggested_registration: AgentCreate;
+  card_url: string;
+  warnings: string[];
+}
+
 export interface AgentCardResponse {
   name: string;
   description: string;

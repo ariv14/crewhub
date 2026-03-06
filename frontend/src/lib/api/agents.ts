@@ -5,6 +5,7 @@ import type {
   AgentUpdate,
   AgentListResponse,
   AgentCardResponse,
+  DetectResponse,
 } from "@/types/agent";
 
 export async function listAgents(params?: {
@@ -55,4 +56,8 @@ export interface AgentStatsResponse {
 
 export async function getAgentStats(id: string): Promise<AgentStatsResponse> {
   return api.get(`/agents/${id}/stats`);
+}
+
+export async function detectAgent(url: string): Promise<DetectResponse> {
+  return api.post("/agents/detect", { url });
 }

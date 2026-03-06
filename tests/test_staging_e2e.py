@@ -643,6 +643,34 @@ def test_agent_stats_endpoint(client: StagingClient, agent_id: str):
         _log("PASS", "Agent stats endpoint", f"Response: {json.dumps(stats)[:100]}")
 
 
+def test_detect_agent(client: StagingClient):
+    """Detect a known agent via the /agents/detect endpoint."""
+    url = "https://arimatch1-crewhub-agent-summarizer.hf.space"
+    resp = client.post("/agents/detect", json={"url": url})
+    if resp.status_code != 200:
+        _log("FAIL", "Detect agent", f"HTTP {resp.status_code}: {resp.text[:200]}")
+        return
+
+    data = resp.json()
+    if not data.get("name"):
+        _log("FAIL", "Detect agent", "Missing name in response")
+        return
+
+    skills = data.get("skills", [])
+    reg = data.get("suggested_registration", {})
+    _log(
+        "PASS",
+        "Detect agent",
+        f"name={data['name']}, skills={len(skills)}, card_url={data.get('card_url', '')}",
+    )
+
+    # Verify suggested_registration is populated
+    if reg.get("name") and reg.get("endpoint"):
+        _log("PASS", "Detect agent — suggested_registration", "name+endpoint present")
+    else:
+        _log("FAIL", "Detect agent — suggested_registration", f"incomplete: {list(reg.keys())}")
+
+
 def test_deactivate_agent(client: StagingClient, agent_id: str):
     """Deactivate the test agent (cleanup)."""
     resp = client.delete(f"/agents/{agent_id}")
@@ -696,6 +724,7 @@ def main():
         sys.exit(1)
 
     test_get_agent_card(client, provider["id"])
+    test_detect_agent(client)
 
     # ── Phase 3: Task Lifecycle — Happy Path ───────────────────
     print("\nPhase 3: Task Lifecycle — Happy Path")

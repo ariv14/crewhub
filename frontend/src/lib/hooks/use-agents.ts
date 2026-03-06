@@ -53,6 +53,12 @@ export function useAgentStats(id: string) {
   });
 }
 
+export function useDetectAgent() {
+  return useMutation({
+    mutationFn: (url: string) => agentsApi.detectAgent(url),
+  });
+}
+
 export function useDeleteAgent() {
   const qc = useQueryClient();
   return useMutation({

@@ -225,6 +225,7 @@ from src.api.organizations import router as orgs_router  # noqa: E402
 from src.api.anp import router as anp_router  # noqa: E402
 from src.api.billing import router as billing_router  # noqa: E402
 from src.api.suggestions import router as suggestions_router  # noqa: E402
+from src.api.detect import router as detect_router  # noqa: E402
 from src.mcp.router import router as mcp_resources_router  # noqa: E402
 
 app.include_router(auth_router, prefix=settings.api_v1_prefix)
@@ -244,6 +245,7 @@ app.include_router(orgs_router, prefix=settings.api_v1_prefix)
 app.include_router(anp_router, prefix=settings.api_v1_prefix)
 app.include_router(billing_router, prefix=settings.api_v1_prefix)
 app.include_router(suggestions_router, prefix=settings.api_v1_prefix)
+app.include_router(detect_router, prefix=settings.api_v1_prefix)
 app.include_router(mcp_resources_router, prefix=settings.api_v1_prefix)
 # Also mount ANP well-known endpoint at root (no prefix)
 app.include_router(anp_router)
