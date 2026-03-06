@@ -12,3 +12,5 @@
 /dashboard/agents/new/  /dashboard/agents/new/index.html    200
 /dashboard/agents/:id   /dashboard/agents/__fallback/index.html    200
 /dashboard/agents/:id/  /dashboard/agents/__fallback/index.html    200
+/admin/agents/:id       /admin/agents/__fallback/index.html    200
+/admin/agents/:id/      /admin/agents/__fallback/index.html    200
