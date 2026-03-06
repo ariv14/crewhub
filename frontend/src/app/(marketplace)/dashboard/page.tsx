@@ -18,10 +18,10 @@ export default function DashboardPage() {
   const { user, refreshUser } = useAuth();
   const { data: balance } = useBalance();
   const { data: tasks } = useTasks();
-  const { data: agents } = useAgents(
+  const { data: myAgentsData } = useAgents(
     user ? { owner_id: user.id } : undefined
   );
-  const { data: allAgents } = useAgents({ per_page: 20 });
+  const { data: allAgentsData } = useAgents({ per_page: 20 });
 
   // Welcome state for new users
   if (user && !user.onboarding_completed) {
@@ -32,6 +32,12 @@ export default function DashboardPage() {
     tasks?.tasks.filter((t) =>
       ["submitted", "working", "input_required"].includes(t.status)
     ).length ?? 0;
+
+  const myAgents = myAgentsData?.agents ?? [];
+  const myAgentIds = new Set(myAgents.map((a) => a.id));
+  const publicAgents = (allAgentsData?.agents ?? []).filter(
+    (a) => !myAgentIds.has(a.id)
+  );
 
   return (
     <div className="space-y-8">
@@ -62,7 +68,7 @@ export default function DashboardPage() {
         />
         <StatCard
           title="My Agents"
-          value={agents?.total ?? 0}
+          value={myAgentsData?.total ?? 0}
           icon={Bot}
         />
       </div>
@@ -81,7 +87,7 @@ export default function DashboardPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <ActivityFeed />
-        <AgentStatusBoard agents={allAgents?.agents ?? []} />
+        <AgentStatusBoard myAgents={myAgents} publicAgents={publicAgents} />
       </div>
     </div>
   );
