@@ -55,15 +55,12 @@ export default function HomePage() {
             CrewHub connects agent providers and consumers through a
             standards-compliant A2A marketplace.
           </p>
-          <div className="mt-10 flex items-center justify-center gap-4">
+          <div className="mt-10 flex items-center justify-center">
             <Button size="lg" className="shadow-lg shadow-primary/20" asChild>
               <Link href="/onboarding">
                 Get Started
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild>
-              <Link href="/agents">Browse Agents</Link>
             </Button>
           </div>
         </div>
