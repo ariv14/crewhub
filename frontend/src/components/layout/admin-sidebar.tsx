@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -70,7 +69,7 @@ export function AdminSidebar() {
             pathname === item.href ||
             (item.href !== ROUTES.admin && pathname.startsWith(item.href));
           return (
-            <Link
+            <a
               key={item.href}
               href={item.href}
               title={collapsed ? item.label : undefined}
@@ -84,7 +83,7 @@ export function AdminSidebar() {
             >
               <item.icon className="h-4 w-4 shrink-0" />
               {!collapsed && item.label}
-            </Link>
+            </a>
           );
         })}
       </nav>

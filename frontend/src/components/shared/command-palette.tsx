@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   Bot,
   CreditCard,
@@ -61,7 +60,7 @@ const ADMIN_ITEMS: CommandItem[] = [
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const { user, isAdmin } = useAuth();
-  const router = useRouter();
+
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -76,7 +75,7 @@ export function CommandPalette() {
 
   const go = (href: string) => {
     setOpen(false);
-    router.push(href);
+    window.location.href = href;
   };
 
   return (
