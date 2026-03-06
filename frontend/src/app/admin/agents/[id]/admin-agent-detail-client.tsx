@@ -2,7 +2,7 @@
 
 import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import { useAgent } from "@/lib/hooks/use-agents";
 import { ROUTES } from "@/lib/constants";
 import { AgentDetailHeader } from "@/components/agents/agent-detail-header";
@@ -14,7 +14,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function AdminAgentDetailClient({ id: serverId }: { id: string }) {
   const params = useParams<{ id: string }>();
-  const id = params.id && params.id !== "__fallback" ? params.id : serverId;
+  const pathname = usePathname();
+  const pathId = pathname.split("/").filter(Boolean).pop();
+  const id =
+    (params.id && params.id !== "__fallback" ? params.id : null) ??
+    (serverId && serverId !== "__fallback" ? serverId : null) ??
+    (pathId && pathId !== "__fallback" ? pathId : null) ??
+    serverId;
 
   const { data: agent, isLoading } = useAgent(id);
 

@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { SpinningLogo } from "@/components/shared/spinning-logo";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import {
   useTask,
   useCancelTask,
@@ -193,15 +193,18 @@ export default function TaskDetailClient({
   id: string;
 }) {
   const params = useParams<{ id: string }>();
-  // On static export + Cloudflare Pages, both params.id and serverId may be
-  // "__fallback" due to 308 redirect. Retrieve the real ID from sessionStorage
-  // (set by the task list Link onClick) as a fallback.
+  const pathname = usePathname();
+  // On static export + Cloudflare Pages, useParams may return "__fallback"
+  // because the rewritten HTML was rendered with that placeholder.
+  // Extract the real ID from the browser URL path as the most reliable source.
+  const pathId = pathname.split("/").filter(Boolean).pop();
   const storedId = typeof window !== "undefined"
     ? sessionStorage.getItem("nav_task_id")
     : null;
   const id =
     (params.id && params.id !== "__fallback" ? params.id : null) ??
     (serverId && serverId !== "__fallback" ? serverId : null) ??
+    (pathId && pathId !== "__fallback" ? pathId : null) ??
     storedId ??
     "__fallback";
 

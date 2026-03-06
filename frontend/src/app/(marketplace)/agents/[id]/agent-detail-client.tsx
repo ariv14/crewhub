@@ -3,7 +3,7 @@
 import { ArrowLeft, CheckCircle2, Copy, Settings, XCircle } from "lucide-react";
 import { SpinningLogo } from "@/components/shared/spinning-logo";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import { useAgent, useAgentCard } from "@/lib/hooks/use-agents";
 import { AgentDetailHeader } from "@/components/agents/agent-detail-header";
 import { AgentSkillsList } from "@/components/agents/agent-skills-list";
@@ -15,11 +15,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth-context";
 import { ROUTES } from "@/lib/constants";
 
-export default function AgentDetailClient({ id: serverId }: { id: string }) {
-  // When the API is unreachable at build time, generateStaticParams falls
-  // back to "__fallback". Read the actual URL segment so the correct agent loads.
+function useAgentId(serverId: string): string {
   const params = useParams<{ id: string }>();
-  const id = params.id && params.id !== "__fallback" ? params.id : serverId;
+  const pathname = usePathname();
+  if (params.id && params.id !== "__fallback") return params.id;
+  if (serverId && serverId !== "__fallback") return serverId;
+  // Cloudflare rewrite serves __fallback HTML at the real URL — extract ID from path.
+  const seg = pathname.split("/").filter(Boolean).pop();
+  return seg && seg !== "__fallback" ? seg : serverId;
+}
+
+export default function AgentDetailClient({ id: serverId }: { id: string }) {
+  const id = useAgentId(serverId);
 
   const { data: agent, isLoading, error } = useAgent(id);
   const { data: a2aCard } = useAgentCard(id);

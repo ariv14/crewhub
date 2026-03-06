@@ -1,10 +1,18 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import { AgentSettings } from "@/components/agents/agent-settings";
 
-export default function AgentSettingsClient({ id: serverId }: { id: string }) {
+function useFallbackId(serverId: string): string {
   const params = useParams<{ id: string }>();
-  const id = params.id && params.id !== "__fallback" ? params.id : serverId;
+  const pathname = usePathname();
+  if (params.id && params.id !== "__fallback") return params.id;
+  if (serverId && serverId !== "__fallback") return serverId;
+  const seg = pathname.split("/").filter(Boolean).pop();
+  return seg && seg !== "__fallback" ? seg : serverId;
+}
+
+export default function AgentSettingsClient({ id: serverId }: { id: string }) {
+  const id = useFallbackId(serverId);
   return <AgentSettings agentId={id} />;
 }
