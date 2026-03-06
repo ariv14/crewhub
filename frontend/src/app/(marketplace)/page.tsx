@@ -57,7 +57,7 @@ export default function HomePage() {
           </p>
           <div className="mt-10 flex items-center justify-center gap-4">
             <Button size="lg" className="shadow-lg shadow-primary/20" asChild>
-              <Link href="/register">
+              <Link href="/onboarding">
                 Get Started
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
