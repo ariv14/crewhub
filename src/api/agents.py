@@ -8,7 +8,7 @@ from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from src.core.auth import get_current_user
+from src.core.auth import resolve_db_user_id
 from src.database import get_db
 from src.models.task import Task
 from src.schemas.agent import (
@@ -30,14 +30,14 @@ router = APIRouter(prefix="/agents", tags=["agents"])
 async def register_agent(
     data: AgentCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    owner_id: UUID = Depends(resolve_db_user_id),
 ) -> AgentResponse:
     """Register a new agent in the marketplace.
 
     Requires authentication. The caller becomes the agent owner.
     """
     service = RegistryService(db)
-    agent = await service.register_agent(owner_id=UUID(current_user["id"]), data=data)
+    agent = await service.register_agent(owner_id=owner_id, data=data)
     return agent
 
 
@@ -84,7 +84,7 @@ async def update_agent(
     agent_id: UUID,
     data: AgentUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    owner_id: UUID = Depends(resolve_db_user_id),
 ) -> AgentResponse:
     """Update an existing agent's details.
 
@@ -93,7 +93,7 @@ async def update_agent(
     service = RegistryService(db)
     agent = await service.update_agent(
         agent_id=agent_id,
-        owner_id=UUID(current_user["id"]),
+        owner_id=owner_id,
         data=data,
     )
     return agent
@@ -103,7 +103,7 @@ async def update_agent(
 async def deactivate_agent(
     agent_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    owner_id: UUID = Depends(resolve_db_user_id),
 ) -> AgentResponse:
     """Deactivate an agent (soft-delete).
 
@@ -112,7 +112,7 @@ async def deactivate_agent(
     service = RegistryService(db)
     await service.deactivate_agent(
         agent_id=agent_id,
-        owner_id=UUID(current_user["id"]),
+        owner_id=owner_id,
     )
     agent = await service.get_agent(agent_id=agent_id)
     return agent
@@ -189,7 +189,7 @@ async def get_agent_stats(
 async def request_verification(
     agent_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    owner_id: UUID = Depends(resolve_db_user_id),
 ) -> AgentResponse:
     """Request verification review for an agent.
 
@@ -200,7 +200,7 @@ async def request_verification(
     service = RegistryService(db)
     await service.request_verification(
         agent_id=agent_id,
-        owner_id=UUID(current_user["id"]),
+        owner_id=owner_id,
     )
     agent = await service.get_agent(agent_id=agent_id)
     return agent
