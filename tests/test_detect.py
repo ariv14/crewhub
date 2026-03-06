@@ -291,12 +291,12 @@ class TestDetectEndpoint:
         resp = await self._call_detect({"url": "ftp://example.com"})
         assert resp.status_code == 422
 
-    async def test_requires_auth(self):
-        """Endpoint should require authentication."""
+    async def test_public_no_auth_required(self):
+        """Detect endpoint is public — no auth needed."""
         from httpx import AsyncClient, ASGITransport
         from src.main import app
 
-        # Don't override get_current_user — should get 401/403
+        # Don't override get_current_user — should still work (public endpoint)
         app.dependency_overrides.clear()
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
@@ -304,7 +304,8 @@ class TestDetectEndpoint:
                 "/api/v1/agents/detect",
                 json={"url": "https://example.com"},
             )
-        assert resp.status_code in (401, 403)
+        # 400 = endpoint unreachable (not 401/403), proving no auth required
+        assert resp.status_code == 400
 
     async def test_non_dict_json_response(self):
         """JSON that isn't an object (e.g. array) should fail."""

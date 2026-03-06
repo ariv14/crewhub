@@ -8,3 +8,7 @@
 /dashboard/tasks/:id/   /dashboard/tasks/__fallback/index.html    200
 /agents/:id             /agents/__fallback/index.html    200
 /agents/:id/            /agents/__fallback/index.html    200
+/dashboard/agents/new   /dashboard/agents/new/index.html    200
+/dashboard/agents/new/  /dashboard/agents/new/index.html    200
+/dashboard/agents/:id   /dashboard/agents/__fallback/index.html    200
+/dashboard/agents/:id/  /dashboard/agents/__fallback/index.html    200
