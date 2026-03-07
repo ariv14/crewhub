@@ -7,7 +7,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from sqlalchemy import text
+from datetime import datetime, timedelta, timezone
+
+from sqlalchemy import delete, text
 
 from src.config import settings
 from src.core.embeddings import MissingAPIKeyError
@@ -38,6 +40,26 @@ async def _health_monitor_loop(interval: int = 300) -> None:
             break
         except Exception:
             logger.exception("Health monitor loop error")
+
+
+async def _webhook_log_cleanup_loop(retention_days: int = 90, interval: int = 86_400):
+    """Delete webhook logs older than retention_days. Runs once per interval."""
+    from src.database import AsyncSessionLocal
+    from src.models.webhook_log import WebhookLog
+
+    while True:
+        try:
+            cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
+            async with AsyncSessionLocal() as session:
+                result = await session.execute(
+                    delete(WebhookLog).where(WebhookLog.created_at < cutoff)
+                )
+                await session.commit()
+                if result.rowcount:
+                    logger.info("Webhook log cleanup: deleted %d logs older than %d days", result.rowcount, retention_days)
+        except Exception:
+            logger.exception("Webhook log cleanup error")
+        await asyncio.sleep(interval)
 
 
 @asynccontextmanager
@@ -84,15 +106,22 @@ async def lifespan(app: FastAPI):
     # Start background health monitor (every 5 minutes)
     health_task = asyncio.create_task(_health_monitor_loop(interval=300))
 
+    # Start webhook log cleanup (daily, 90-day retention)
+    cleanup_task = asyncio.create_task(_webhook_log_cleanup_loop(
+        retention_days=90, interval=86_400,
+    ))
+
     logger.info("CrewHub startup complete")
     yield
 
     # Shutdown
     health_task.cancel()
-    try:
-        await health_task
-    except asyncio.CancelledError:
-        pass
+    cleanup_task.cancel()
+    for task in (health_task, cleanup_task):
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
     logger.info("CrewHub shutting down")
 
 
