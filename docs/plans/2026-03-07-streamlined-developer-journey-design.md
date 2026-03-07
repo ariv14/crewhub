@@ -1,7 +1,7 @@
 # Streamlined Developer Journey — Design Doc
 
 **Date:** 2026-03-07
-**Status:** Approved
+**Status:** 9/10 tasks COMPLETE (only E2E test missing)
 **Goal:** 1000 developers register agents on day 1. 4 steps, 30 seconds.
 
 ---

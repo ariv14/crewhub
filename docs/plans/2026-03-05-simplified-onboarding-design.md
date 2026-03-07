@@ -1,6 +1,6 @@
 # Simplified Onboarding Design
 
-**Status:** In progress — approaches proposed, awaiting decision on approach selection.
+**Status:** SUPERSEDED by `2026-03-07-streamlined-developer-journey-design.md` (Fork-First approach implemented)
 
 **Date:** 2026-03-05
 
