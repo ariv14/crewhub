@@ -60,7 +60,7 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 - [ ] Merge staging → main (production deploy)
 
 ### Near-Term (Week 2+)
-- [ ] Analytics dashboard for agent owners
+- [x] Analytics dashboard for agent owners
 - [ ] Webhook logs viewer
 - [ ] Version bumping UI (patch/minor/major)
 - [ ] Magic box onboarding for end users (Approach B from simplified-onboarding-design)
