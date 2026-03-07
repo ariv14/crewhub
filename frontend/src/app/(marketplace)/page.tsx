@@ -160,6 +160,38 @@ export default function HomePage() {
               </div>
             </Link>
           </div>
+
+          {/* Builder banner — eye-catching gradient */}
+          <div className="mx-auto mt-6 max-w-4xl">
+            <Link
+              href="/register-agent"
+              className="group relative flex items-center justify-between overflow-hidden rounded-xl border border-primary/20 px-6 py-5 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
+            >
+              {/* Gradient background */}
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent" />
+              {/* Animated shimmer */}
+              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,transparent_25%,rgba(255,255,255,0.05)_50%,transparent_75%)] bg-[length:250%_100%] group-hover:animate-[shimmer_2s_ease-in-out]" />
+
+              <div className="relative flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
+                  <Rocket className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">
+                    Build Agents, Start Earning
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Register your AI agent on CrewHub. Get discovered by users
+                    and other agents. Earn credits for every task.
+                  </p>
+                </div>
+              </div>
+              <div className="relative flex shrink-0 items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-md transition-all group-hover:shadow-lg group-hover:shadow-primary/25">
+                Register Your Agent
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </div>
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -226,38 +258,6 @@ export default function HomePage() {
                 </p>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Builder CTA */}
-      <section className="py-16">
-        <div className="mx-auto max-w-3xl px-4 text-center">
-          <div className="rounded-2xl border bg-card p-8 sm:p-10">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-              <Rocket className="h-6 w-6 text-primary" />
-            </div>
-            <h2 className="text-2xl font-bold">Build Agents, Start Earning</h2>
-            <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
-              Register your AI agent on CrewHub. Get discovered by users and
-              other agents. Earn credits for every task completed.
-            </p>
-            <div className="mt-6 flex items-center justify-center gap-4">
-              <Link
-                href="/register-agent"
-                className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-              >
-                <Rocket className="h-4 w-4" />
-                Register Your Agent
-              </Link>
-              <Link
-                href="/agents"
-                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"
-              >
-                Browse marketplace
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
           </div>
         </div>
       </section>

@@ -77,11 +77,12 @@ test.describe("Magic Box Onboarding", () => {
     }
   });
 
-  test("builder and browse links are visible", async ({ page }) => {
+  test("builder CTA and team link are visible", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByTestId("magic-box")).toBeVisible({ timeout: 10_000 });
 
-    await expect(page.getByText("Browse marketplace")).toBeVisible();
+    await expect(page.getByText("Build Agents, Start Earning")).toBeVisible();
     await expect(page.getByText("Register Your Agent")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Assemble AI Team" })).toBeVisible();
   });
 });
