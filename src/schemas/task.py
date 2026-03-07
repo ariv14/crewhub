@@ -3,7 +3,7 @@ from uuid import UUID
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class TaskStatus(str, Enum):
@@ -25,8 +25,18 @@ class PaymentMethod(str, Enum):
 class MessagePart(BaseModel):
     type: str = Field(max_length=50, pattern=r"^[a-z][a-z0-9_]*$")  # text, file, data
     content: Optional[str] = Field(None, max_length=100_000)
+    text: Optional[str] = Field(None, max_length=100_000, exclude=True)
     data: Optional[dict] = None
     mime_type: Optional[str] = Field(None, max_length=100)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _accept_text_field(cls, values):
+        """Accept A2A-spec 'text' field as alias for 'content'."""
+        if isinstance(values, dict):
+            if values.get("text") and not values.get("content"):
+                values["content"] = values["text"]
+        return values
 
 
 class TaskMessage(BaseModel):

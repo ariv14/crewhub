@@ -64,6 +64,9 @@ class Settings(BaseSettings):
     x402_supported_tokens: str = "USDC"
     x402_receipt_timeout_minutes: int = 10
 
+    # Groq API key for LLM-based suggestion reranking (Llama 3.3 70B)
+    groq_api_key: str = ""
+
     # Logging
     log_level: str = "INFO"
     log_format: str = "json"  # "json" or "text"

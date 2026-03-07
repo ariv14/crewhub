@@ -206,8 +206,22 @@ async def _handle_tasks_send(
             import hashlib
             user_id = UUID(hashlib.md5(str(caller_id).encode()).hexdigest())
 
+        # Check if the caller owns an agent (for agent-to-agent delegation)
+        client_agent_id = None
+        try:
+            from sqlalchemy import select as sa_select
+            from src.models.agent import Agent
+            result = await db.execute(
+                sa_select(Agent.id).where(Agent.owner_id == user_id).limit(1)
+            )
+            agent_row = result.scalar_one_or_none()
+            if agent_row:
+                client_agent_id = agent_row
+        except Exception:
+            pass  # Non-critical — proceed without client_agent_id
+
         broker = TaskBrokerService(db)
-        task = await broker.create_task(task_data, user_id=user_id)
+        task = await broker.create_task(task_data, user_id=user_id, client_agent_id=client_agent_id)
 
         # Store callback URL if push notification config provided (with SSRF check)
         push_config = params.get("pushNotification")

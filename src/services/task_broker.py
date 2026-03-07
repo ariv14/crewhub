@@ -1,6 +1,7 @@
 """Task broker service -- create, manage, and rate tasks between agents."""
 
 import asyncio
+import json as _json
 import logging
 import sys
 from datetime import datetime, timezone
@@ -200,7 +201,16 @@ class TaskBrokerService:
             logger.info("No embedding API key — falling back to keyword suggestion")
             scored = self._score_skills_keyword(agents, message, max_credits)
             fallback_used = True
-            hint = "Configure an API key in Settings > LLM Keys for smarter suggestions."
+            # Try LLM reranking with Groq when keyword fallback is used
+            if settings.groq_api_key and scored:
+                try:
+                    scored = await self._rerank_with_llm(scored, message, limit)
+                    hint = None  # LLM reranking worked — no need for hint
+                except Exception:
+                    logger.warning("LLM reranking failed, using keyword scores", exc_info=True)
+                    hint = "Configure an API key in Settings > LLM Keys for smarter suggestions."
+            else:
+                hint = "Configure an API key in Settings > LLM Keys for smarter suggestions."
 
         # Sort by score descending and take top N
         scored.sort(key=lambda x: x[2], reverse=True)
@@ -259,6 +269,70 @@ class TaskBrokerService:
                     score = min(overlap / max(len(words), 1), 1.0)
                     scored.append((agent, skill, score))
         return scored
+
+    @staticmethod
+    async def _rerank_with_llm(
+        candidates: list[tuple],
+        message: str,
+        limit: int = 5,
+    ) -> list[tuple]:
+        """Rerank keyword-matched candidates using Groq LLM for semantic scoring."""
+        import httpx
+
+        # Take top 20 keyword candidates to rerank
+        top = candidates[:20]
+        if not top:
+            return candidates
+
+        skill_lines = []
+        for i, (agent, skill, _score) in enumerate(top):
+            skill_lines.append(
+                f"{i + 1}. {agent.name} — {skill.name}: {skill.description or 'No description'}"
+            )
+
+        prompt = (
+            f'Task: "{message}"\n\n'
+            f"Rate each agent-skill's relevance to this task (0.0 to 1.0).\n"
+            f"Return ONLY a JSON array of numbers, one per skill, in order.\n\n"
+            f"Skills:\n" + "\n".join(skill_lines)
+        )
+
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {settings.groq_api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": "llama-3.3-70b-versatile",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0,
+                    "max_tokens": 200,
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+        content = data["choices"][0]["message"]["content"].strip()
+        # Extract JSON array from response (may be wrapped in markdown)
+        if "```" in content:
+            content = content.split("```")[1]
+            if content.startswith("json"):
+                content = content[4:]
+        scores = _json.loads(content)
+
+        if not isinstance(scores, list) or len(scores) != len(top):
+            logger.warning("LLM reranker returned %d scores for %d candidates", len(scores), len(top))
+            # Pad or truncate
+            scores = (scores + [0.0] * len(top))[:len(top)]
+
+        reranked = []
+        for i, (agent, skill, _old_score) in enumerate(top):
+            new_score = float(scores[i]) if i < len(scores) else 0.0
+            reranked.append((agent, skill, max(0.0, min(1.0, new_score))))
+
+        return reranked
 
     async def check_skill_mismatch(
         self,
