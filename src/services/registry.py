@@ -53,12 +53,12 @@ class RegistryService:
             4. Generate embeddings for every skill and store them.
             5. Return the agent with skills loaded.
         """
-        # Reject duplicate endpoints (only check active/inactive agents, not deleted)
+        # Reject duplicate endpoints (check active/inactive agents)
         if data.endpoint:
             existing = await self.db.execute(
                 select(Agent.id).where(
                     Agent.endpoint == data.endpoint,
-                    Agent.status != AgentStatus.DELETED,
+                    Agent.status.in_([AgentStatus.ACTIVE, AgentStatus.INACTIVE]),
                 )
             )
             if existing.scalar_one_or_none():
