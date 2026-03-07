@@ -13,6 +13,8 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
+  Circle,
+  Coins,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -262,6 +264,16 @@ function AgentStatusRow({
 }
 
 // ---------------------------------------------------------------------------
+// Cost helper — extract credits_per_unit from agent pricing
+// ---------------------------------------------------------------------------
+function getAgentCost(suggestion: SkillSuggestion): number {
+  const pricing = suggestion.agent.pricing;
+  if (!pricing) return 0;
+  const defaultTier = pricing.tiers?.find((t) => t.is_default);
+  return defaultTier?.credits_per_unit ?? pricing.credits ?? 0;
+}
+
+// ---------------------------------------------------------------------------
 // Suggestion card (selection phase)
 // ---------------------------------------------------------------------------
 function TeamSuggestionCard({
@@ -274,6 +286,7 @@ function TeamSuggestionCard({
   onToggle: () => void;
 }) {
   const pct = Math.round(suggestion.confidence * 100);
+  const cost = getAgentCost(suggestion);
   return (
     <button
       onClick={onToggle}
@@ -281,10 +294,18 @@ function TeamSuggestionCard({
         "flex items-center gap-3 rounded-xl border p-4 text-left transition-all",
         selected
           ? "border-primary bg-primary/5 shadow-sm"
-          : "border-border hover:border-primary/30"
+          : "border-border opacity-60 hover:border-primary/30 hover:opacity-100"
       )}
       data-testid="team-suggestion"
     >
+      {/* Selection indicator */}
+      <div className="shrink-0">
+        {selected ? (
+          <CheckCircle2 className="h-5 w-5 text-primary" />
+        ) : (
+          <Circle className="h-5 w-5 text-muted-foreground" />
+        )}
+      </div>
       <div
         className={cn(
           "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-sm font-bold",
@@ -322,6 +343,11 @@ function TeamSuggestionCard({
           {pct}%
         </span>
         <p className="text-[10px] text-muted-foreground">match</p>
+        {cost > 0 && (
+          <p className="mt-0.5 text-[10px] text-muted-foreground">
+            {cost} credits
+          </p>
+        )}
       </div>
     </button>
   );
@@ -580,22 +606,37 @@ export default function TeamPage() {
             </div>
           </div>
 
-          <div className="flex justify-center">
-            <Button
-              onClick={handleLaunchTeam}
-              disabled={selectedCount === 0 || dispatching}
-              size="lg"
-              className="gap-2"
-            >
-              {dispatching ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Zap className="h-4 w-4" />
-              )}
-              Launch {selectedCount} Agent{selectedCount !== 1 ? "s" : ""} in
-              Parallel
-            </Button>
-          </div>
+          {/* Cost summary */}
+          {(() => {
+            const selected = Array.from(selectedIndices).map((i) => suggestions[i]);
+            const totalCost = selected.reduce((sum, s) => sum + getAgentCost(s), 0);
+            return (
+              <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <Coins className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Estimated cost:</span>
+                  <span className="font-semibold">
+                    {totalCost > 0 ? `${totalCost} credits` : "Free"}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    ({selectedCount} agent{selectedCount !== 1 ? "s" : ""})
+                  </span>
+                </div>
+                <Button
+                  onClick={handleLaunchTeam}
+                  disabled={selectedCount === 0 || dispatching}
+                  className="gap-2"
+                >
+                  {dispatching ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Zap className="h-4 w-4" />
+                  )}
+                  Launch Team
+                </Button>
+              </div>
+            );
+          })()}
         </div>
       )}
 

@@ -89,6 +89,10 @@ export interface SkillSuggestion {
     avg_latency_ms: number | null;
     total_tasks: number;
     skills: { id: string; name: string; description: string }[];
+    pricing?: {
+      tiers: { credits_per_unit: number; name: string; is_default: boolean }[];
+      credits: number;
+    };
   };
   skill: {
     id: string;
