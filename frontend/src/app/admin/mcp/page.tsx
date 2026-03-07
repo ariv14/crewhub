@@ -7,9 +7,11 @@ import { JsonViewer } from "@/components/shared/json-viewer";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
-function getAuthHeaders(): Record<string, string> {
+function getPageAuthHeaders(): Record<string, string> {
   const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  if (!token) return {};
+  if (token.startsWith("a2a_")) return { "X-API-Key": token };
+  return { Authorization: `Bearer ${token}` };
 }
 
 interface McpTool {
@@ -33,7 +35,7 @@ export default function McpPlaygroundPage() {
     try {
       const res = await fetch(`${API_BASE}/mcp`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        headers: { "Content-Type": "application/json", ...getPageAuthHeaders() },
         body: JSON.stringify({ jsonrpc: "2.0", method: "tools/list", id: 1 }),
       });
       const data = await res.json();
@@ -54,7 +56,7 @@ export default function McpPlaygroundPage() {
       const parsedParams = JSON.parse(params);
       const res = await fetch(`${API_BASE}/mcp`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        headers: { "Content-Type": "application/json", ...getPageAuthHeaders() },
         body: JSON.stringify({
           jsonrpc: "2.0",
           method: "tools/call",

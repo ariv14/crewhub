@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { API_V1 } from "@/lib/constants";
+import { getAuthHeaders } from "@/lib/auth-headers";
 
 const STORAGE_KEY = "crewhub_activity_events";
 const MAX_EVENTS = 50;
@@ -91,7 +92,7 @@ export function useActivityFeed(): UseActivityFeedReturn {
     (async () => {
       try {
         const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: getAuthHeaders(token),
           signal: controller.signal,
         });
 

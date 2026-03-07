@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { API_V1 } from "@/lib/constants";
+import { getAuthHeaders } from "@/lib/auth-headers";
 
 type Intensity = "low" | "medium" | "high";
 
@@ -101,7 +102,7 @@ export function AgentActivityProvider({ children }: { children: ReactNode }) {
     (async () => {
       try {
         const res = await fetch(`${API_V1}/activity/stream`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: getAuthHeaders(token),
           signal: controller.signal,
         });
 
