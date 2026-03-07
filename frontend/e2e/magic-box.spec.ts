@@ -77,11 +77,11 @@ test.describe("Magic Box Onboarding", () => {
     }
   });
 
-  test("developer path links are visible", async ({ page }) => {
+  test("builder and browse links are visible", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByTestId("magic-box")).toBeVisible({ timeout: 10_000 });
 
-    await expect(page.getByText("Browse all agents →")).toBeVisible();
-    await expect(page.getByText("I build agents")).toBeVisible();
+    await expect(page.getByText("Browse marketplace")).toBeVisible();
+    await expect(page.getByText("Register Your Agent")).toBeVisible();
   });
 });

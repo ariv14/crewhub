@@ -7,18 +7,18 @@ const API_BASE =
   process.env.E2E_API_BASE || "https://arimatch1-crewhub-staging.hf.space";
 
 test.describe("Register Agent Flow", () => {
-  test("landing page shows Use Agents and Build Agents cards", async ({
+  test("landing page shows two action cards and builder CTA", async ({
     page,
   }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Use Agents" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Build Agents" })).toBeVisible();
-    await expect(page.getByText("start earning")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Find the Right Agent" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Assemble AI Team" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Build Agents, Start Earning" })).toBeVisible();
   });
 
-  test("Build Agents card navigates to /register-agent", async ({ page }) => {
+  test("Register Your Agent link navigates to /register-agent", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("link", { name: /build agents/i }).click();
+    await page.getByRole("link", { name: /register your agent/i }).click();
     await page.waitForURL(/\/register-agent/, { timeout: 10_000 });
     await expect(
       page.getByRole("heading", { name: "Register Your Agent" })
