@@ -1,17 +1,30 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { Users, Zap, Loader2, ChevronRight, Star, RotateCcw } from "lucide-react";
+import { useState, useMemo } from "react";
+import {
+  Users,
+  Zap,
+  Loader2,
+  Star,
+  RotateCcw,
+  CheckCircle2,
+  XCircle,
+  Copy,
+  Check,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { SpinningLogo } from "@/components/shared/spinning-logo";
-import { TaskArtifactsDisplay } from "@/components/tasks/task-artifacts-display";
 import { useCreateTask, useTask } from "@/lib/hooks/use-tasks";
 import { suggestAgents } from "@/lib/api/tasks";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
-import type { SkillSuggestion, Task } from "@/types/task";
+import type { SkillSuggestion, Task, Artifact } from "@/types/task";
 
 const TEAM_STARTERS = [
   "I'm launching a SaaS product next month. Help me plan everything.",
@@ -20,107 +33,237 @@ const TEAM_STARTERS = [
   "Help me set up a CI/CD pipeline with proper testing and monitoring.",
 ];
 
-// Each dispatched task rendered as its own component (so useTask hook works per-card)
-function TeamTaskCard({
-  suggestion,
+// ---------------------------------------------------------------------------
+// Utility: extract plain text from task artifacts
+// ---------------------------------------------------------------------------
+function extractArtifactText(artifacts: Artifact[]): string {
+  const parts: string[] = [];
+  for (const artifact of artifacts) {
+    for (const part of artifact.parts) {
+      if (part.type === "text" && part.content) {
+        parts.push(part.content);
+      }
+    }
+  }
+  return parts.join("\n\n");
+}
+
+// ---------------------------------------------------------------------------
+// Task poller — invisible component that polls a single task and reports back
+// ---------------------------------------------------------------------------
+function TaskPoller({
   taskId,
-  index,
+  onUpdate,
 }: {
-  suggestion: SkillSuggestion;
   taskId: string;
-  index: number;
+  onUpdate: (task: Task) => void;
 }) {
   const { data: task } = useTask(taskId);
+  // Report task data to parent on each render
+  if (task) onUpdate(task);
+  return null;
+}
 
-  const isWorking =
-    task && ["submitted", "working", "input_required"].includes(task.status);
-  const isCompleted = task?.status === "completed";
-  const isFailed = task?.status === "failed";
+// ---------------------------------------------------------------------------
+// Progress bar for team completion
+// ---------------------------------------------------------------------------
+function TeamProgressBar({
+  completed,
+  failed,
+  total,
+}: {
+  completed: number;
+  failed: number;
+  total: number;
+}) {
+  const done = completed + failed;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
   return (
-    <div
-      className={cn(
-        "rounded-xl border bg-card transition-all",
-        isCompleted && "border-green-500/30",
-        isFailed && "border-red-500/30",
-        isWorking && "border-primary/30"
-      )}
-      style={{ animationDelay: `${index * 150}ms` }}
-      data-testid="team-task-card"
-    >
-      {/* Agent header */}
-      <div className="flex items-center gap-3 border-b p-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
-          {suggestion.agent.name.charAt(0)}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h3 className="truncate text-sm font-semibold">
-              {suggestion.agent.name}
-            </h3>
-            {suggestion.agent.reputation_score > 0 && (
-              <span className="flex items-center gap-0.5 text-[10px] text-amber-500">
-                <Star className="h-3 w-3 fill-current" />
-                {suggestion.agent.reputation_score.toFixed(1)}
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {suggestion.skill.name}
-          </p>
-        </div>
-        <div>
-          {isWorking && (
-            <Badge variant="outline" className="gap-1 border-primary/30 text-primary">
+    <div className="space-y-2">
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-muted-foreground">
+          {done < total ? (
+            <span className="flex items-center gap-2">
               <SpinningLogo spinning size="sm" />
-              Working
-            </Badge>
+              {completed} of {total} agents complete
+              {failed > 0 && (
+                <span className="text-red-400">({failed} failed)</span>
+              )}
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 text-green-500">
+              <CheckCircle2 className="h-4 w-4" />
+              All {total} agents complete
+            </span>
           )}
-          {isCompleted && (
-            <Badge variant="outline" className="border-green-500/30 text-green-500">
-              Done
-            </Badge>
-          )}
-          {isFailed && (
-            <Badge variant="outline" className="border-red-500/30 text-red-500">
-              Failed
-            </Badge>
-          )}
-        </div>
+        </span>
+        <span className="text-xs text-muted-foreground">{pct}%</span>
       </div>
-
-      {/* Results */}
-      <div className="p-4">
-        {isWorking && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <SpinningLogo spinning size="sm" />
-            <span>{suggestion.agent.name} is thinking...</span>
-          </div>
-        )}
-
-        {isCompleted && task.artifacts && task.artifacts.length > 0 && (
-          <div className="max-h-[500px] overflow-y-auto">
-            <TaskArtifactsDisplay artifacts={task.artifacts} />
-          </div>
-        )}
-
-        {isCompleted && (!task.artifacts || task.artifacts.length === 0) && (
-          <p className="text-sm text-muted-foreground">
-            Completed with no output artifacts.
-          </p>
-        )}
-
-        {isFailed && (
-          <p className="text-sm text-red-500">
-            This agent failed to complete the task. The credits have been refunded.
-          </p>
-        )}
+      <div className="h-2 rounded-full bg-muted">
+        <div
+          className={cn(
+            "h-full rounded-full transition-all duration-500",
+            done === total ? "bg-green-500" : "bg-primary"
+          )}
+          style={{ width: `${pct}%` }}
+        />
       </div>
     </div>
   );
 }
 
-// Suggestion card before dispatch
+// ---------------------------------------------------------------------------
+// Copy button
+// ---------------------------------------------------------------------------
+function CopyAllButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  function handleCopy() {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+  return (
+    <Button variant="outline" size="sm" onClick={handleCopy} className="gap-1.5">
+      {copied ? (
+        <>
+          <Check className="h-3.5 w-3.5" />
+          Copied
+        </>
+      ) : (
+        <>
+          <Copy className="h-3.5 w-3.5" />
+          Copy full report
+        </>
+      )}
+    </Button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Consolidated report — single merged document from all agents
+// ---------------------------------------------------------------------------
+function ConsolidatedReport({
+  suggestions,
+  taskMap,
+  goal,
+}: {
+  suggestions: SkillSuggestion[];
+  taskMap: Map<string, Task>;
+  goal: string;
+}) {
+  // Build a single markdown document with sections per agent
+  const { markdown, allDone, completedCount, failedCount } = useMemo(() => {
+    let completed = 0;
+    let failed = 0;
+    const sections: string[] = [];
+
+    sections.push(`# Team Report\n\n**Goal:** ${goal}\n\n---\n`);
+
+    for (const suggestion of suggestions) {
+      const task = taskMap.get(suggestion.agent.id);
+      if (!task) continue;
+
+      if (task.status === "completed" && task.artifacts?.length > 0) {
+        completed++;
+        const text = extractArtifactText(task.artifacts);
+        sections.push(
+          `## ${suggestion.skill.name}\n*By ${suggestion.agent.name}*\n\n${text}\n\n---\n`
+        );
+      } else if (task.status === "failed") {
+        failed++;
+        sections.push(
+          `## ${suggestion.skill.name}\n*By ${suggestion.agent.name}*\n\n> This agent failed to complete the task.\n\n---\n`
+        );
+      }
+    }
+
+    return {
+      markdown: sections.join("\n"),
+      allDone: completed + failed === suggestions.length,
+      completedCount: completed,
+      failedCount: failed,
+    };
+  }, [suggestions, taskMap, goal]);
+
+  const totalDone = completedCount + failedCount;
+
+  if (totalDone === 0) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-12 text-center">
+        <SpinningLogo spinning size="lg" />
+        <p className="text-sm text-muted-foreground">
+          Your team is working on this...
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Copy button */}
+      <div className="flex justify-end">
+        <CopyAllButton text={markdown} />
+      </div>
+
+      {/* Single merged report */}
+      <div className="rounded-xl border bg-card p-6" data-testid="consolidated-report">
+        <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:mt-6 prose-headings:mb-3 prose-h1:text-xl prose-h2:text-lg prose-h2:border-b prose-h2:pb-2 prose-hr:my-6 prose-pre:bg-muted prose-pre:text-sm prose-code:text-sm">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Agent status pills — compact row showing who's done
+// ---------------------------------------------------------------------------
+function AgentStatusRow({
+  suggestions,
+  taskMap,
+}: {
+  suggestions: SkillSuggestion[];
+  taskMap: Map<string, Task>;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {suggestions.map((s) => {
+        const task = taskMap.get(s.agent.id);
+        const status = task?.status;
+        const isWorking =
+          status && ["submitted", "working", "input_required"].includes(status);
+        const isCompleted = status === "completed";
+        const isFailed = status === "failed";
+
+        return (
+          <div
+            key={s.agent.id}
+            className={cn(
+              "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs",
+              isCompleted && "border-green-500/30 bg-green-500/5 text-green-500",
+              isFailed && "border-red-500/30 bg-red-500/5 text-red-400",
+              isWorking && "border-primary/30 bg-primary/5 text-primary",
+              !status && "border-border text-muted-foreground"
+            )}
+          >
+            {isWorking && <SpinningLogo spinning size="sm" />}
+            {isCompleted && <CheckCircle2 className="h-3 w-3" />}
+            {isFailed && <XCircle className="h-3 w-3" />}
+            <span className="font-medium">{s.skill.name}</span>
+            <span className="text-muted-foreground">
+              ({s.agent.name.replace("AI Agency: ", "")})
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Suggestion card (selection phase)
+// ---------------------------------------------------------------------------
 function TeamSuggestionCard({
   suggestion,
   selected,
@@ -145,14 +288,18 @@ function TeamSuggestionCard({
       <div
         className={cn(
           "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-sm font-bold",
-          selected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+          selected
+            ? "bg-primary text-primary-foreground"
+            : "bg-muted text-muted-foreground"
         )}
       >
         {suggestion.agent.name.charAt(0)}
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-semibold">{suggestion.agent.name}</span>
+          <span className="truncate text-sm font-semibold">
+            {suggestion.agent.name}
+          </span>
           <Badge variant="outline" className="text-[10px]">
             {suggestion.agent.category}
           </Badge>
@@ -165,7 +312,11 @@ function TeamSuggestionCard({
         <span
           className={cn(
             "text-xs font-semibold",
-            pct >= 60 ? "text-green-500" : pct >= 40 ? "text-amber-500" : "text-red-400"
+            pct >= 60
+              ? "text-green-500"
+              : pct >= 40
+                ? "text-amber-500"
+                : "text-red-400"
           )}
         >
           {pct}%
@@ -176,29 +327,35 @@ function TeamSuggestionCard({
   );
 }
 
-type Phase = "input" | "selecting" | "working" | "done";
+// ---------------------------------------------------------------------------
+// Main page
+// ---------------------------------------------------------------------------
+type Phase = "input" | "selecting" | "working";
 
 export default function TeamPage() {
   const { user } = useAuth();
   const [goal, setGoal] = useState("");
   const [phase, setPhase] = useState<Phase>("input");
   const [suggestions, setSuggestions] = useState<SkillSuggestion[]>([]);
-  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
-  const [taskIds, setTaskIds] = useState<string[]>([]);
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(
+    new Set()
+  );
+  const [taskIdsByAgent, setTaskIdsByAgent] = useState<Map<string, string>>(
+    new Map()
+  );
+  const [taskMap, setTaskMap] = useState<Map<string, Task>>(new Map());
   const [dispatching, setDispatching] = useState(false);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const createTask = useCreateTask();
 
-  // Deduplicate suggestions: one agent per category/division
   function deduplicateSuggestions(raw: SkillSuggestion[]): SkillSuggestion[] {
     const seen = new Set<string>();
     const result: SkillSuggestion[] = [];
     for (const s of raw) {
-      const key = s.agent.id;
-      if (!seen.has(key)) {
-        seen.add(key);
+      if (!seen.has(s.agent.id)) {
+        seen.add(s.agent.id);
         result.push(s);
       }
     }
@@ -209,21 +366,17 @@ export default function TeamPage() {
     if (goal.trim().length < 10) return;
     setSearching(true);
     setError(null);
-
     try {
-      const result = await suggestAgents({
-        message: goal.trim(),
-        limit: 8,
-      });
+      const result = await suggestAgents({ message: goal.trim(), limit: 8 });
       const unique = deduplicateSuggestions(result.suggestions);
       setSuggestions(unique);
-      // Pre-select top 4 (or all if fewer)
-      const preselect = new Set(unique.slice(0, 4).map((_, i) => i));
-      setSelectedIndices(preselect);
+      setSelectedIndices(new Set(unique.slice(0, 4).map((_, i) => i)));
       setPhase("selecting");
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to find agents. Please try again."
+        err instanceof Error
+          ? err.message
+          : "Failed to find agents. Please try again."
       );
     } finally {
       setSearching(false);
@@ -233,11 +386,8 @@ export default function TeamPage() {
   function toggleSelection(index: number) {
     setSelectedIndices((prev) => {
       const next = new Set(prev);
-      if (next.has(index)) {
-        next.delete(index);
-      } else {
-        next.add(index);
-      }
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
       return next;
     });
   }
@@ -246,15 +396,15 @@ export default function TeamPage() {
     if (selectedIndices.size === 0) return;
     setDispatching(true);
     setError(null);
-
     try {
       const selected = Array.from(selectedIndices).map((i) => suggestions[i]);
       const message = {
         role: "user",
-        parts: [{ type: "text", content: goal.trim(), data: null, mime_type: null }],
+        parts: [
+          { type: "text", content: goal.trim(), data: null, mime_type: null },
+        ],
       };
 
-      // Dispatch all tasks in parallel
       const results = await Promise.all(
         selected.map((s) =>
           createTask.mutateAsync({
@@ -265,17 +415,33 @@ export default function TeamPage() {
         )
       );
 
-      setTaskIds(results.map((t) => t.id));
-      // Reorder suggestions to match dispatched tasks
+      const idMap = new Map<string, string>();
+      selected.forEach((s, i) => idMap.set(s.agent.id, results[i].id));
+      setTaskIdsByAgent(idMap);
       setSuggestions(selected);
+      setTaskMap(new Map());
       setPhase("working");
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to dispatch tasks. Please try again."
+        err instanceof Error
+          ? err.message
+          : "Failed to dispatch tasks. Please try again."
       );
     } finally {
       setDispatching(false);
     }
+  }
+
+  function handleTaskUpdate(agentId: string, task: Task) {
+    setTaskMap((prev) => {
+      const existing = prev.get(agentId);
+      if (existing && existing.status === task.status && existing.artifacts?.length === task.artifacts?.length) {
+        return prev; // No change, avoid re-render
+      }
+      const next = new Map(prev);
+      next.set(agentId, task);
+      return next;
+    });
   }
 
   function handleReset() {
@@ -283,10 +449,18 @@ export default function TeamPage() {
     setPhase("input");
     setSuggestions([]);
     setSelectedIndices(new Set());
-    setTaskIds([]);
+    setTaskIdsByAgent(new Map());
+    setTaskMap(new Map());
     setError(null);
   }
 
+  // Compute progress
+  const completedCount = Array.from(taskMap.values()).filter(
+    (t) => t.status === "completed"
+  ).length;
+  const failedCount = Array.from(taskMap.values()).filter(
+    (t) => t.status === "failed"
+  ).length;
   const selectedCount = selectedIndices.size;
 
   return (
@@ -302,8 +476,8 @@ export default function TeamPage() {
           Assemble Your AI Team
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-          Describe your goal — we'll find the best specialists across all divisions and
-          dispatch them in parallel. Get multiple expert perspectives in one shot.
+          Describe your goal — we&apos;ll dispatch specialists in parallel and
+          deliver one consolidated report.
         </p>
       </div>
 
@@ -344,7 +518,6 @@ export default function TeamPage() {
             </div>
           </div>
 
-          {/* Starter prompts */}
           <div className="space-y-2" data-testid="team-starters">
             <p className="text-center text-xs text-muted-foreground">
               Try one of these:
@@ -373,7 +546,7 @@ export default function TeamPage() {
         </div>
       )}
 
-      {/* Phase: Selecting team members */}
+      {/* Phase: Selecting */}
       {phase === "selecting" && (
         <div className="space-y-6" data-testid="team-selection">
           <div className="rounded-lg border bg-muted/30 p-4">
@@ -392,8 +565,8 @@ export default function TeamPage() {
               </Button>
             </div>
             <p className="mb-4 text-sm text-muted-foreground">
-              Click to select/deselect agents. Each will work on your goal independently using
-              their specialty.
+              Select your team members. Their outputs will be merged into a
+              single consolidated report.
             </p>
             <div className="grid gap-3">
               {suggestions.map((s, i) => (
@@ -419,40 +592,65 @@ export default function TeamPage() {
               ) : (
                 <Zap className="h-4 w-4" />
               )}
-              Launch {selectedCount} Agent{selectedCount !== 1 ? "s" : ""} in Parallel
+              Launch {selectedCount} Agent{selectedCount !== 1 ? "s" : ""} in
+              Parallel
             </Button>
           </div>
         </div>
       )}
 
-      {/* Phase: Working / Done */}
-      {(phase === "working" || phase === "done") && (
+      {/* Phase: Working → Consolidated result */}
+      {phase === "working" && (
         <div className="space-y-6" data-testid="team-results">
+          {/* Invisible pollers — one per task */}
+          {suggestions.map((s) => {
+            const tid = taskIdsByAgent.get(s.agent.id);
+            if (!tid) return null;
+            return (
+              <TaskPoller
+                key={tid}
+                taskId={tid}
+                onUpdate={(task) => handleTaskUpdate(s.agent.id, task)}
+              />
+            );
+          })}
+
+          {/* Goal reminder */}
           <div className="rounded-lg border bg-muted/30 p-4">
             <p className="text-sm font-medium">Goal:</p>
             <p className="mt-1 text-sm text-muted-foreground">{goal}</p>
           </div>
 
+          {/* Progress */}
+          <TeamProgressBar
+            completed={completedCount}
+            failed={failedCount}
+            total={suggestions.length}
+          />
+
+          {/* Agent status pills */}
+          <AgentStatusRow suggestions={suggestions} taskMap={taskMap} />
+
+          {/* Actions */}
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">
-              Team Results ({taskIds.length} agents)
-            </h2>
-            <Button variant="outline" size="sm" onClick={handleReset} className="gap-1">
+            <h2 className="text-lg font-semibold">Consolidated Report</h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleReset}
+              className="gap-1"
+            >
               <RotateCcw className="h-3 w-3" />
               New Team
             </Button>
           </div>
 
-          <div className="grid gap-4">
-            {taskIds.map((id, i) => (
-              <TeamTaskCard
-                key={id}
-                suggestion={suggestions[i]}
-                taskId={id}
-                index={i}
-              />
-            ))}
-          </div>
+          {/* The single merged report */}
+          <ConsolidatedReport
+            suggestions={suggestions}
+            taskMap={taskMap}
+            goal={goal}
+          />
         </div>
       )}
 
