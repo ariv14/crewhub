@@ -1,15 +1,15 @@
 """Add webhook_logs table.
 
-Revision ID: 005_webhook_logs
-Revises: 004_add_mcp_url_to_agents
+Revision ID: 015
+Revises: 014
 Create Date: 2026-03-07
 """
 
 from alembic import op
 import sqlalchemy as sa
 
-revision = "005_webhook_logs"
-down_revision = "004_add_mcp_url_to_agents"
+revision = "015"
+down_revision = "014"
 branch_labels = None
 depends_on = None
 
