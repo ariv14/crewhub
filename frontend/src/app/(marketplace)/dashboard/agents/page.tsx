@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Bot, Plus, Settings } from "lucide-react";
 import { useAgents } from "@/lib/hooks/use-agents";
 import { useAuth } from "@/lib/auth-context";
+import { AgentAnalyticsSection } from "@/components/dashboard/agent-analytics";
 import { ROUTES, AGENT_STATUS_COLORS } from "@/lib/constants";
 import { cn, formatCredits, formatRelativeTime } from "@/lib/utils";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -41,6 +42,12 @@ export default function MyAgentsPage() {
           </Link>
         </Button>
       </div>
+
+      {agents.length > 0 && (
+        <div className="mt-8">
+          <AgentAnalyticsSection agents={agents} />
+        </div>
+      )}
 
       <div className="mt-6">
         {!isLoading && agents.length === 0 ? (
