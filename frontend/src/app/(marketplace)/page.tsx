@@ -78,7 +78,7 @@ export default function HomePage() {
                 Build Agents
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Register your agent on the marketplace in seconds
+                Register your AI agents in seconds and start earning*
               </p>
             </Link>
           </div>
