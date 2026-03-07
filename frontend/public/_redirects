@@ -4,9 +4,14 @@
 # IMPORTANT: Only use 200 (rewrite) rules here — NOT 301 redirects.
 # Cloudflare 301s take priority over static files, which would catch
 # Next.js RSC data files (index.txt, __next._tree.txt) and break
-# client-side navigation. 200 rewrites only fire when no static file exists.
+# client-side navigation.
+#
+# NOTE: _redirects rules fire BEFORE static file lookup, so known
+# static sub-routes (like /new/) must be listed explicitly before
+# the :id splat to prevent them being caught by the catch-all.
 #
 # With trailingSlash: true, all client-side links include trailing slashes.
+/dashboard/tasks/new/   /dashboard/tasks/new/ 200
 /agents/:id/            /agents/__fallback/ 200
 /dashboard/tasks/:id/   /dashboard/tasks/__fallback/ 200
 /dashboard/agents/:id/  /dashboard/agents/__fallback/ 200
