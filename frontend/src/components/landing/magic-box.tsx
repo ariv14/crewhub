@@ -120,37 +120,48 @@ export function MagicBox() {
       setSuggestions(result.suggestions);
       setSearched(true);
     } catch (err) {
-      // Fall back to public agent search for unauthenticated users
+      // Fall back to public agent list with client-side keyword matching
       if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
         try {
-          const agentResult = await listAgents({ q: query.trim(), per_page: 3 });
-          const fallback: SkillSuggestion[] = agentResult.agents
-            .filter((a) => a.skills.length > 0)
-            .map((a) => ({
-              agent: {
-                id: a.id,
-                name: a.name,
-                description: a.description,
-                version: a.version,
-                category: a.category,
-                reputation_score: a.reputation_score,
-                avg_latency_ms: a.avg_latency_ms,
-                total_tasks: a.total_tasks_completed,
-                skills: a.skills.map((s) => ({
-                  id: s.id,
-                  name: s.name,
-                  description: s.description,
-                })),
-              },
-              skill: {
-                id: a.skills[0].id,
-                name: a.skills[0].name,
-                description: a.skills[0].description,
-              },
-              confidence: 0.5,
-              reason: a.description,
-              low_confidence: true,
-            }));
+          const agentResult = await listAgents({ per_page: 100, status: "active" });
+          const words = query.trim().toLowerCase().split(/\s+/).filter((w) => w.length > 2);
+
+          // Score each agent+skill pair by keyword overlap
+          const scored: { agent: typeof agentResult.agents[0]; skill: typeof agentResult.agents[0]["skills"][0]; score: number }[] = [];
+          for (const a of agentResult.agents) {
+            const agentText = `${a.name} ${a.description} ${a.category} ${a.tags.join(" ")}`.toLowerCase();
+            for (const s of a.skills) {
+              const skillText = `${s.name} ${s.description}`.toLowerCase();
+              const combined = `${agentText} ${skillText}`;
+              const hits = words.filter((w) => combined.includes(w)).length;
+              if (hits > 0) scored.push({ agent: a, skill: s, score: hits / words.length });
+            }
+          }
+
+          scored.sort((a, b) => b.score - a.score);
+          const top = scored.slice(0, 3);
+
+          const fallback: SkillSuggestion[] = top.map(({ agent: a, skill: s, score }) => ({
+            agent: {
+              id: a.id,
+              name: a.name,
+              description: a.description,
+              version: a.version,
+              category: a.category,
+              reputation_score: a.reputation_score,
+              avg_latency_ms: a.avg_latency_ms,
+              total_tasks: a.total_tasks_completed,
+              skills: a.skills.map((sk) => ({
+                id: sk.id,
+                name: sk.name,
+                description: sk.description,
+              })),
+            },
+            skill: { id: s.id, name: s.name, description: s.description },
+            confidence: Math.min(score, 0.8),
+            reason: s.description,
+            low_confidence: score < 0.4,
+          }));
           setSuggestions(fallback);
           setSearched(true);
         } catch {
