@@ -56,10 +56,10 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 ### Immediate (this sprint)
 - [x] Write E2E test for register-agent flow (detect → review → register → success)
 - [x] Fix HF Space storage limit (>1GB, failing `upload_folder` deploys)
+- [x] Agent activity tab / task logs per agent
 - [ ] Merge staging → main (production deploy)
 
 ### Near-Term (Week 2+)
-- [ ] Agent activity tab / task logs per agent
 - [ ] Analytics dashboard for agent owners
 - [ ] Webhook logs viewer
 - [ ] Version bumping UI (patch/minor/major)
