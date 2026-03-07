@@ -122,6 +122,22 @@ async def cancel_task(
     return task
 
 
+@router.post("/{task_id}/confirm", response_model=TaskResponse)
+async def confirm_task(
+    task_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    user_id: UUID = Depends(resolve_db_user_id),
+) -> TaskResponse:
+    """Confirm a high-cost task that requires approval.
+
+    Reserves credits and dispatches the task to the provider agent.
+    Only works on tasks with ``pending_approval`` status.
+    """
+    service = TaskBrokerService(db)
+    task = await service.confirm_task(task_id=task_id, user_id=user_id)
+    return _enrich_task(task)
+
+
 @router.post("/{task_id}/rate", response_model=TaskResponse)
 async def rate_task(
     task_id: UUID,

@@ -1,6 +1,9 @@
 """Health monitor service -- check agent availability and track uptime."""
 
+import logging
 import time
+from collections import defaultdict
+from datetime import datetime, timezone
 
 import httpx
 from sqlalchemy import select
@@ -9,6 +12,76 @@ from sqlalchemy.orm import selectinload
 
 from src.config import settings
 from src.models.agent import Agent, AgentStatus
+
+logger = logging.getLogger(__name__)
+
+# In-memory circuit breaker state (fallback when Redis unavailable)
+_circuit_failures: dict[str, list[float]] = defaultdict(list)
+
+
+def is_circuit_open(agent_id: str) -> bool:
+    """Check if an agent's circuit breaker is open (too many recent failures).
+
+    Uses Redis if available, falls back to in-memory tracking.
+    Returns True if the agent should NOT receive new tasks.
+    """
+    from src.core.rate_limiter import _get_redis
+
+    threshold = settings.circuit_breaker_threshold
+    window = settings.circuit_breaker_window_seconds
+
+    # Try Redis first
+    try:
+        r = _get_redis()
+        if r:
+            key = f"circuit:{agent_id}:failures"
+            count = r.get(key)
+            return int(count or 0) >= threshold
+    except Exception:
+        pass
+
+    # In-memory fallback
+    now = time.time()
+    cutoff = now - window
+    failures = _circuit_failures[agent_id]
+    _circuit_failures[agent_id] = [t for t in failures if t > cutoff]
+    return len(_circuit_failures[agent_id]) >= threshold
+
+
+def record_circuit_failure(agent_id: str) -> None:
+    """Record a dispatch failure for circuit breaker tracking."""
+    from src.core.rate_limiter import _get_redis
+
+    window = settings.circuit_breaker_window_seconds
+
+    try:
+        r = _get_redis()
+        if r:
+            key = f"circuit:{agent_id}:failures"
+            pipe = r.pipeline()
+            pipe.incr(key)
+            pipe.expire(key, window)
+            pipe.execute()
+            return
+    except Exception:
+        pass
+
+    _circuit_failures[agent_id].append(time.time())
+
+
+def reset_circuit(agent_id: str) -> None:
+    """Reset circuit breaker on successful dispatch."""
+    from src.core.rate_limiter import _get_redis
+
+    try:
+        r = _get_redis()
+        if r:
+            r.delete(f"circuit:{agent_id}:failures")
+            return
+    except Exception:
+        pass
+
+    _circuit_failures.pop(agent_id, None)
 
 
 class HealthMonitorService:

@@ -1,0 +1,93 @@
+"""Analytics API — eval trends and agent performance metrics."""
+
+from datetime import datetime, timedelta, timezone
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
+from sqlalchemy import case, func, literal_column, select, text
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.config import settings
+from src.database import get_db
+from src.models.task import Task, TaskStatus
+
+router = APIRouter(prefix="/analytics", tags=["analytics"])
+
+
+class WeeklyTrend(BaseModel):
+    week: str  # ISO week label e.g. "2026-W10"
+    avg_quality: float | None
+    success_rate: float | None
+    avg_latency_ms: float | None
+    task_count: int
+
+
+class AgentTrendsResponse(BaseModel):
+    agent_id: str
+    trends: list[WeeklyTrend]
+
+
+def _week_columns():
+    """Return (year_col, week_col) compatible with both SQLite and PostgreSQL."""
+    if "sqlite" in settings.database_url:
+        yr = literal_column("CAST(strftime('%Y', created_at) AS INTEGER)").label("yr")
+        wk = literal_column("CAST(strftime('%W', created_at) AS INTEGER)").label("wk")
+    else:
+        from sqlalchemy import extract
+        yr = extract("isoyear", Task.created_at).label("yr")
+        wk = extract("week", Task.created_at).label("wk")
+    return yr, wk
+
+
+@router.get("/agent/{agent_id}/trends", response_model=AgentTrendsResponse)
+async def get_agent_trends(
+    agent_id: UUID,
+    weeks: int = Query(default=8, ge=1, le=52),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get weekly aggregated quality, success rate, and latency trends for an agent."""
+    cutoff = datetime.now(timezone.utc) - timedelta(weeks=weeks)
+    yr, wk = _week_columns()
+
+    stmt = (
+        select(
+            yr,
+            wk,
+            func.avg(Task.quality_score).label("avg_quality"),
+            func.avg(
+                case(
+                    (Task.status == TaskStatus.COMPLETED, 1.0),
+                    else_=0.0,
+                )
+            ).label("success_rate"),
+            func.avg(Task.latency_ms).label("avg_latency"),
+            func.count().label("cnt"),
+        )
+        .where(
+            Task.provider_agent_id == agent_id,
+            Task.created_at >= cutoff,
+            Task.status.in_([TaskStatus.COMPLETED, TaskStatus.FAILED]),
+        )
+        .group_by("yr", "wk")
+        .order_by("yr", "wk")
+    )
+
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    trends = []
+    for row in rows:
+        y = int(row.yr) if row.yr else 0
+        w = int(row.wk) if row.wk else 0
+        trends.append(
+            WeeklyTrend(
+                week=f"{y}-W{w:02d}",
+                avg_quality=round(float(row.avg_quality), 2) if row.avg_quality else None,
+                success_rate=round(float(row.success_rate), 2) if row.success_rate is not None else None,
+                avg_latency_ms=round(float(row.avg_latency), 0) if row.avg_latency else None,
+                task_count=int(row.cnt),
+            )
+        )
+
+    return AgentTrendsResponse(agent_id=str(agent_id), trends=trends)

@@ -37,6 +37,17 @@ export function useCreateTask() {
   });
 }
 
+export function useConfirmTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => tasksApi.confirmTask(id),
+    onSuccess: (_, id) => {
+      qc.invalidateQueries({ queryKey: ["tasks", id] });
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
+}
+
 export function useCancelTask() {
   const qc = useQueryClient();
   return useMutation({

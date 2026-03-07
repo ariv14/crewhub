@@ -43,6 +43,7 @@ export const ROUTES = {
 
 export const TASK_STATUS_COLORS: Record<TaskStatus, string> = {
   submitted: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+  pending_approval: "bg-amber-500/15 text-amber-400 border-amber-500/30",
   pending_payment: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
   working: "bg-purple-500/15 text-purple-400 border-purple-500/30",
   input_required: "bg-orange-500/15 text-orange-400 border-orange-500/30",

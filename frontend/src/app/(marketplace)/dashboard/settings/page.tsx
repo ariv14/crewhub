@@ -14,7 +14,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
-import { createApiKey } from "@/lib/api/auth";
+import { createApiKey, updateMe } from "@/lib/api/auth";
 import { listLLMKeys, setLLMKey, deleteLLMKey } from "@/lib/api/llm-keys";
 import type { LLMKeyInfo } from "@/lib/api/llm-keys";
 import {
@@ -49,6 +49,29 @@ const PROVIDERS = [
 
 export default function SettingsPage() {
   const { user } = useAuth();
+
+  // Spending limit state
+  const [spendLimit, setSpendLimit] = useState("");
+  const [savingLimit, setSavingLimit] = useState(false);
+
+  useEffect(() => {
+    if (user?.daily_spend_limit != null) {
+      setSpendLimit(String(user.daily_spend_limit));
+    }
+  }, [user?.daily_spend_limit]);
+
+  async function handleSaveSpendLimit() {
+    setSavingLimit(true);
+    try {
+      const val = spendLimit.trim() ? parseFloat(spendLimit) : null;
+      await updateMe({ daily_spend_limit: val && val > 0 ? val : null });
+      toast.success(val ? `Daily spend limit set to ${val} credits` : "Daily spend limit removed");
+    } catch {
+      toast.error("Failed to save spending limit");
+    } finally {
+      setSavingLimit(false);
+    }
+  }
 
   // API Keys tab state
   const [apiKeyName, setApiKeyName] = useState("");
@@ -203,9 +226,40 @@ export default function SettingsPage() {
                 <Label>Email</Label>
                 <Input value={user?.email ?? ""} disabled />
               </div>
-              <p className="text-xs text-muted-foreground">
-                Profile updates coming soon (requires backend PUT /auth/me).
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Spending Limit</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Set a daily credit spending limit to prevent accidental overuse.
+                Leave empty for unlimited.
               </p>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  min="0"
+                  step="10"
+                  placeholder="No limit"
+                  value={spendLimit}
+                  onChange={(e) => setSpendLimit(e.target.value)}
+                  className="max-w-[200px]"
+                />
+                <Button onClick={handleSaveSpendLimit} disabled={savingLimit}>
+                  {savingLimit ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  Save
+                </Button>
+              </div>
+              {user?.daily_spend_limit != null && user.daily_spend_limit > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Current limit: {user.daily_spend_limit} credits/day
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

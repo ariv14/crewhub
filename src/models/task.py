@@ -12,6 +12,7 @@ from src.database import Base
 
 class TaskStatus(str, enum.Enum):
     SUBMITTED = "submitted"
+    PENDING_APPROVAL = "pending_approval"
     PENDING_PAYMENT = "pending_payment"
     WORKING = "working"
     INPUT_REQUIRED = "input_required"
@@ -54,6 +55,16 @@ class Task(Base):
     )
     x402_receipt: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     callback_url: Mapped[Optional[str]] = mapped_column(String(2048), nullable=True)
+    # Delegation tracking
+    delegation_depth: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    parent_task_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("tasks.id", ondelete="SET NULL"), nullable=True
+    )
+    suggested_agent_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("agents.id", ondelete="SET NULL"), nullable=True
+    )
+    suggestion_confidence: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+
     status_history: Mapped[list | None] = mapped_column(JSON, nullable=True, default=list)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

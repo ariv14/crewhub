@@ -4,10 +4,13 @@ import { useState } from "react";
 import {
   AlertCircle,
   ArrowLeft,
+  CheckCircle,
   Clock,
   Copy,
   RefreshCw,
   Send,
+  ShieldAlert,
+  Star,
   XCircle,
 } from "lucide-react";
 import { SpinningLogo } from "@/components/shared/spinning-logo";
@@ -16,6 +19,7 @@ import { useParams, usePathname } from "next/navigation";
 import {
   useTask,
   useCancelTask,
+  useConfirmTask,
   useRateTask,
   useSendMessage,
 } from "@/lib/hooks/use-tasks";
@@ -124,6 +128,7 @@ function TaskTimeline({
 }) {
   const statusColors: Record<string, string> = {
     submitted: "bg-blue-500",
+    pending_approval: "bg-amber-500",
     working: "bg-purple-500",
     completed: "bg-green-500",
     failed: "bg-red-500",
@@ -134,6 +139,7 @@ function TaskTimeline({
   };
   const textColors: Record<string, string> = {
     submitted: "text-blue-500",
+    pending_approval: "text-amber-500",
     working: "text-purple-500",
     completed: "text-green-500",
     failed: "text-red-500",
@@ -210,6 +216,7 @@ export default function TaskDetailClient({
 
   const { data: task, isLoading, isError } = useTask(id);
   const cancelTask = useCancelTask();
+  const confirmTask = useConfirmTask();
   const rateTask = useRateTask(id);
   const sendMessage = useSendMessage(id);
   const [message, setMessage] = useState("");
@@ -243,13 +250,14 @@ export default function TaskDetailClient({
     );
   }
 
-  const canCancel = ["submitted", "pending_payment", "working"].includes(
+  const canCancel = ["submitted", "pending_approval", "pending_payment", "working"].includes(
     task.status
   );
   const canRate =
     task.status === "completed" && task.client_rating == null;
   const canMessage = task.status === "input_required";
   const isProcessing = ["submitted", "working"].includes(task.status);
+  const isPendingApproval = task.status === "pending_approval";
   const canRetry = ["failed", "canceled", "rejected"].includes(
     task.status
   );
@@ -351,6 +359,43 @@ export default function TaskDetailClient({
           createdAt={task.created_at}
         />
       </div>
+
+      {/* Pending Approval Banner */}
+      {isPendingApproval && (
+        <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
+          <div className="flex items-center gap-3">
+            <ShieldAlert className="h-5 w-5 text-amber-500" />
+            <div>
+              <p className="text-sm font-medium">
+                High-cost task requires confirmation
+              </p>
+              <p className="text-xs text-muted-foreground">
+                This task costs {formatCredits(task.credits_quoted)} credits.
+                Confirm to proceed or cancel.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={() => confirmTask.mutate(task.id)}
+              disabled={confirmTask.isPending}
+            >
+              <CheckCircle className="mr-2 h-4 w-4" />
+              {confirmTask.isPending ? "Confirming..." : "Confirm & Dispatch"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => cancelTask.mutate(task.id)}
+              disabled={cancelTask.isPending}
+            >
+              <XCircle className="mr-2 h-4 w-4" />
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Processing Banner */}
       {isProcessing && (
@@ -480,6 +525,15 @@ export default function TaskDetailClient({
                     {"★".repeat(task.client_rating)}
                     {"☆".repeat(5 - task.client_rating)}/5
                   </span>
+                </div>
+              )}
+              {task.quality_score != null && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <Star className="h-3 w-3" />
+                    Quality
+                  </span>
+                  <span>{task.quality_score.toFixed(1)}/5</span>
                 </div>
               )}
             </CardContent>

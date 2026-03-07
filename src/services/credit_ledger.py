@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import settings
-from src.core.exceptions import InsufficientCreditsError
+from src.core.exceptions import InsufficientCreditsError, SpendingLimitError
 from src.models.account import Account
 from src.models.task import Task
 from src.models.transaction import Transaction, TransactionType
@@ -97,6 +97,37 @@ class CreditLedgerService:
     # Reserve
     # ------------------------------------------------------------------
 
+    async def check_daily_spend(self, owner_id: UUID, additional: float = 0) -> None:
+        """Check if a user would exceed their daily spending limit.
+
+        Raises SpendingLimitError if the user's daily spend + additional
+        would exceed their configured limit.
+        """
+        from src.models.user import User
+
+        user = await self.db.get(User, owner_id)
+        limit = user.daily_spend_limit if user else None
+        if not limit or limit <= 0:
+            return  # No limit set
+
+        today_start = datetime.now(timezone.utc).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        account = await self.get_or_create_account(owner_id)
+
+        spent_stmt = select(func.coalesce(func.sum(Transaction.amount), 0)).where(
+            Transaction.from_account_id == account.id,
+            Transaction.type == TransactionType.TASK_PAYMENT,
+            Transaction.created_at >= today_start,
+        )
+        today_spent = float((await self.db.execute(spent_stmt)).scalar_one())
+
+        if today_spent + additional > limit:
+            raise SpendingLimitError(
+                detail=f"Daily spending limit of {limit} credits would be exceeded "
+                f"(spent today: {today_spent:.1f}, requested: {additional:.1f})"
+            )
+
     async def reserve_credits(
         self, owner_id: UUID, amount: float, task_id: UUID | None = None
     ) -> None:
@@ -107,6 +138,9 @@ class CreditLedgerService:
 
         Raises InsufficientCreditsError if available balance is too low.
         """
+        # Check daily spending limit before reserving
+        await self.check_daily_spend(owner_id, amount)
+
         dec_amount = Decimal(str(amount))
 
         # Lock the row to prevent concurrent over-reservation

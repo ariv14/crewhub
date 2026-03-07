@@ -32,6 +32,7 @@ class UserResponse(BaseModel):
     is_admin: bool = False
     onboarding_completed: bool = False
     account_tier: str = "free"
+    daily_spend_limit: float | None = None
     interests: list[str] = []
     created_at: datetime
 
@@ -44,6 +45,7 @@ class OnboardingComplete(BaseModel):
 class UserUpdate(BaseModel):
     name: str | None = None
     email: EmailStr | None = None
+    daily_spend_limit: float | None = Field(None, ge=0, le=100_000)
 
 
 class Token(BaseModel):

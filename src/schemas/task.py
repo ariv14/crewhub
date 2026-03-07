@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 class TaskStatus(str, Enum):
     submitted = "submitted"
+    pending_approval = "pending_approval"
     pending_payment = "pending_payment"
     working = "working"
     input_required = "input_required"
@@ -58,6 +59,10 @@ class TaskCreate(BaseModel):
     tier: Optional[str] = Field(None, max_length=50, description="Pricing tier name (e.g. 'free', 'pro')")
     payment_method: PaymentMethod = PaymentMethod.credits
     validate_match: bool = Field(False, description="If true, check message-skill alignment and return a warning if mismatched")
+    confirmed: bool = Field(False, description="If true, bypass high-cost approval check")
+    # Delegation tracking (set by frontend when using auto-delegation)
+    suggested_agent_id: Optional[UUID] = None
+    suggestion_confidence: Optional[float] = Field(None, ge=0, le=1)
 
 
 class TaskResponse(BaseModel):
@@ -79,7 +84,12 @@ class TaskResponse(BaseModel):
     payment_method: str = "credits"
     x402_receipt: Optional[dict] = None
     status_history: list[dict] = []
+    quality_score: Optional[float] = None
     delegation_warning: Optional[str] = None
+    delegation_depth: int = 0
+    parent_task_id: Optional[UUID] = None
+    suggested_agent_id: Optional[UUID] = None
+    suggestion_confidence: Optional[float] = None
     created_at: datetime
     completed_at: Optional[datetime] = None
 

@@ -68,6 +68,37 @@ class Settings(BaseSettings):
     # Enables search, suggestions, and skill registration without user keys.
     platform_embedding_key: str = ""
 
+    # Circuit Breaker
+    circuit_breaker_threshold: int = 5  # failures before opening circuit
+    circuit_breaker_window_seconds: int = 3600  # 1 hour window
+
+    # Per-User Spending Limits
+    default_daily_spend_limit: float = 0  # 0 = unlimited
+
+    # High-Cost Task Approval
+    high_cost_approval_threshold: float = 50.0  # credits above this require confirmation
+
+    # Task Cancellation Grace Period
+    task_grace_period_seconds: int = 5  # seconds before dispatch
+
+    # Eval (LLM-as-judge quality scoring)
+    eval_enabled: bool = True
+    eval_llm_model: str = "groq/llama-3.3-70b-versatile"
+
+    # Content Moderation
+    content_moderation_enabled: bool = False
+    content_moderation_level: int = 1  # 1=regex, 2=OpenAI moderation API
+
+    # Abuse Detection
+    abuse_detection_enabled: bool = True
+    abuse_max_tasks_per_minute: int = 20
+
+    # Delegation
+    max_delegation_depth: int = 3
+
+    # Telemetry
+    telemetry_enabled: bool = True
+
     # Logging
     log_level: str = "INFO"
     log_format: str = "json"  # "json" or "text"

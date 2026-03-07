@@ -44,6 +44,10 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=sa.true())
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa.false())
     onboarding_completed: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa.false())
+    daily_spend_limit: Mapped[Optional[float]] = mapped_column(
+        sa.Float, nullable=True, default=None,
+        comment="Max credits per day (NULL = unlimited)"
+    )
     interests: Mapped[list | None] = mapped_column(JSON, nullable=True, default=list)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

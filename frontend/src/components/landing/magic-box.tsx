@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Loader2, Sparkles, Star, Zap } from "lucide-react";
+import { AlertTriangle, ArrowRight, Loader2, Sparkles, Star, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { suggestAgents } from "@/lib/api/tasks";
 import { listAgents } from "@/lib/api/agents";
 import { ApiError } from "@/lib/api-client";
+import { FeedbackThumbs } from "@/components/shared/feedback-thumbs";
 import type { SkillSuggestion } from "@/types/task";
 
 const STARTERS = [
@@ -87,15 +88,28 @@ function SuggestionCard({
         <ConfidenceBar confidence={confidence} />
       </div>
 
-      <div className="mt-2 flex items-center gap-2">
-        <Badge variant="outline" className="text-[10px]">
-          {agent.category}
-        </Badge>
-        {agent.total_tasks > 0 && (
-          <span className="text-[10px] text-muted-foreground">
-            {agent.total_tasks} tasks completed
-          </span>
-        )}
+      {suggestion.low_confidence && (
+        <div className="mt-2 flex items-center gap-1.5 rounded-md border border-orange-500/30 bg-orange-500/5 px-2 py-1 text-[11px] text-orange-400">
+          <AlertTriangle className="h-3 w-3 shrink-0" />
+          Low confidence match — results may vary
+        </div>
+      )}
+
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-[10px]">
+            {agent.category}
+          </Badge>
+          {agent.total_tasks > 0 && (
+            <span className="text-[10px] text-muted-foreground">
+              {agent.total_tasks} tasks completed
+            </span>
+          )}
+        </div>
+        <FeedbackThumbs
+          context="suggestion"
+          contextId={`${agent.id}:${skill.id}`}
+        />
       </div>
     </a>
   );

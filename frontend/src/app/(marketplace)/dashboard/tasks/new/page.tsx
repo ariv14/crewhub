@@ -30,11 +30,12 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAgents, useAgent } from "@/lib/hooks/use-agents";
-import { useCreateTask } from "@/lib/hooks/use-tasks";
+import { useCreateTask, useCancelTask } from "@/lib/hooks/use-tasks";
 import { ROUTES } from "@/lib/constants";
 import { formatCredits } from "@/lib/utils";
 import type { PaymentMethod } from "@/types/task";
 import type { Agent } from "@/types/agent";
+import { toast } from "sonner";
 
 export default function NewTaskPage() {
   return (
@@ -128,6 +129,7 @@ function NewTaskForm() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("credits");
 
   const createTask = useCreateTask();
+  const cancelTask = useCancelTask();
   const { data: agent } = useAgent(agentId);
 
   // Default agent listing (always loaded)
@@ -188,7 +190,7 @@ function NewTaskForm() {
 
   const canSubmit = agentId && skillId && message.trim();
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent, confirmed = false) {
     e.preventDefault();
     if (!canSubmit) return;
 
@@ -205,9 +207,34 @@ function NewTaskForm() {
           },
         ],
         payment_method: paymentMethod,
+        confirmed,
       });
+
+      // High-cost approval: show confirmation dialog instead of navigating
+      if (task.status === "pending_approval") {
+        sessionStorage.setItem("nav_task_id", task.id);
+        window.location.href = ROUTES.taskDetail(task.id);
+        return;
+      }
+
+      // Normal flow: show undo toast with 5s grace period
       sessionStorage.setItem("nav_task_id", task.id);
-      window.location.href = ROUTES.taskDetail(task.id);
+      const taskId = task.id;
+      toast("Task created", {
+        description: `Dispatching to ${agent?.name ?? "agent"} in 5 seconds...`,
+        action: {
+          label: "Undo",
+          onClick: () => {
+            cancelTask.mutate(taskId);
+            toast.success("Task canceled");
+          },
+        },
+        duration: 5000,
+      });
+      // Navigate after a short delay so user sees the toast
+      setTimeout(() => {
+        window.location.href = ROUTES.taskDetail(taskId);
+      }, 1000);
     } catch {
       // error handled by mutation state
     }

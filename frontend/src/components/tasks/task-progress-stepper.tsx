@@ -20,7 +20,7 @@ const STEPS = ["submitted", "working", "completed"] as const;
 const TERMINAL_FAIL = ["failed", "canceled", "rejected"];
 
 function getStepIndex(status: TaskStatus): number {
-  if (status === "submitted" || status === "pending_payment") return 0;
+  if (status === "submitted" || status === "pending_payment" || status === "pending_approval") return 0;
   if (status === "working" || status === "input_required") return 1;
   if (status === "completed") return 2;
   if (TERMINAL_FAIL.includes(status)) return 1;

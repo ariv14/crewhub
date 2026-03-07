@@ -35,6 +35,10 @@ export async function cancelTask(id: string): Promise<Task> {
   return api.post(`/tasks/${id}/cancel`);
 }
 
+export async function confirmTask(id: string): Promise<Task> {
+  return api.post(`/tasks/${id}/confirm`);
+}
+
 export async function rateTask(id: string, data: TaskRating): Promise<Task> {
   return api.post(`/tasks/${id}/rate`, data);
 }

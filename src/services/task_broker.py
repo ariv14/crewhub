@@ -12,7 +12,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.config import settings
-from src.core.exceptions import ForbiddenError, MarketplaceError, NotFoundError, QuotaExceededError
+from src.core.exceptions import (
+    AgentUnavailableError,
+    AbuseDetectedError,
+    ContentModerationError,
+    DelegationDepthError,
+    ForbiddenError,
+    MarketplaceError,
+    NotFoundError,
+    QuotaExceededError,
+    SpendingLimitError,
+)
 from src.models.agent import Agent, AgentStatus
 from src.models.skill import AgentSkill
 from src.models.task import Task, TaskStatus
@@ -65,6 +75,35 @@ class TaskBrokerService:
             5. Create task record with status=submitted.
             6. Return task.
         """
+        # 0a. Abuse detection — rate limit task creation per user
+        from src.services.abuse_detector import check_task_creation_rate
+        check_task_creation_rate(str(user_id))
+
+        # 0b. Content moderation — check input messages
+        from src.services.content_filter import check_input
+        for msg in data.messages:
+            if hasattr(msg, "text") and msg.text:
+                check_input(msg.text)
+            elif hasattr(msg, "parts"):
+                for part in msg.parts or []:
+                    if isinstance(part, dict) and part.get("text"):
+                        check_input(part["text"])
+
+        # 0c. Circuit breaker check
+        from src.services.health_monitor import is_circuit_open
+        if is_circuit_open(str(data.provider_agent_id)):
+            raise AgentUnavailableError(
+                detail=f"Agent {data.provider_agent_id} is temporarily unavailable due to recent failures"
+            )
+
+        # 0d. Delegation depth check
+        if client_agent_id:
+            depth = await self._resolve_delegation_depth(data.parent_task_id)
+            if depth >= settings.max_delegation_depth:
+                raise DelegationDepthError(
+                    detail=f"Maximum delegation depth of {settings.max_delegation_depth} exceeded"
+                )
+
         # 1. Verify provider
         provider = await self._get_active_agent(data.provider_agent_id)
 
@@ -98,7 +137,33 @@ class TaskBrokerService:
             self._resolve_credits(provider, data.max_credits, skill.avg_credits, data.tier)
         ))
 
-        # 3c. Handle payment based on method
+        # 3c. High-cost approval gate
+        if (
+            float(credits_quoted) > settings.high_cost_approval_threshold
+            and not data.confirmed
+        ):
+            # Create task in pending_approval state without reserving credits
+            now = datetime.now(timezone.utc)
+            task = Task(
+                creator_user_id=user_id,
+                client_agent_id=client_agent_id,
+                provider_agent_id=provider.id,
+                skill_id=skill.id,
+                status=TaskStatus.PENDING_APPROVAL,
+                messages=[m.model_dump() for m in data.messages],
+                artifacts=[],
+                credits_quoted=credits_quoted,
+                payment_method=payment_method,
+                suggested_agent_id=data.suggested_agent_id,
+                suggestion_confidence=data.suggestion_confidence,
+                status_history=[{"status": "pending_approval", "at": now.isoformat()}],
+            )
+            self.db.add(task)
+            await self.db.commit()
+            await self.db.refresh(task)
+            return task
+
+        # 3d. Handle payment based on method
         if payment_method == "credits":
             if credits_quoted > 0:
                 await self.credit_ledger.reserve_credits(
@@ -113,6 +178,7 @@ class TaskBrokerService:
 
         # 4. Create task
         now = datetime.now(timezone.utc)
+        depth = await self._resolve_delegation_depth(data.parent_task_id) if client_agent_id else 0
         task = Task(
             creator_user_id=user_id,
             client_agent_id=client_agent_id,
@@ -123,6 +189,10 @@ class TaskBrokerService:
             artifacts=[],
             credits_quoted=credits_quoted,
             payment_method=payment_method,
+            delegation_depth=depth,
+            parent_task_id=data.parent_task_id,
+            suggested_agent_id=data.suggested_agent_id,
+            suggestion_confidence=data.suggestion_confidence,
             status_history=[{"status": initial_status.value, "at": now.isoformat()}],
         )
         self.db.add(task)
@@ -134,12 +204,15 @@ class TaskBrokerService:
         # tasks cause race conditions with test assertions.
         _in_tests = "pytest" in sys.modules
         if initial_status == TaskStatus.SUBMITTED and provider.endpoint and not _in_tests:
+            grace = settings.task_grace_period_seconds
             asyncio.create_task(
-                self._dispatch_to_agent(
+                self._dispatch_with_grace_period(
                     task_id=task.id,
                     agent_endpoint=provider.endpoint,
                     skill_id=skill.skill_key,
                     messages=[m.model_dump() for m in data.messages],
+                    provider_agent_id=provider.id,
+                    grace_seconds=grace,
                 )
             )
 
@@ -318,11 +391,50 @@ class TaskBrokerService:
     # ------------------------------------------------------------------
 
     @staticmethod
+    async def _dispatch_with_grace_period(
+        task_id: UUID,
+        agent_endpoint: str,
+        skill_id: str,
+        messages: list[dict],
+        provider_agent_id: UUID | None = None,
+        grace_seconds: int = 5,
+    ) -> None:
+        """Wait for grace period, then dispatch if task hasn't been canceled."""
+        from src.database import async_session
+
+        if grace_seconds > 0:
+            await asyncio.sleep(grace_seconds)
+
+            # Re-check task status — user may have canceled during grace period
+            try:
+                async with async_session() as db:
+                    broker = TaskBrokerService(db)
+                    task = await broker.get_task(task_id)
+                    if broker._is_terminal(task.status):
+                        logger.info(
+                            "Task %s canceled during grace period (status=%s), skipping dispatch",
+                            task_id, broker._status_value(task.status),
+                        )
+                        return
+            except Exception:
+                logger.exception("Failed to check task %s status after grace period", task_id)
+                return
+
+        await TaskBrokerService._dispatch_to_agent(
+            task_id=task_id,
+            agent_endpoint=agent_endpoint,
+            skill_id=skill_id,
+            messages=messages,
+            provider_agent_id=provider_agent_id,
+        )
+
+    @staticmethod
     async def _dispatch_to_agent(
         task_id: UUID,
         agent_endpoint: str,
         skill_id: str,
         messages: list[dict],
+        provider_agent_id: UUID | None = None,
     ) -> None:
         """Call the agent's A2A endpoint and update the task with the result.
 
@@ -332,6 +444,9 @@ class TaskBrokerService:
         """
         from src.database import async_session
         from src.services.a2a_gateway import A2AGatewayService
+        from src.services.health_monitor import record_circuit_failure, reset_circuit
+
+        agent_id_str = str(provider_agent_id) if provider_agent_id else None
 
         try:
             async with async_session() as db:
@@ -362,20 +477,40 @@ class TaskBrokerService:
                     return
 
                 if agent_status == "completed" and artifacts:
+                    # Content moderation on output
+                    try:
+                        from src.services.content_filter import check_output
+                        for artifact in artifacts:
+                            for part in artifact.get("parts", []):
+                                if isinstance(part, dict) and part.get("text"):
+                                    check_output(part["text"])
+                    except ContentModerationError:
+                        logger.warning("Task %s output blocked by content moderation", task_id)
+                        await broker.update_task_status(task_id, TaskStatus.FAILED)
+                        return
+
                     await broker.update_task_status(
                         task_id, TaskStatus.COMPLETED, artifacts=artifacts
                     )
+                    if agent_id_str:
+                        reset_circuit(agent_id_str)
                 elif agent_status == "failed":
                     await broker.update_task_status(task_id, TaskStatus.FAILED)
+                    if agent_id_str:
+                        record_circuit_failure(agent_id_str)
                 elif "error" in response:
                     logger.warning(
                         "A2A dispatch error for task %s: %s",
                         task_id, response["error"],
                     )
                     await broker.update_task_status(task_id, TaskStatus.FAILED)
+                    if agent_id_str:
+                        record_circuit_failure(agent_id_str)
 
         except Exception:
             logger.exception("A2A dispatch failed for task %s to %s", task_id, agent_endpoint)
+            if agent_id_str:
+                record_circuit_failure(agent_id_str)
             try:
                 async with async_session() as db:
                     broker = TaskBrokerService(db)
@@ -549,6 +684,13 @@ class TaskBrokerService:
             if task.provider_agent:
                 await self._update_provider_stats(task.provider_agent)
 
+            # Trigger quality scoring and reputation update in background
+            _in_tests = "pytest" in sys.modules
+            if not _in_tests:
+                asyncio.create_task(
+                    self._run_eval_and_reputation(task.id, task.provider_agent_id)
+                )
+
         elif status == TaskStatus.FAILED:
             # Release reserved credits
             quoted = float(task.credits_quoted or 0)
@@ -615,6 +757,55 @@ class TaskBrokerService:
 
         await self.db.commit()
         await self.db.refresh(task)
+        return task
+
+    # ------------------------------------------------------------------
+    # Confirm high-cost task
+    # ------------------------------------------------------------------
+
+    async def confirm_task(self, task_id: UUID, user_id: UUID) -> Task:
+        """Confirm a pending_approval task — reserve credits and dispatch."""
+        task = await self.get_task(task_id, user_id=user_id)
+
+        status_val = self._status_value(task.status)
+        if status_val != "pending_approval":
+            raise ForbiddenError(
+                detail=f"Can only confirm tasks in 'pending_approval' state, got '{status_val}'"
+            )
+
+        # Reserve credits
+        quoted = float(task.credits_quoted or 0)
+        if quoted > 0 and task.payment_method == "credits":
+            await self.credit_ledger.reserve_credits(
+                owner_id=user_id,
+                amount=quoted,
+                task_id=task.id,
+            )
+
+        # Transition to submitted
+        task.status = TaskStatus.SUBMITTED
+        history = list(task.status_history or [])
+        history.append({"status": "submitted", "at": datetime.now(timezone.utc).isoformat()})
+        task.status_history = history
+
+        await self.db.commit()
+        await self.db.refresh(task)
+
+        # Dispatch (no grace period for confirmed tasks — user already approved)
+        provider = task.provider_agent
+        skill = task.skill
+        _in_tests = "pytest" in sys.modules
+        if provider and provider.endpoint and skill and not _in_tests:
+            asyncio.create_task(
+                self._dispatch_to_agent(
+                    task_id=task.id,
+                    agent_endpoint=provider.endpoint,
+                    skill_id=skill.skill_key,
+                    messages=list(task.messages or []),
+                    provider_agent_id=provider.id,
+                )
+            )
+
         return task
 
     # ------------------------------------------------------------------
@@ -973,6 +1164,24 @@ class TaskBrokerService:
             "artifact_count": len(task.artifacts),
         }
 
+    @staticmethod
+    async def _run_eval_and_reputation(task_id: UUID, provider_agent_id: UUID | None) -> None:
+        """Background: score the task quality, then update agent reputation."""
+        from src.database import async_session
+
+        try:
+            async with async_session() as db:
+                from src.services.eval_service import EvalService
+                eval_svc = EvalService(db)
+                await eval_svc.score_response(task_id)
+
+                if provider_agent_id:
+                    from src.services.reputation import ReputationService
+                    rep_svc = ReputationService(db)
+                    await rep_svc.update_reputation(provider_agent_id)
+        except Exception:
+            logger.exception("Eval/reputation update failed for task %s", task_id)
+
     async def _update_provider_stats(self, provider: Agent) -> None:
         """Recalculate total_tasks_completed, success_rate, and avg_latency_ms."""
         completed_count_stmt = select(func.count()).where(
@@ -1000,3 +1209,13 @@ class TaskBrokerService:
         provider.total_tasks_completed = completed
         provider.success_rate = (completed / total) if total > 0 else 0.0
         provider.avg_latency_ms = float(avg_lat) if avg_lat else 0.0
+
+    async def _resolve_delegation_depth(self, parent_task_id: UUID | None) -> int:
+        """Look up delegation depth from parent task chain."""
+        if not parent_task_id:
+            return 0
+        result = await self.db.execute(
+            select(Task.delegation_depth).where(Task.id == parent_task_id)
+        )
+        parent_depth = result.scalar_one_or_none()
+        return (parent_depth or 0) + 1

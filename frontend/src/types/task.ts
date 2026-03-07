@@ -1,5 +1,6 @@
 export type TaskStatus =
   | "submitted"
+  | "pending_approval"
   | "pending_payment"
   | "working"
   | "input_required"
@@ -36,6 +37,9 @@ export interface TaskCreate {
   tier?: string;
   payment_method?: PaymentMethod;
   validate_match?: boolean;
+  confirmed?: boolean;
+  suggested_agent_id?: string;
+  suggestion_confidence?: number;
 }
 
 export interface Task {
@@ -55,7 +59,12 @@ export interface Task {
   payment_method: string;
   x402_receipt: Record<string, unknown> | null;
   status_history: { status: string; at: string }[] | null;
+  quality_score: number | null;
   delegation_warning: string | null;
+  delegation_depth: number;
+  parent_task_id: string | null;
+  suggested_agent_id: string | null;
+  suggestion_confidence: number | null;
   created_at: string;
   completed_at: string | null;
 }

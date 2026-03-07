@@ -5,6 +5,7 @@ export interface User {
   is_active: boolean;
   is_admin?: boolean;
   onboarding_completed?: boolean;
+  daily_spend_limit?: number | null;
   interests?: string[];
   created_at: string;
 }
@@ -23,6 +24,7 @@ export interface Token {
 export interface UserUpdate {
   name?: string;
   email?: string;
+  daily_spend_limit?: number | null;
 }
 
 export interface ApiKeyCreate {

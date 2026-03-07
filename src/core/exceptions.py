@@ -71,3 +71,31 @@ class AgentUnavailableError(MarketplaceError):
 
     def __init__(self, detail: str = "Agent unavailable"):
         super().__init__(status_code=503, detail=detail)
+
+
+class SpendingLimitError(MarketplaceError):
+    """User has exceeded their daily spending limit."""
+
+    def __init__(self, detail: str = "Daily spending limit exceeded"):
+        super().__init__(status_code=429, detail=detail)
+
+
+class ContentModerationError(MarketplaceError):
+    """Content failed moderation checks."""
+
+    def __init__(self, detail: str = "Content blocked by moderation policy"):
+        super().__init__(status_code=422, detail=detail)
+
+
+class AbuseDetectedError(MarketplaceError):
+    """Abusive behavior detected."""
+
+    def __init__(self, detail: str = "Suspicious activity detected"):
+        super().__init__(status_code=429, detail=detail)
+
+
+class DelegationDepthError(MarketplaceError):
+    """Delegation chain too deep."""
+
+    def __init__(self, detail: str = "Maximum delegation depth exceeded"):
+        super().__init__(status_code=400, detail=detail)
