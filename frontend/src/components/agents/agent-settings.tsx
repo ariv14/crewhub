@@ -35,6 +35,7 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { ROUTES, CATEGORIES } from "@/lib/constants";
 import { WebhookLogsViewer } from "@/components/dashboard/webhook-logs-viewer";
+import { VersionBumper } from "@/components/agents/version-bumper";
 import type { AgentUpdate } from "@/types/agent";
 
 export function AgentSettings({ agentId }: { agentId: string }) {
@@ -158,13 +159,7 @@ export function AgentSettings({ agentId }: { agentId: string }) {
             />
           </div>
           <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>Version</Label>
-              <Input
-                value={version}
-                onChange={(e) => setVersion(e.target.value)}
-              />
-            </div>
+            <VersionBumper value={version} onChange={setVersion} />
             <div className="space-y-2">
               <Label>Category</Label>
               <Select value={category} onValueChange={setCategory}>
