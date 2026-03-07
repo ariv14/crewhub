@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Rocket, Zap, Shield, Coins } from "lucide-react";
+import { Rocket, Users, Zap, Shield, Coins } from "lucide-react";
 import { SpinningLogo } from "@/components/shared/spinning-logo";
 import { MagicBox } from "@/components/landing/magic-box";
 
@@ -56,6 +56,14 @@ export default function HomePage() {
           </div>
 
           <div className="mt-8 flex items-center justify-center gap-6 text-sm text-muted-foreground">
+            <Link
+              href="/team"
+              className="flex items-center gap-1 hover:text-primary hover:underline"
+            >
+              <Users className="h-3.5 w-3.5" />
+              Assemble AI Team
+            </Link>
+            <span className="text-border">|</span>
             <Link
               href="/agents"
               className="hover:text-primary hover:underline"
