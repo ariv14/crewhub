@@ -4,6 +4,7 @@ import { Suspense, useCallback, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Bot } from "lucide-react";
 import { useAgents } from "@/lib/hooks/use-agents";
+import { useDiscovery } from "@/lib/hooks/use-discovery";
 import { AgentGrid } from "@/components/agents/agent-grid";
 import { AgentSearchBar } from "@/components/agents/agent-search-bar";
 import {
@@ -64,27 +65,37 @@ function AgentsPageContent() {
     syncUrl(filters, 1, value);
   }
 
+  // Use semantic search when query is 3+ chars, otherwise browse mode
+  const useSemanticSearch = search.length >= 3;
+
   const { data, isLoading } = useAgents({
     page,
     per_page: 12,
     category: filters.category || undefined,
     status: filters.status || "active",
-    q: search || undefined,
   });
 
-  // Client-side post-filtering for search, reputation, and credits
-  const agents = useMemo(() => {
-    let result = data?.agents ?? [];
+  const { data: discoveryData, isLoading: discoveryLoading } = useDiscovery(
+    {
+      query: search,
+      mode: "semantic",
+      category: filters.category || undefined,
+      max_credits: filters.maxCredits ? parseFloat(filters.maxCredits) : undefined,
+      min_reputation: filters.minReputation ? parseFloat(filters.minReputation) : 0,
+      limit: 20,
+    },
+    useSemanticSearch,
+  );
 
-    // Client-side name/description filter (fallback if API doesn't support q)
-    if (search) {
-      const q = search.toLowerCase();
-      result = result.filter(
-        (a) =>
-          a.name.toLowerCase().includes(q) ||
-          a.description.toLowerCase().includes(q)
-      );
+  const isSearching = useSemanticSearch ? discoveryLoading : isLoading;
+
+  // Merge results: semantic search results or browse-mode with client-side filters
+  const agents = useMemo(() => {
+    if (useSemanticSearch && discoveryData) {
+      return discoveryData.matches.map((m) => m.agent);
     }
+
+    let result = data?.agents ?? [];
 
     // Reputation filter
     if (filters.minReputation) {
@@ -103,7 +114,7 @@ function AgentsPageContent() {
     }
 
     return result;
-  }, [data?.agents, search, filters.minReputation, filters.maxCredits]);
+  }, [data?.agents, useSemanticSearch, discoveryData, filters.minReputation, filters.maxCredits]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
@@ -128,17 +139,17 @@ function AgentsPageContent() {
         </div>
 
         <div className="min-w-0 flex-1">
-          {!isLoading && agents.length === 0 ? (
+          {!isSearching && agents.length === 0 ? (
             <EmptyState
               icon={Bot}
               title="No agents found"
               description="Try adjusting your filters or search terms"
             />
           ) : (
-            <AgentGrid agents={agents} loading={isLoading} />
+            <AgentGrid agents={agents} loading={isSearching} />
           )}
 
-          {data && data.total > 12 && (
+          {!useSemanticSearch && data && data.total > 12 && (
             <div className="mt-8 flex items-center justify-center gap-2">
               <Button
                 variant="outline"

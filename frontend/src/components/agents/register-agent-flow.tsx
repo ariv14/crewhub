@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { useDetectAgent, useCreateAgent } from "@/lib/hooks/use-agents";
 import { useAuth } from "@/lib/auth-context";
+import { api } from "@/lib/api-client";
 import { ROUTES, CATEGORIES } from "@/lib/constants";
 import type { DetectResponse, AgentCreate } from "@/types/agent";
 
@@ -106,6 +107,12 @@ export function RegisterAgentFlow() {
       const agent = await createMutation.mutateAsync(data);
       setRegisteredId(agent.id);
       setStep("success");
+      // Mark onboarding as completed for developer path
+      try {
+        await api.post("/auth/onboarding", { interests: ["developer"] });
+      } catch {
+        // Non-critical — agent is already registered
+      }
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Registration failed"

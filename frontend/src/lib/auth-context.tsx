@@ -95,9 +95,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const isApiKeyAuth = storedToken?.startsWith("a2a_");
 
     if (!isFirebaseMode || !firebaseAuth || isTestBypass || isApiKeyAuth) {
-      // Local JWT mode: check for stored token
+      // Local JWT / API key mode: check for stored token
       const token = localStorage.getItem("auth_token");
       if (token) {
+        // Sync token to cookie so Next.js middleware allows protected routes
+        setAuthCookie(token);
         fetchProfile();
       } else {
         setState((s) => ({ ...s, loading: false }));

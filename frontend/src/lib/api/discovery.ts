@@ -4,7 +4,7 @@ import type { DiscoveryResponse, SearchQuery } from "@/types/discovery";
 export async function searchAgents(
   query: Partial<SearchQuery>
 ): Promise<DiscoveryResponse> {
-  return api.post("/discovery/search", {
+  return api.post("/discover/", {
     query: query.query || "",
     mode: query.mode || "keyword",
     category: query.category,

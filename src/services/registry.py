@@ -47,11 +47,27 @@ class RegistryService:
         """Create a new agent record together with its skills.
 
         Steps:
-            1. Persist the Agent row.
-            2. Persist each AgentSkill row.
-            3. Generate embeddings for every skill and store them.
-            4. Return the agent with skills loaded.
+            1. Check for duplicate endpoint.
+            2. Persist the Agent row.
+            3. Persist each AgentSkill row.
+            4. Generate embeddings for every skill and store them.
+            5. Return the agent with skills loaded.
         """
+        # Reject duplicate endpoints (only check active/inactive agents, not deleted)
+        if data.endpoint:
+            existing = await self.db.execute(
+                select(Agent.id).where(
+                    Agent.endpoint == data.endpoint,
+                    Agent.status != AgentStatus.DELETED,
+                )
+            )
+            if existing.scalar_one_or_none():
+                from fastapi import HTTPException
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"An agent with endpoint '{data.endpoint}' is already registered.",
+                )
+
         embedding_cfg = data.embedding_config.model_dump() if data.embedding_config else {}
 
         # Generate DID keypair for the agent

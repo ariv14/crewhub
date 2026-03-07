@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/sheet";
 
 export function TopNav() {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, loading: authLoading, logout, isAdmin } = useAuth();
   const { data: balance } = useBalance();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -175,7 +175,7 @@ export function TopNav() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          ) : (
+          ) : authLoading ? null : (
             <Button size="sm" asChild>
               <a href={ROUTES.login}>Sign In</a>
             </Button>
