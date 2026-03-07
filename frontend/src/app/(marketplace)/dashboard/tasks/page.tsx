@@ -19,7 +19,7 @@ function getMessagePreview(task: Task): string {
 
 function TaskCard({ task }: { task: Task }) {
   const preview = getMessagePreview(task);
-  const agentName = task.provider_agent_name ?? task.provider_agent_id.slice(0, 8);
+  const agentName = task.provider_agent_name ?? (task.provider_agent_id ? task.provider_agent_id.slice(0, 8) : "Deleted Agent");
   const skillName = task.skill_name;
 
   return (

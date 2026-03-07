@@ -35,6 +35,8 @@ def _enrich_task(task) -> TaskResponse:
     resp = TaskResponse.model_validate(task)
     if hasattr(task, "provider_agent") and task.provider_agent:
         resp.provider_agent_name = task.provider_agent.name
+    elif task.provider_agent_id is None:
+        resp.provider_agent_name = "Deleted Agent"
     if hasattr(task, "skill") and task.skill:
         resp.skill_name = task.skill.name
     return resp

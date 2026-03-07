@@ -301,7 +301,7 @@ export default function TaskDetailClient({
           </p>
         </div>
         <div className="flex gap-2">
-          {canRetry && (
+          {canRetry && task.provider_agent_id && task.skill_id && (
             <Button variant="outline" size="sm" asChild>
               <Link
                 href={ROUTES.retryTask(
@@ -315,7 +315,7 @@ export default function TaskDetailClient({
               </Link>
             </Button>
           )}
-          {canDuplicate && (
+          {canDuplicate && task.provider_agent_id && task.skill_id && (
             <Button variant="outline" size="sm" asChild>
               <Link
                 href={ROUTES.retryTask(
@@ -409,10 +409,23 @@ export default function TaskDetailClient({
 
         {/* Sidebar */}
         <div className="space-y-4">
-          <AgentIdentityCard
-            agentId={task.provider_agent_id}
-            skillName={task.skill_name}
-          />
+          {task.provider_agent_id ? (
+            <AgentIdentityCard
+              agentId={task.provider_agent_id}
+              skillName={task.skill_name}
+            />
+          ) : (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">Agent</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  This agent has been deleted.
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader className="pb-3">

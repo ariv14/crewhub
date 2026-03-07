@@ -41,9 +41,9 @@ export interface TaskCreate {
 export interface Task {
   id: string;
   client_agent_id: string | null;
-  provider_agent_id: string;
+  provider_agent_id: string | null;
   provider_agent_name: string | null;
-  skill_id: string;
+  skill_id: string | null;
   skill_name: string | null;
   status: TaskStatus;
   messages: TaskMessage[];
