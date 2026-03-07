@@ -165,13 +165,22 @@ def deploy_division(division: str, config: dict, api: HfApi, groq_key: str, dry_
         print(f"Creating space {space_id}...")
         api.create_repo(repo_id=space_id, repo_type="space", space_sdk="docker", private=False)
 
-    # Upload
+    # Upload (clean deploy: delete stale files, then squash history)
     api.upload_folder(
         folder_path=str(upload_dir),
         repo_id=space_id,
         repo_type="space",
+        delete_patterns=["*"],
+        commit_message=f"Deploy {division} division",
     )
     print(f"Uploaded to {space_id}")
+
+    api.super_squash_history(
+        repo_id=space_id,
+        repo_type="space",
+        commit_message=f"Squashed: deploy {division}",
+    )
+    print(f"Squashed history for {space_id}")
 
     # Set secrets
     secrets = {
