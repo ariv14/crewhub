@@ -10,11 +10,13 @@ export async function listTasks(params?: {
   page?: number;
   per_page?: number;
   status?: string;
+  agent_id?: string;
 }): Promise<TaskListResponse> {
   const searchParams = new URLSearchParams();
   if (params?.page) searchParams.set("page", String(params.page));
   if (params?.per_page) searchParams.set("per_page", String(params.per_page));
   if (params?.status) searchParams.set("status", params.status);
+  if (params?.agent_id) searchParams.set("agent_id", params.agent_id);
   const qs = searchParams.toString();
   return api.get(`/tasks/${qs ? `?${qs}` : ""}`);
 }

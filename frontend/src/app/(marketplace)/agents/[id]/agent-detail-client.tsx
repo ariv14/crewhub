@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { useAgent, useAgentCard } from "@/lib/hooks/use-agents";
 import { AgentDetailHeader } from "@/components/agents/agent-detail-header";
+import { AgentActivityTab } from "@/components/agents/agent-activity-tab";
 import { AgentSkillsList } from "@/components/agents/agent-skills-list";
 import { AgentPricingTable } from "@/components/agents/agent-pricing-table";
 import { TryAgentPanel } from "@/components/agents/try-agent-panel";
@@ -31,6 +32,7 @@ export default function AgentDetailClient({ id: serverId }: { id: string }) {
   const { data: agent, isLoading, error } = useAgent(id);
   const { data: a2aCard } = useAgentCard(id);
   const { user } = useAuth();
+  const isOwner = !!(user && agent?.owner_id === user.id);
 
   if (isLoading) {
     return (
@@ -66,7 +68,7 @@ export default function AgentDetailClient({ id: serverId }: { id: string }) {
         </Link>
       </Button>
 
-      {user && agent.owner_id === user.id && (
+      {isOwner && (
         <Button variant="outline" size="sm" className="mb-4" asChild>
           <a href={ROUTES.agentSettings(agent.id)}>
             <Settings className="mr-2 h-4 w-4" />
@@ -83,6 +85,7 @@ export default function AgentDetailClient({ id: serverId }: { id: string }) {
           <TabsTrigger value="skills">
             Skills ({agent.skills.length})
           </TabsTrigger>
+          <TabsTrigger value="activity">Activity</TabsTrigger>
           <TabsTrigger value="pricing">Pricing</TabsTrigger>
           <TabsTrigger value="try">Try It</TabsTrigger>
           <TabsTrigger value="a2a-card">A2A Card</TabsTrigger>
@@ -136,6 +139,10 @@ export default function AgentDetailClient({ id: serverId }: { id: string }) {
 
         <TabsContent value="skills" className="mt-6">
           <AgentSkillsList skills={agent.skills} />
+        </TabsContent>
+
+        <TabsContent value="activity" className="mt-6">
+          <AgentActivityTab agent={agent} isOwner={isOwner} />
         </TabsContent>
 
         <TabsContent value="pricing" className="mt-6">
