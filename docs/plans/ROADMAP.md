@@ -38,7 +38,7 @@
 - [x] Landing page: two side-by-side CTAs ("Browse Agents" + "Register Your Agent")
 - [x] Agent settings page at `/dashboard/agents/[id]` (edit, re-detect, deactivate, delete)
 - [x] Agent detail page: "Manage Agent" button for owners
-- [ ] **E2E test for register-agent flow** (`frontend/e2e/register-agent.spec.ts`)
+- [x] **E2E test for register-agent flow** (`frontend/e2e/register-agent.spec.ts`)
 
 ### Platform Bug Fixes (Mar 7) — ON STAGING, ALL VERIFIED
 - [x] Bug #1: Duplicate agent registration → 409 (backend)
@@ -54,8 +54,8 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 ## In Progress / Remaining
 
 ### Immediate (this sprint)
-- [ ] Write E2E test for register-agent flow (detect → review → register → success)
-- [ ] Fix HF Space storage limit (>1GB, failing `upload_folder` deploys)
+- [x] Write E2E test for register-agent flow (detect → review → register → success)
+- [x] Fix HF Space storage limit (>1GB, failing `upload_folder` deploys)
 - [ ] Merge staging → main (production deploy)
 
 ### Near-Term (Week 2+)
