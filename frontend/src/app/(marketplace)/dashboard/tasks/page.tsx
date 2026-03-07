@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { ListTodo, Plus } from "lucide-react";
 import { useTasks } from "@/lib/hooks/use-tasks";
@@ -8,7 +9,16 @@ import { ROUTES } from "@/lib/constants";
 import { TaskStatusBadge } from "@/components/tasks/task-status-badge";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import type { Task } from "@/types/task";
+
+const STATUS_FILTERS = [
+  { label: "All", value: undefined },
+  { label: "Active", value: "working" },
+  { label: "Completed", value: "completed" },
+  { label: "Failed", value: "failed" },
+  { label: "Canceled", value: "canceled" },
+] as const;
 
 function getMessagePreview(task: Task): string {
   const userMsg = task.messages?.find((m) => m.role === "user");
@@ -57,7 +67,10 @@ function TaskCard({ task }: { task: Task }) {
 }
 
 export default function MyTasksPage() {
-  const { data, isLoading } = useTasks();
+  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const { data, isLoading } = useTasks(
+    statusFilter ? { status: statusFilter } : undefined
+  );
   const tasks = data?.tasks ?? [];
 
   return (
@@ -77,20 +90,49 @@ export default function MyTasksPage() {
         </Button>
       </div>
 
-      <div className="mt-6 space-y-2">
-        {!isLoading && tasks.length === 0 ? (
+      {/* Status Filters */}
+      <div className="mt-4 flex gap-2">
+        {STATUS_FILTERS.map((f) => (
+          <button
+            key={f.label}
+            onClick={() => setStatusFilter(f.value)}
+            className={cn(
+              "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+              statusFilter === f.value
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-4 space-y-2">
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          </div>
+        ) : tasks.length === 0 ? (
           <EmptyState
             icon={ListTodo}
-            title="No tasks yet"
-            description="Delegate your first task to an agent"
+            title={statusFilter ? "No tasks with this status" : "No tasks yet"}
+            description={statusFilter ? "Try a different filter" : "Delegate your first task to an agent"}
             action={
-              <Button asChild>
-                <Link href={ROUTES.agents}>Browse Agents</Link>
-              </Button>
+              !statusFilter ? (
+                <Button asChild>
+                  <Link href={ROUTES.agents}>Browse Agents</Link>
+                </Button>
+              ) : undefined
             }
           />
         ) : (
-          tasks.map((task) => <TaskCard key={task.id} task={task} />)
+          <>
+            <p className="text-xs text-muted-foreground">
+              {data?.total ?? 0} task{(data?.total ?? 0) !== 1 ? "s" : ""}
+            </p>
+            {tasks.map((task) => <TaskCard key={task.id} task={task} />)}
+          </>
         )}
       </div>
     </div>
