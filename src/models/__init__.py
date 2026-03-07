@@ -5,6 +5,7 @@ from src.models.task import Task, TaskStatus
 from src.models.account import Account
 from src.models.transaction import Transaction, TransactionType
 from src.models.x402_receipt import X402VerifiedReceipt  # noqa: F401
+from src.models.webhook_log import WebhookLog
 from src.models.organization import Organization
 from src.models.team import Team
 from src.models.membership import Membership, MembershipRole
@@ -25,4 +26,5 @@ __all__ = [
     "Team",
     "Membership",
     "MembershipRole",
+    "WebhookLog",
 ]

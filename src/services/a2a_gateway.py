@@ -1,10 +1,14 @@
 """A2A gateway service -- JSON-RPC 2.0 communication with external agents."""
 
+import logging
+import time
 import uuid
 from typing import AsyncGenerator
 
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
+
+logger = logging.getLogger(__name__)
 
 
 class A2AGatewayService:
@@ -34,14 +38,93 @@ class A2AGatewayService:
     ) -> dict:
         """Send a JSON-RPC POST and return the parsed response."""
         payload = self._build_request(method, params)
-        async with httpx.AsyncClient(timeout=timeout or self.DEFAULT_TIMEOUT) as client:
-            response = await client.post(
-                endpoint,
-                json=payload,
-                headers={"Content-Type": "application/json"},
+        start = time.monotonic()
+        status_code = None
+        response_body = None
+        error_msg = None
+        success = True
+
+        try:
+            async with httpx.AsyncClient(timeout=timeout or self.DEFAULT_TIMEOUT) as client:
+                response = await client.post(
+                    endpoint,
+                    json=payload,
+                    headers={"Content-Type": "application/json"},
+                )
+                status_code = response.status_code
+                response_body = response.json()
+                response.raise_for_status()
+                return response_body
+        except Exception as exc:
+            success = False
+            error_msg = str(exc)[:500]
+            raise
+        finally:
+            latency_ms = int((time.monotonic() - start) * 1000)
+            # Extract agent_id and task_id from params for logging
+            task_id_str = params.get("id")
+            await self._log_webhook(
+                agent_id=None,  # resolved by caller if needed
+                task_id_str=task_id_str,
+                direction="outbound",
+                method=method,
+                request_body=payload,
+                response_body=response_body,
+                status_code=status_code,
+                success=success,
+                error_message=error_msg,
+                latency_ms=latency_ms,
             )
-            response.raise_for_status()
-            return response.json()
+
+    async def _log_webhook(
+        self,
+        *,
+        agent_id: uuid.UUID | None,
+        task_id_str: str | None,
+        direction: str,
+        method: str,
+        request_body: dict | None,
+        response_body: dict | None,
+        status_code: int | None,
+        success: bool,
+        error_message: str | None,
+        latency_ms: int | None,
+    ) -> None:
+        """Persist a webhook log entry. Best-effort — never fails the caller."""
+        try:
+            from src.models.webhook_log import WebhookLog
+
+            task_id = uuid.UUID(task_id_str) if task_id_str else None
+            # If agent_id not provided, try to resolve from task
+            if agent_id is None and task_id:
+                from src.models.task import Task
+                from sqlalchemy import select
+                result = await self.db.execute(
+                    select(Task.provider_agent_id).where(Task.id == task_id)
+                )
+                row = result.first()
+                if row:
+                    agent_id = row[0]
+
+            if agent_id is None:
+                return  # Can't log without agent_id
+
+            log = WebhookLog(
+                agent_id=agent_id,
+                task_id=task_id,
+                direction=direction,
+                method=method,
+                request_body=request_body,
+                response_body=response_body,
+                status_code=status_code,
+                success=success,
+                error_message=error_message,
+                latency_ms=latency_ms,
+            )
+            self.db.add(log)
+            await self.db.flush()
+        except Exception:
+            logger.debug("Failed to persist webhook log", exc_info=True)
 
     # ------------------------------------------------------------------
     # Send task

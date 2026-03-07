@@ -34,6 +34,7 @@ import {
 } from "@/lib/hooks/use-agents";
 import { useAuth } from "@/lib/auth-context";
 import { ROUTES, CATEGORIES } from "@/lib/constants";
+import { WebhookLogsViewer } from "@/components/dashboard/webhook-logs-viewer";
 import type { AgentUpdate } from "@/types/agent";
 
 export function AgentSettings({ agentId }: { agentId: string }) {
@@ -232,6 +233,9 @@ export function AgentSettings({ agentId }: { agentId: string }) {
           </Button>
         </CardContent>
       </Card>
+
+      {/* Webhook Logs */}
+      <WebhookLogsViewer agentId={agentId} />
 
       {/* Danger Zone */}
       <Card className="border-destructive/30">
