@@ -261,7 +261,7 @@ export default function TaskDetailClient({
     userMessage?.parts?.find((p) => p.type === "text")?.content ?? "";
 
   // Cost breakdown
-  const charged = task.credits_charged || 0;
+  const charged = task.credits_charged ?? 0;
   const platformFee = charged > 0 ? charged * PLATFORM_FEE_RATE : 0;
 
   function handleSend() {
@@ -441,7 +441,7 @@ export default function TaskDetailClient({
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Charged</span>
                 <span>
-                  {formatCredits(task.credits_charged)} credits
+                  {formatCredits(charged)} credits
                 </span>
               </div>
               {platformFee > 0 && (

@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 
-export function useElapsedTime(startTime: string | null, active: boolean) {
+export function useElapsedTime(startTime: string | null, active: boolean, endTime?: string | null) {
   const [elapsed, setElapsed] = useState("");
 
   useEffect(() => {
     if (!startTime || !active) {
       if (startTime && !active) {
-        setElapsed(formatElapsed(Date.now() - new Date(startTime).getTime()));
+        const end = endTime ? new Date(endTime).getTime() : Date.now();
+        setElapsed(formatElapsed(end - new Date(startTime).getTime()));
       }
       return;
     }
@@ -19,7 +20,7 @@ export function useElapsedTime(startTime: string | null, active: boolean) {
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [startTime, active]);
+  }, [startTime, active, endTime]);
 
   return elapsed;
 }

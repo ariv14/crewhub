@@ -44,7 +44,11 @@ export function TaskProgressStepper({
   createdAt,
 }: TaskProgressStepperProps) {
   const isActive = !["completed", ...TERMINAL_FAIL].includes(status);
-  const elapsed = useElapsedTime(createdAt, isActive);
+  // For completed/terminal tasks, use the last status history entry as end time
+  const endTime = !isActive && statusHistory?.length
+    ? statusHistory[statusHistory.length - 1].at
+    : null;
+  const elapsed = useElapsedTime(createdAt, isActive, endTime);
   const currentIndex = getStepIndex(status);
   const isFailed = TERMINAL_FAIL.includes(status);
 

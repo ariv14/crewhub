@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import { ListTodo, Plus } from "lucide-react";
 import { useTasks } from "@/lib/hooks/use-tasks";
@@ -11,6 +11,8 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Task } from "@/types/task";
+
+const PER_PAGE = 20;
 
 const STATUS_FILTERS = [
   { label: "All", value: undefined },
@@ -68,10 +70,18 @@ function TaskCard({ task }: { task: Task }) {
 
 export default function MyTasksPage() {
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const [page, setPage] = useState(1);
   const { data, isLoading } = useTasks(
-    statusFilter ? { status: statusFilter } : undefined
+    { ...(statusFilter ? { status: statusFilter } : {}), page, per_page: PER_PAGE }
   );
   const tasks = data?.tasks ?? [];
+  const total = data?.total ?? 0;
+  const hasMore = page * PER_PAGE < total;
+
+  const changeFilter = useCallback((value: string | undefined) => {
+    setStatusFilter(value);
+    setPage(1);
+  }, []);
 
   return (
     <div>
@@ -95,7 +105,7 @@ export default function MyTasksPage() {
         {STATUS_FILTERS.map((f) => (
           <button
             key={f.label}
-            onClick={() => setStatusFilter(f.value)}
+            onClick={() => changeFilter(f.value)}
             className={cn(
               "rounded-full px-3 py-1 text-xs font-medium transition-colors",
               statusFilter === f.value
@@ -128,10 +138,60 @@ export default function MyTasksPage() {
           />
         ) : (
           <>
-            <p className="text-xs text-muted-foreground">
-              {data?.total ?? 0} task{(data?.total ?? 0) !== 1 ? "s" : ""}
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                Showing {Math.min(page * PER_PAGE, total)} of {total} task{total !== 1 ? "s" : ""}
+              </p>
+              {total > PER_PAGE && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    Page {page} of {Math.ceil(total / PER_PAGE)}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => p + 1)}
+                    disabled={!hasMore}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
+            </div>
             {tasks.map((task) => <TaskCard key={task.id} task={task} />)}
+            {total > PER_PAGE && (
+              <div className="flex justify-center pt-2">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    Page {page} of {Math.ceil(total / PER_PAGE)}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => p + 1)}
+                    disabled={!hasMore}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
