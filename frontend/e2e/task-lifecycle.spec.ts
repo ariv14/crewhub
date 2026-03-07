@@ -9,15 +9,17 @@ test.describe("Task Lifecycle", () => {
   test("task list shows tasks", async ({ page }) => {
     await page.goto("/dashboard/tasks");
     await expect(page.locator("h1")).toContainText(/my tasks/i, { timeout: 10_000 });
-    // Either tasks table or empty state
+    // Either task cards or empty state (page uses card layout, not tables)
+    const taskCard = page.locator("a.block[href*='/dashboard/tasks/']").first();
+    const emptyState = page.getByText(/no tasks/i);
     await expect(
-      page.locator("table").or(page.getByText(/no tasks/i))
+      taskCard.or(emptyState)
     ).toBeVisible({ timeout: 10_000 });
   });
 
   test("click task navigates to detail", async ({ page }) => {
     await page.goto("/dashboard/tasks");
-    const firstTaskLink = page.locator("table a").first();
+    const firstTaskLink = page.locator("a.block[href*='/dashboard/tasks/']").first();
     if (await firstTaskLink.isVisible({ timeout: 5_000 })) {
       await firstTaskLink.click();
       await page.waitForURL(/\/dashboard\/tasks\/.+/);
@@ -27,7 +29,7 @@ test.describe("Task Lifecycle", () => {
 
   test("task detail shows status and messages", async ({ page }) => {
     await page.goto("/dashboard/tasks");
-    const firstTaskLink = page.locator("table a").first();
+    const firstTaskLink = page.locator("a.block[href*='/dashboard/tasks/']").first();
     if (await firstTaskLink.isVisible({ timeout: 5_000 })) {
       await firstTaskLink.click();
       await page.waitForURL(/\/dashboard\/tasks\/.+/);
@@ -40,10 +42,10 @@ test.describe("Task Lifecycle", () => {
 
   test("completed task shows artifacts", async ({ page }) => {
     await page.goto("/dashboard/tasks");
-    // Look for a completed task
-    const completedRow = page.locator("tr").filter({ hasText: /completed/i }).first();
-    if (await completedRow.isVisible({ timeout: 5_000 })) {
-      await completedRow.locator("a").first().click();
+    // Look for a completed task card
+    const completedCard = page.locator("a.block[href*='/dashboard/tasks/']").filter({ hasText: /completed/i }).first();
+    if (await completedCard.isVisible({ timeout: 5_000 })) {
+      await completedCard.click();
       await page.waitForURL(/\/dashboard\/tasks\/.+/);
       // Completed tasks should show artifacts or result section
       await expect(page.locator("main")).toBeVisible();

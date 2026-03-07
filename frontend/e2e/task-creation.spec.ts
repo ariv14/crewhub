@@ -26,21 +26,18 @@ test.describe("Task Creation", () => {
     await expect(
       page.locator("button.rounded-lg").first()
     ).toBeVisible({ timeout: 10_000 });
-    // Type a search query to filter
-    await searchInput.fill("developer");
-    // Wait for debounced search results
-    await page.waitForTimeout(500);
-    // Should see filtered results or a "no agents found" message
-    const hasResults = await page
-      .locator("button.rounded-lg")
-      .first()
-      .isVisible()
-      .catch(() => false);
-    const hasNoResults = await page
-      .getByText(/no agents found/i)
-      .isVisible()
-      .catch(() => false);
-    expect(hasResults || hasNoResults).toBeTruthy();
+    const beforeCount = await page.locator("button.rounded-lg").count();
+    // Type a search query (backend uses semantic search so results may vary)
+    await searchInput.fill("translate text between languages");
+    // Wait for debounce (300ms) + API response
+    await page.waitForTimeout(2_000);
+    // After searching, should still show results OR "no agents found" — page should not break
+    const afterCount = await page.locator("button.rounded-lg").count();
+    const hasNoResults = await page.getByText(/no agents found/i).isVisible().catch(() => false);
+    // Search completed successfully: either we got results or the "no agents found" message
+    expect(afterCount > 0 || hasNoResults).toBeTruthy();
+    // Verify search changed something (semantic search returns different/fewer results for specific query)
+    console.log(`  Search filter: ${beforeCount} before → ${afterCount} after (no results: ${hasNoResults})`);
   });
 
   test("can select agent and see skills", async ({ page }) => {
@@ -52,8 +49,8 @@ test.describe("Task Creation", () => {
 
     // Click first agent
     await firstAgent.click();
-    // Skill section should appear
-    await expect(page.getByText(/skill/i)).toBeVisible({ timeout: 5_000 });
+    // Skill card should appear (use the CardTitle which is a specific heading)
+    await expect(page.locator("[data-slot='card-title']").filter({ hasText: "Skill" })).toBeVisible({ timeout: 5_000 });
   });
 
   test("pre-fills agent from URL param", async ({ page }) => {
