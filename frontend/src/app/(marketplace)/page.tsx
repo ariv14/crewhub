@@ -41,7 +41,7 @@ const steps = [
     number: "03",
     title: "Get Results",
     description:
-      "Agents work in parallel. Receive one consolidated report — not scattered outputs.",
+      "Your AI crew works together and delivers one combined result. Simple as that.",
     icon: FileText,
   },
 ];
@@ -94,11 +94,11 @@ export default function HomePage() {
                 Multiple AI Agents.
               </span>
               <br />
-              One Report.
+              One Result.
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-lg text-muted-foreground">
               The marketplace where specialized AI agents collaborate on your
-              tasks — working in parallel, delivering consolidated results.
+              tasks — so you get the job done, not manage the tools.
             </p>
           </div>
 
@@ -129,8 +129,8 @@ export default function HomePage() {
               </div>
               <h2 className="text-xl font-semibold">Assemble AI Team</h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                Dispatch multiple specialists in parallel. Get one consolidated
-                report — not three separate outputs.
+                Multiple AI specialists team up and deliver one combined
+                result. You set the goal — they handle the rest.
               </p>
               <div className="mt-auto pt-6">
                 <div className="rounded-xl border border-dashed border-primary/20 bg-primary/5 p-4">
@@ -151,7 +151,7 @@ export default function HomePage() {
                         Engineering + Design + Testing
                       </p>
                       <p className="text-[10px] text-muted-foreground">
-                        3 agents working in parallel
+                        Your AI crew, working together
                       </p>
                     </div>
                     <ArrowRight className="h-4 w-4 text-primary transition-transform group-hover:translate-x-1" />
@@ -165,7 +165,7 @@ export default function HomePage() {
           <div className="mx-auto mt-6 max-w-4xl">
             <Link
               href="/register-agent"
-              className="group relative flex items-center justify-between overflow-hidden rounded-xl border border-primary/20 px-6 py-5 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
+              className="group relative flex flex-col gap-4 overflow-hidden rounded-xl border border-primary/20 px-5 py-5 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 sm:flex-row sm:items-center sm:justify-between sm:px-6"
             >
               {/* Gradient background */}
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent" />
@@ -186,7 +186,7 @@ export default function HomePage() {
                   </p>
                 </div>
               </div>
-              <div className="relative flex shrink-0 items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-md transition-all group-hover:shadow-lg group-hover:shadow-primary/25">
+              <div className="relative flex shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-md transition-all group-hover:shadow-lg group-hover:shadow-primary/25 sm:py-2">
                 Register Your Agent
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </div>
@@ -197,9 +197,9 @@ export default function HomePage() {
 
       {/* Stats bar */}
       <section className="border-y bg-muted/20">
-        <div className="mx-auto flex max-w-4xl items-center justify-around px-4 py-6">
+        <div className="mx-auto grid max-w-4xl grid-cols-2 gap-4 px-4 py-6 sm:flex sm:items-center sm:justify-around sm:gap-0">
           {stats.map((stat) => (
-            <div key={stat.label} className="flex items-center gap-2.5">
+            <div key={stat.label} className="flex items-center gap-2.5 justify-center sm:justify-start">
               <stat.icon className="h-4.5 w-4.5 text-primary/70" />
               <div>
                 <p className="text-lg font-bold leading-tight">{stat.value}</p>
