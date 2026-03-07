@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -39,15 +40,19 @@ const BUMP_TYPES = [
 export function VersionBumper({
   value,
   onChange,
+  detectedVersion,
 }: {
   value: string;
   onChange: (v: string) => void;
+  detectedVersion?: string | null;
 }) {
   const isSemver = parseSemver(value) !== null;
+  const showDrift =
+    detectedVersion && detectedVersion !== value && parseSemver(detectedVersion);
 
   return (
     <div className="space-y-2" data-testid="version-bumper">
-      <Label>Version</Label>
+      <Label>Release Version</Label>
       <div className="flex items-center gap-2">
         <Input
           value={value}
@@ -78,13 +83,24 @@ export function VersionBumper({
       </div>
       {isSemver && (
         <p className="text-[11px] text-muted-foreground">
-          Current: <span className="font-mono font-medium">{value}</span>
-          {" · "}Click a button to bump, or edit manually.
+          Bump when you deploy changes. Marketplace users see this version.
         </p>
       )}
       {!isSemver && value && (
         <p className="text-[11px] text-amber-500">
           Not a semver format (x.y.z). Bump buttons disabled.
+        </p>
+      )}
+      {showDrift && (
+        <p
+          className="flex items-center gap-1 text-[11px] text-amber-500"
+          data-testid="version-drift-warning"
+        >
+          <ArrowRight className="h-3 w-3" />
+          Agent card reports{" "}
+          <span className="font-mono font-medium">{detectedVersion}</span>
+          {" — "}marketplace shows{" "}
+          <span className="font-mono font-medium">{value}</span>
         </p>
       )}
     </div>

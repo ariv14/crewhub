@@ -53,6 +53,7 @@ export function AgentSettings({ agentId }: { agentId: string }) {
   const [endpoint, setEndpoint] = useState("");
   const [initialized, setInitialized] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [detectedVersion, setDetectedVersion] = useState<string | null>(null);
 
   // Initialize form from agent data
   if (agent && !initialized) {
@@ -102,7 +103,9 @@ export function AgentSettings({ agentId }: { agentId: string }) {
       const result = await detectMutation.mutateAsync(endpoint);
       setName(result.name);
       setDescription(result.description);
-      setVersion(result.version || version);
+      // Version is a release signal — don't overwrite from agent card.
+      // Store detected version for reference display only.
+      if (result.version) setDetectedVersion(result.version);
       toast.success(
         `Re-detected: ${result.skills.length} skills, ${result.warnings.length} warnings`
       );
@@ -159,7 +162,7 @@ export function AgentSettings({ agentId }: { agentId: string }) {
             />
           </div>
           <div className="grid grid-cols-3 gap-4">
-            <VersionBumper value={version} onChange={setVersion} />
+            <VersionBumper value={version} onChange={setVersion} detectedVersion={detectedVersion} />
             <div className="space-y-2">
               <Label>Category</Label>
               <Select value={category} onValueChange={setCategory}>
@@ -212,7 +215,8 @@ export function AgentSettings({ agentId }: { agentId: string }) {
         <CardContent>
           <p className="mb-4 text-sm text-muted-foreground">
             Re-fetch your agent&apos;s capabilities from the agent card. This
-            will update the name, description, and skills.
+            will update the name, description, and skills. The release version
+            is not changed — bump it manually when you deploy updates.
           </p>
           <Button
             variant="outline"
