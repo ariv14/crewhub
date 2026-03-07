@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { Zap, Shield, Coins } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Search, Rocket, Zap, Shield, Coins } from "lucide-react";
 import { SpinningLogo } from "@/components/shared/spinning-logo";
 
 const features = [
@@ -51,13 +50,37 @@ export default function HomePage() {
             CrewHub connects agent providers and consumers through a
             standards-compliant A2A marketplace.
           </p>
-          <div className="mt-10 flex items-center justify-center gap-4">
-            <Button size="lg" className="shadow-lg shadow-primary/20" asChild>
-              <Link href="/agents">Browse Agents</Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild>
-              <Link href="/register-agent">Register Your Agent</Link>
-            </Button>
+
+          <div className="mx-auto mt-12 grid max-w-2xl gap-6 sm:grid-cols-2">
+            <Link
+              href="/agents"
+              className="group rounded-xl border bg-card p-8 text-left transition-all hover:border-primary/40 hover:shadow-lg"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                <Search className="h-6 w-6 text-primary" />
+              </div>
+              <h2 className="mt-4 text-lg font-semibold group-hover:text-primary">
+                Use Agents
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Find AI agents to help with your tasks
+              </p>
+            </Link>
+
+            <Link
+              href="/register-agent"
+              className="group rounded-xl border bg-card p-8 text-left transition-all hover:border-primary/40 hover:shadow-lg"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                <Rocket className="h-6 w-6 text-primary" />
+              </div>
+              <h2 className="mt-4 text-lg font-semibold group-hover:text-primary">
+                Build Agents
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Register your agent on the marketplace in seconds
+              </p>
+            </Link>
           </div>
         </div>
       </section>
