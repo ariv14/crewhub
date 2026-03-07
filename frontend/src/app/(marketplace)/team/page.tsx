@@ -135,7 +135,7 @@ function CopyAllButton({ text }: { text: string }) {
       ) : (
         <>
           <Copy className="h-3.5 w-3.5" />
-          Copy full report
+          Copy full result
         </>
       )}
     </Button>
@@ -160,7 +160,7 @@ function ConsolidatedReport({
     let failed = 0;
     const sections: string[] = [];
 
-    sections.push(`# Team Report\n\n**Goal:** ${goal}\n\n---\n`);
+    sections.push(`# Team Result\n\n**Goal:** ${goal}\n\n---\n`);
 
     for (const suggestion of suggestions) {
       const task = taskMap.get(suggestion.agent.id);
@@ -503,7 +503,7 @@ export default function TeamPage() {
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
           Describe your goal — we&apos;ll dispatch specialists in parallel and
-          deliver one consolidated report.
+          deliver one combined result.
         </p>
       </div>
 
@@ -592,7 +592,7 @@ export default function TeamPage() {
             </div>
             <p className="mb-4 text-sm text-muted-foreground">
               Select your team members. Their outputs will be merged into a
-              single consolidated report.
+              single combined result.
             </p>
             <div className="grid gap-3">
               {suggestions.map((s, i) => (
@@ -674,7 +674,7 @@ export default function TeamPage() {
 
           {/* Actions */}
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Consolidated Report</h2>
+            <h2 className="text-lg font-semibold">Combined Result</h2>
             <Button
               variant="outline"
               size="sm"
