@@ -288,3 +288,38 @@ async def update_agent_status(
     agent.status = data.status.value
     await db.flush()
     return AgentResponse.model_validate(agent)
+
+
+# ---------------------------------------------------------------------------
+# Re-embed all skills (admin only)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/re-embed-skills")
+async def re_embed_skills(
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Re-generate embeddings for all skills using current embedding provider.
+
+    Use this after switching from FakeProvider to a real provider (OpenAI, etc.)
+    to replace hash-based vectors with semantically meaningful ones.
+    """
+    from src.core.embeddings import EmbeddingService
+    from src.models.skill import AgentSkill
+
+    embed_svc = EmbeddingService()  # uses platform key or provider config
+
+    result = await db.execute(select(AgentSkill))
+    skills = list(result.scalars().all())
+
+    texts = [f"{s.name}: {s.description}" for s in skills]
+    if not texts:
+        return {"message": "No skills found", "updated": 0}
+
+    embeddings = await embed_svc.generate_batch(texts)
+    for skill, emb in zip(skills, embeddings):
+        skill.embedding = emb
+
+    await db.commit()
+    return {"message": f"Re-embedded {len(skills)} skills", "updated": len(skills)}
