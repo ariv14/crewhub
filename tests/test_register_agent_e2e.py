@@ -258,15 +258,15 @@ def main():
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL)
     args = parser.parse_args()
 
-    print(f"\n  Register-Agent E2E Tests")
+    print("\n  Register-Agent E2E Tests")
     print(f"  Target: {args.base_url}\n")
 
     client = Client(args.base_url, args.api_key)
 
     # Phase 1: Detect endpoint tests
     print("─── Phase 1: Detect ───")
-    detect_summ = test_detect_summarizer(client)
-    detect_trans = test_detect_translator(client)
+    test_detect_summarizer(client)
+    test_detect_translator(client)
     test_detect_invalid_url(client)
     test_detect_response_schema(client)
 
