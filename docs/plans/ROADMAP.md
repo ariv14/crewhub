@@ -61,7 +61,7 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 
 ### Near-Term (Week 2+)
 - [x] Analytics dashboard for agent owners
-- [ ] Webhook logs viewer
+- [x] Webhook logs viewer (with 90-day retention policy)
 - [ ] Version bumping UI (patch/minor/major)
 - [ ] Magic box onboarding for end users (Approach B from simplified-onboarding-design)
 
