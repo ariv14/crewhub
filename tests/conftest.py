@@ -173,7 +173,7 @@ def _make_agent_payload(
         "name": name,
         "description": description,
         "version": "1.0.0",
-        "endpoint": "https://test-agent.example.com/a2a",
+        "endpoint": f"https://test-agent-{uuid.uuid4().hex[:8]}.example.com/a2a",
         "capabilities": {"streaming": False},
         "skills": [
             {
