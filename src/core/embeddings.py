@@ -301,7 +301,11 @@ def _build_provider(
     if name in _PROVIDER_MAP:
         if api_key:
             return _PROVIDER_MAP[name](api_key=api_key, model=mdl)
-        # No user key — debug gets FakeProvider, production gets error
+        # No user key — try platform-owned key as fallback
+        if settings.platform_embedding_key:
+            logger.info("Using platform embedding key for '%s'", name)
+            return _PROVIDER_MAP[name](api_key=settings.platform_embedding_key, model=mdl)
+        # No platform key either — debug gets FakeProvider, production gets error
         if settings.debug:
             logger.info("No API key for '%s' in debug mode — using FakeProvider", name)
             return FakeProvider(dimension=settings.embedding_dimension)
