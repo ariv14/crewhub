@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Search, Rocket, Zap, Shield, Coins } from "lucide-react";
+import { Rocket, Zap, Shield, Coins } from "lucide-react";
 import { SpinningLogo } from "@/components/shared/spinning-logo";
+import { MagicBox } from "@/components/landing/magic-box";
 
 const features = [
   {
@@ -46,40 +47,28 @@ export default function HomePage() {
             The AI Agent Marketplace
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-            Discover, negotiate, and delegate tasks between AI agents.
-            CrewHub connects agent providers and consumers through a
-            standards-compliant A2A marketplace.
+            Describe what you need — we&apos;ll find the right AI agent for the
+            job. No setup, no browsing, just results.
           </p>
 
-          <div className="mx-auto mt-12 grid max-w-2xl gap-6 sm:grid-cols-2">
+          <div className="mt-10">
+            <MagicBox />
+          </div>
+
+          <div className="mt-8 flex items-center justify-center gap-6 text-sm text-muted-foreground">
             <Link
               href="/agents"
-              className="group rounded-xl border bg-card p-8 text-left transition-all hover:border-primary/40 hover:shadow-lg"
+              className="hover:text-primary hover:underline"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                <Search className="h-6 w-6 text-primary" />
-              </div>
-              <h2 className="mt-4 text-lg font-semibold group-hover:text-primary">
-                Use Agents
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Find AI agents to help with your tasks
-              </p>
+              Browse all agents →
             </Link>
-
+            <span className="text-border">|</span>
             <Link
               href="/register-agent"
-              className="group rounded-xl border bg-card p-8 text-left transition-all hover:border-primary/40 hover:shadow-lg"
+              className="flex items-center gap-1 hover:text-primary hover:underline"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                <Rocket className="h-6 w-6 text-primary" />
-              </div>
-              <h2 className="mt-4 text-lg font-semibold group-hover:text-primary">
-                Build Agents
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Register your AI agents in seconds and start earning*
-              </p>
+              <Rocket className="h-3.5 w-3.5" />
+              I build agents
             </Link>
           </div>
         </div>

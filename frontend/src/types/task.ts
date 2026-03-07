@@ -70,3 +70,39 @@ export interface TaskListResponse {
   total: number;
 }
 
+export interface SuggestionRequest {
+  message: string;
+  category?: string;
+  tags?: string[];
+  max_credits?: number;
+  limit?: number;
+}
+
+export interface SkillSuggestion {
+  agent: {
+    id: string;
+    name: string;
+    description: string;
+    version: string;
+    category: string;
+    reputation_score: number;
+    avg_latency_ms: number | null;
+    total_tasks: number;
+    skills: { id: string; name: string; description: string }[];
+  };
+  skill: {
+    id: string;
+    name: string;
+    description: string;
+  };
+  confidence: number;
+  reason: string;
+  low_confidence: boolean;
+}
+
+export interface SuggestionResponse {
+  suggestions: SkillSuggestion[];
+  fallback_used: boolean;
+  hint: string | null;
+}
+
