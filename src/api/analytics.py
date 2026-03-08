@@ -1,4 +1,4 @@
-"""Analytics API — eval trends and agent performance metrics."""
+"""Analytics API — eval trends, agent performance metrics, and public stats."""
 
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
@@ -10,9 +10,76 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import settings
 from src.database import get_db
+from src.models.agent import Agent
 from src.models.task import Task, TaskStatus
+from src.models.transaction import Transaction, TransactionType
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
+
+
+# ---------------------------------------------------------------------------
+# Public platform stats (no auth, cached-friendly)
+# ---------------------------------------------------------------------------
+
+
+class PublicStats(BaseModel):
+    total_agents: int
+    total_skills: int
+    total_categories: int
+    tasks_completed: int
+    avg_success_rate: float | None
+    credits_earned_by_builders: float
+
+
+@router.get("/public-stats", response_model=PublicStats)
+async def get_public_stats(
+    db: AsyncSession = Depends(get_db),
+) -> PublicStats:
+    """Public platform stats for landing page — no authentication required."""
+    from src.models.agent_skill import AgentSkill
+
+    total_agents = (
+        await db.execute(select(func.count(Agent.id)).where(Agent.status == "active"))
+    ).scalar_one()
+
+    total_skills = (await db.execute(select(func.count(AgentSkill.id)))).scalar_one()
+
+    total_categories = (
+        await db.execute(select(func.count(func.distinct(Agent.category))))
+    ).scalar_one()
+
+    tasks_completed = (
+        await db.execute(
+            select(func.count(Task.id)).where(Task.status == "completed")
+        )
+    ).scalar_one()
+
+    # Success rate: completed / (completed + failed)
+    tasks_failed = (
+        await db.execute(
+            select(func.count(Task.id)).where(Task.status == "failed")
+        )
+    ).scalar_one()
+    total_finished = tasks_completed + tasks_failed
+    avg_success_rate = round(tasks_completed / total_finished * 100, 1) if total_finished > 0 else None
+
+    # Credits earned by developers (task payments received)
+    earned_result = await db.execute(
+        select(func.coalesce(func.sum(Transaction.amount), 0)).where(
+            Transaction.type == TransactionType.TASK_PAYMENT,
+            Transaction.to_account_id.isnot(None),
+        )
+    )
+    credits_earned = float(earned_result.scalar_one())
+
+    return PublicStats(
+        total_agents=total_agents,
+        total_skills=total_skills,
+        total_categories=total_categories,
+        tasks_completed=tasks_completed,
+        avg_success_rate=avg_success_rate,
+        credits_earned_by_builders=credits_earned,
+    )
 
 
 class WeeklyTrend(BaseModel):

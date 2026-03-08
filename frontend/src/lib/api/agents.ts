@@ -105,3 +105,16 @@ export async function getAgentTrends(
 ): Promise<AgentTrendsResponse> {
   return api.get(`/analytics/agent/${id}/trends?weeks=${weeks}`);
 }
+
+export interface PublicStats {
+  total_agents: number;
+  total_skills: number;
+  total_categories: number;
+  tasks_completed: number;
+  avg_success_rate: number | null;
+  credits_earned_by_builders: number;
+}
+
+export async function getPublicStats(): Promise<PublicStats> {
+  return api.get("/analytics/public-stats");
+}
