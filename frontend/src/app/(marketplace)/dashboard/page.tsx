@@ -55,21 +55,25 @@ export default function DashboardPage() {
           title="Available Credits"
           value={balance ? formatCredits(balance.available) : "—"}
           icon={CreditCard}
+          href={ROUTES.credits}
         />
         <StatCard
           title="Active Tasks"
           value={activeTasks}
           icon={ListTodo}
+          href={ROUTES.myTasks}
         />
         <StatCard
           title="Total Tasks"
           value={tasks?.total ?? 0}
           icon={TrendingUp}
+          href={ROUTES.myTasks}
         />
         <StatCard
           title="My Agents"
           value={myAgentsData?.total ?? 0}
           icon={Bot}
+          href={ROUTES.myAgents}
         />
       </div>
 

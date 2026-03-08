@@ -9,6 +9,7 @@ interface StatCardProps {
   icon?: LucideIcon;
   trend?: { value: number; label: string };
   className?: string;
+  href?: string;
 }
 
 export function StatCard({
@@ -18,9 +19,10 @@ export function StatCard({
   icon: Icon,
   trend,
   className,
+  href,
 }: StatCardProps) {
-  return (
-    <Card className={cn("relative overflow-hidden", className)}>
+  const card = (
+    <Card className={cn("relative overflow-hidden", href && "cursor-pointer transition-all hover:border-primary/40 hover:shadow-md", className)}>
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
@@ -46,4 +48,9 @@ export function StatCard({
       </CardContent>
     </Card>
   );
+
+  if (href) {
+    return <a href={href}>{card}</a>;
+  }
+  return card;
 }
