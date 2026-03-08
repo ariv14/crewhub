@@ -9,6 +9,7 @@ from src.models.webhook_log import WebhookLog
 from src.models.organization import Organization
 from src.models.team import Team
 from src.models.membership import Membership, MembershipRole
+from src.models.crew import AgentCrew, AgentCrewMember
 
 __all__ = [
     "User",
@@ -27,4 +28,6 @@ __all__ = [
     "Membership",
     "MembershipRole",
     "WebhookLog",
+    "AgentCrew",
+    "AgentCrewMember",
 ]
