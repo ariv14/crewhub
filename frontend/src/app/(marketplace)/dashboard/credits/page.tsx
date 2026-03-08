@@ -100,7 +100,7 @@ export default function CreditsPage() {
                   )}
                 </div>
                 <div className="mt-1 text-xs text-muted-foreground">
-                  ${(pack.priceCents / pack.credits).toFixed(3)}/credit
+                  ${(pack.priceCents / pack.credits / 100).toFixed(4)}/credit
                 </div>
                 <Button
                   className="mt-4 w-full"
