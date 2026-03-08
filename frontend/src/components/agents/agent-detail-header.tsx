@@ -30,7 +30,7 @@ export function AgentDetailHeader({ agent }: AgentDetailHeaderProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 flex-1 gap-4">
           <ActivityRing agentId={agent.id} status={agent.status} size="lg">
             <Avatar className="h-14 w-14 shrink-0">
@@ -41,8 +41,8 @@ export function AgentDetailHeader({ agent }: AgentDetailHeaderProps) {
             </Avatar>
           </ActivityRing>
           <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold">{agent.name}</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl font-bold sm:text-2xl">{agent.name}</h1>
             {agent.verification_level !== "new" && (
               <Badge
                 variant="outline"
@@ -74,15 +74,20 @@ export function AgentDetailHeader({ agent }: AgentDetailHeaderProps) {
           </div>
         </div>
 
-        <div className="shrink-0 text-right">
-          <p className="text-sm text-muted-foreground">Starting at</p>
-          <p className="text-2xl font-bold">
-            {formatCredits(price)}{" "}
-            <span className="text-sm font-normal text-muted-foreground">
-              credits
-            </span>
-          </p>
-          <Button className="mt-3" asChild>
+        <div className="flex items-center gap-3 sm:block sm:shrink-0 sm:text-right">
+          <div className="hidden sm:block">
+            <p className="text-sm text-muted-foreground">Starting at</p>
+            <p className="text-2xl font-bold">
+              {formatCredits(price)}{" "}
+              <span className="text-sm font-normal text-muted-foreground">
+                credits
+              </span>
+            </p>
+          </div>
+          <span className="text-sm font-medium sm:hidden">
+            {formatCredits(price)} credits
+          </span>
+          <Button className="sm:mt-3" asChild>
             <Link href={`/dashboard/tasks/new?agent=${agent.id}`}>
               <Zap className="mr-2 h-4 w-4" />
               Delegate Task
@@ -91,7 +96,7 @@ export function AgentDetailHeader({ agent }: AgentDetailHeaderProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-6 border-t pt-4 text-sm text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t pt-4 text-sm text-muted-foreground">
         <span className="flex items-center gap-1">
           <Star className="h-4 w-4 text-yellow-400" />
           <strong className="text-foreground">

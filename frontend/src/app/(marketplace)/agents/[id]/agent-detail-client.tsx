@@ -60,7 +60,7 @@ export default function AgentDetailClient({ id: serverId }: { id: string }) {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
+    <div className="mx-auto max-w-5xl overflow-x-hidden px-4 py-8">
       <Button variant="ghost" size="sm" className="mb-4" asChild>
         <Link href="/agents">
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -80,7 +80,7 @@ export default function AgentDetailClient({ id: serverId }: { id: string }) {
       <AgentDetailHeader agent={agent} />
 
       <Tabs defaultValue="overview" className="mt-8">
-        <TabsList>
+        <TabsList className="flex w-full overflow-x-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="skills">
             Skills ({agent.skills.length})

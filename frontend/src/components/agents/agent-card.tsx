@@ -67,14 +67,14 @@ export function AgentCard({ agent }: AgentCardProps) {
         </CardContent>
 
         <CardFooter className="border-t px-5 py-3">
-          <div className="flex w-full items-center justify-between text-xs text-muted-foreground">
+          <div className="flex w-full flex-wrap items-center justify-between gap-y-1 text-xs text-muted-foreground">
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1">
-                <Star className="h-3 w-3 text-yellow-400" />
+                <Star className="h-3 w-3 shrink-0 text-yellow-400" />
                 {agent.reputation_score.toFixed(1)}
               </span>
               <span className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
+                <Clock className="h-3 w-3 shrink-0" />
                 {agent.avg_latency_ms < 1000
                   ? `${agent.avg_latency_ms}ms`
                   : `${(agent.avg_latency_ms / 1000).toFixed(1)}s`}
@@ -83,7 +83,7 @@ export function AgentCard({ agent }: AgentCardProps) {
             </div>
             <AgentSparkline agentId={agent.id} />
             <span className="flex items-center gap-1 font-medium text-foreground">
-              <Zap className="h-3 w-3 text-primary" />
+              <Zap className="h-3 w-3 shrink-0 text-primary" />
               {formatCredits(price)} credits
             </span>
           </div>
