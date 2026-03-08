@@ -3,13 +3,18 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import {
+  Bot,
   CreditCard,
+  LayoutDashboard,
+  ListTodo,
   LogOut,
   Menu,
   Search,
   Settings,
-  User,
   Shield,
+  Upload,
+  User,
+  Users,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { SpinningLogo } from "@/components/shared/spinning-logo";
@@ -61,21 +66,25 @@ export function TopNav() {
             <nav className="mt-6 flex flex-col gap-1">
               {user && (
                 <>
-                  <Button variant="ghost" className="justify-start" asChild>
-                    <a href={ROUTES.dashboard}>Dashboard</a>
-                  </Button>
-                  <Button variant="ghost" className="justify-start" asChild>
-                    <a href={ROUTES.myTasks}>My Tasks</a>
-                  </Button>
-                  <Button variant="ghost" className="justify-start" asChild>
-                    <a href={ROUTES.credits}>Credits</a>
-                  </Button>
-                  <Button variant="ghost" className="justify-start" asChild>
-                    <a href={ROUTES.settings}>Settings</a>
-                  </Button>
+                  {[
+                    { href: ROUTES.dashboard, label: "Overview", icon: LayoutDashboard },
+                    { href: ROUTES.myAgents, label: "My Agents", icon: Bot },
+                    { href: ROUTES.myTasks, label: "My Tasks", icon: ListTodo },
+                    { href: ROUTES.team, label: "Team", icon: Users },
+                    { href: ROUTES.credits, label: "Credits", icon: CreditCard },
+                    { href: ROUTES.import, label: "Import", icon: Upload },
+                    { href: ROUTES.settings, label: "Settings", icon: Settings },
+                  ].map((item) => (
+                    <Button key={item.href} variant={pathname === item.href || (item.href !== ROUTES.dashboard && pathname.startsWith(item.href)) ? "secondary" : "ghost"} className="justify-start" asChild>
+                      <a href={item.href} onClick={() => setMobileOpen(false)}>
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {item.label}
+                      </a>
+                    </Button>
+                  ))}
                   {isAdmin && (
                     <Button variant="ghost" className="justify-start" asChild>
-                      <a href={ROUTES.admin}>
+                      <a href={ROUTES.admin} onClick={() => setMobileOpen(false)}>
                         <Shield className="mr-2 h-4 w-4" />
                         Admin
                       </a>
@@ -83,6 +92,19 @@ export function TopNav() {
                   )}
                 </>
               )}
+              <div className="my-2 border-t" />
+              <Button variant="ghost" className="justify-start" asChild>
+                <a href="/agents" onClick={() => setMobileOpen(false)}>
+                  <Search className="mr-2 h-4 w-4" />
+                  Browse Agents
+                </a>
+              </Button>
+              <Button variant="ghost" className="justify-start" asChild>
+                <a href={ROUTES.pricing} onClick={() => setMobileOpen(false)}>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Pricing
+                </a>
+              </Button>
             </nav>
           </SheetContent>
         </Sheet>
