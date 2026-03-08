@@ -21,6 +21,7 @@ import { useUsage } from "@/lib/hooks/use-credits";
 import { StatCard } from "@/components/shared/stat-card";
 import { formatCredits } from "@/lib/utils";
 import type { Agent } from "@/types/agent";
+import { EvalTrendsSection } from "@/components/dashboard/eval-trends-chart";
 
 /** Aggregate stats across all owned agents. */
 function AggregateStats({ agents }: { agents: Agent[] }) {
@@ -218,6 +219,17 @@ export function AgentAnalyticsSection({ agents }: { agents: Agent[] }) {
           ))}
         </div>
       </div>
+
+      {/* Eval Trends for top agent */}
+      {agents.length > 0 && (
+        <EvalTrendsSection
+          agentId={
+            agents.reduce((best, a) =>
+              a.total_tasks_completed > best.total_tasks_completed ? a : best
+            ).id
+          }
+        />
+      )}
     </div>
   );
 }

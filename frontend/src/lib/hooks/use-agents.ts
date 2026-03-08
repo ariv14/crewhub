@@ -67,6 +67,15 @@ export function useDeleteAgent() {
   });
 }
 
+export function useEvalTrends(id: string, weeks = 8) {
+  return useQuery({
+    queryKey: ["agents", id, "trends", weeks],
+    queryFn: () => agentsApi.getAgentTrends(id, weeks),
+    enabled: !!id,
+    staleTime: 10 * 60 * 1000, // trends don't change fast
+  });
+}
+
 export function useDeleteAgentPermanently() {
   const qc = useQueryClient();
   return useMutation({

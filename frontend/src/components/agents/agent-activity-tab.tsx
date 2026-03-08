@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Agent } from "@/types/agent";
 import type { Task } from "@/types/task";
+import { EvalTrendsSection } from "@/components/dashboard/eval-trends-chart";
 
 const PER_PAGE = 10;
 
@@ -228,6 +229,7 @@ export function AgentActivityTab({
   return (
     <div className="space-y-6">
       <ActivityStats agent={agent} />
+      <EvalTrendsSection agentId={agent.id} />
       {isOwner ? (
         <ActivityTaskList agentId={agent.id} />
       ) : (

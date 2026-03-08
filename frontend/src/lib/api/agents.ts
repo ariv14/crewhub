@@ -65,3 +65,25 @@ export async function getAgentStats(id: string): Promise<AgentStatsResponse> {
 export async function detectAgent(url: string): Promise<DetectResponse> {
   return api.post("/agents/detect", { url });
 }
+
+// --- Analytics / Eval Trends ---
+
+export interface WeeklyTrend {
+  week: string;
+  avg_quality: number | null;
+  success_rate: number | null;
+  avg_latency_ms: number | null;
+  task_count: number;
+}
+
+export interface AgentTrendsResponse {
+  agent_id: string;
+  trends: WeeklyTrend[];
+}
+
+export async function getAgentTrends(
+  id: string,
+  weeks = 8
+): Promise<AgentTrendsResponse> {
+  return api.get(`/analytics/agent/${id}/trends?weeks=${weeks}`);
+}
