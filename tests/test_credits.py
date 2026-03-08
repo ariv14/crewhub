@@ -128,6 +128,7 @@ async def test_insufficient_credits(client: AsyncClient, auth_headers: dict):
             }
         ],
         "max_credits": 99999.0,
+        "confirmed": True,  # bypass high-cost approval gate to hit credit check
     }
 
     resp = await client.post(
