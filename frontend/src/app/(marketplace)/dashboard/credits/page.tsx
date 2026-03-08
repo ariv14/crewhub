@@ -6,7 +6,6 @@ import { createCreditsCheckout } from "@/lib/api/billing";
 import { BalanceCard } from "@/components/credits/balance-card";
 import { formatCredits, formatRelativeTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -19,26 +18,28 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { Coins, Zap, Sparkles, Crown } from "lucide-react";
+
+const CREDIT_PACKS = [
+  { credits: 500, priceCents: 500, label: "Starter", savings: null, icon: Coins },
+  { credits: 2000, priceCents: 1800, label: "Builder", savings: "10% off", icon: Zap },
+  { credits: 5000, priceCents: 4000, label: "Pro", savings: "20% off", icon: Sparkles, popular: true },
+  { credits: 10000, priceCents: 7000, label: "Enterprise", savings: "30% off", icon: Crown },
+] as const;
 
 export default function CreditsPage() {
   const { data: balance, isLoading: balanceLoading } = useBalance();
   const { data: txData } = useTransactions({ per_page: 20 });
-  const [amount, setAmount] = useState("");
-  const [purchasing, setPurchasing] = useState(false);
+  const [purchasing, setPurchasing] = useState<number | null>(null);
 
-  async function handlePurchase() {
-    const num = Number(amount);
-    if (num < 100) {
-      toast.error("Minimum purchase is 100 credits");
-      return;
-    }
-    setPurchasing(true);
+  async function handlePurchase(credits: number) {
+    setPurchasing(credits);
     try {
-      const { checkout_url } = await createCreditsCheckout(num);
+      const { checkout_url } = await createCreditsCheckout(credits);
       window.location.href = checkout_url;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to start checkout");
-      setPurchasing(false);
+      setPurchasing(null);
     }
   }
 
@@ -47,61 +48,75 @@ export default function CreditsPage() {
       <div>
         <h1 className="text-2xl font-bold">Credits</h1>
         <p className="mt-1 text-muted-foreground">
-          Manage your credit balance and view transactions
+          Purchase credits to run AI agent tasks. 1 credit = $0.01
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {balanceLoading ? (
-          <Skeleton className="h-40" />
-        ) : balance ? (
-          <BalanceCard balance={balance} />
-        ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Balance</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Unable to load balance. Please try again later.
-              </p>
-            </CardContent>
-          </Card>
-        )}
+      {balanceLoading ? (
+        <Skeleton className="h-40" />
+      ) : balance ? (
+        <BalanceCard balance={balance} />
+      ) : null}
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Purchase Credits</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2">
-              <Input
-                type="number"
-                min="1"
-                placeholder="Amount"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-              />
-              <Button onClick={handlePurchase} disabled={purchasing}>
-                {purchasing ? "Redirecting..." : "Purchase"}
-              </Button>
-            </div>
-            <div className="mt-3 flex gap-2">
-              {[100, 500, 1000].map((v) => (
+      {/* Credit Packs */}
+      <div>
+        <h2 className="mb-4 text-lg font-semibold">Buy Credits</h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {CREDIT_PACKS.map((pack) => (
+            <Card
+              key={pack.credits}
+              className={`relative transition-all hover:shadow-md ${
+                "popular" in pack && pack.popular
+                  ? "border-primary shadow-sm"
+                  : ""
+              }`}
+            >
+              {"popular" in pack && pack.popular && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <Badge className="bg-primary text-primary-foreground">
+                    Most Popular
+                  </Badge>
+                </div>
+              )}
+              <CardHeader className="pb-3 text-center">
+                <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                  <pack.icon className="h-5 w-5 text-primary" />
+                </div>
+                <CardTitle className="text-base">{pack.label}</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <div className="text-3xl font-bold">
+                  {pack.credits.toLocaleString()}
+                </div>
+                <div className="mt-1 text-sm text-muted-foreground">credits</div>
+                <div className="mt-3 flex items-center justify-center gap-2">
+                  <span className="text-xl font-semibold">
+                    ${(pack.priceCents / 100).toFixed(0)}
+                  </span>
+                  {pack.savings && (
+                    <Badge variant="secondary" className="text-xs text-green-600">
+                      {pack.savings}
+                    </Badge>
+                  )}
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  ${(pack.priceCents / pack.credits).toFixed(3)}/credit
+                </div>
                 <Button
-                  key={v}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setAmount(String(v))}
+                  className="mt-4 w-full"
+                  variant={"popular" in pack && pack.popular ? "default" : "outline"}
+                  onClick={() => handlePurchase(pack.credits)}
+                  disabled={purchasing !== null}
                 >
-                  {v}
+                  {purchasing === pack.credits ? "Redirecting..." : "Buy Now"}
                 </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
 
+      {/* Transaction History */}
       <div>
         <h2 className="mb-4 text-lg font-semibold">Transaction History</h2>
         <div className="rounded-md border">
@@ -118,7 +133,7 @@ export default function CreditsPage() {
               {(txData?.transactions ?? []).map((tx) => (
                 <TableRow key={tx.id}>
                   <TableCell>
-                    <Badge variant="outline" className="capitalize text-xs">
+                    <Badge variant="outline" className="text-xs capitalize">
                       {tx.type.replace(/_/g, " ")}
                     </Badge>
                   </TableCell>

@@ -43,6 +43,10 @@ class Settings(BaseSettings):
     stripe_price_id: str = ""  # Stripe Price ID for $9/mo premium plan
     premium_monthly_price: int = 900  # cents ($9.00)
 
+    # Stripe credit pack Price IDs (one-time products)
+    # Format: "credits:price_id,credits:price_id,..."
+    stripe_credit_packs: str = ""  # e.g. "500:price_xxx,2000:price_yyy,5000:price_zzz,10000:price_www"
+
     # Frontend URL for Stripe redirect callbacks
     frontend_url: str = "http://localhost:3000"
 

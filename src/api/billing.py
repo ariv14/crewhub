@@ -117,12 +117,56 @@ async def create_checkout_session(
 
 
 # ---------------------------------------------------------------------------
+# Credit packs (tiered pricing)
+# ---------------------------------------------------------------------------
+
+# Default packs when STRIPE_CREDIT_PACKS is not configured
+_DEFAULT_PACKS = [
+    {"credits": 500, "price_cents": 500, "label": "500 Credits", "savings": None},
+    {"credits": 2000, "price_cents": 1800, "label": "2,000 Credits", "savings": "10% off"},
+    {"credits": 5000, "price_cents": 4000, "label": "5,000 Credits", "savings": "20% off"},
+    {"credits": 10000, "price_cents": 7000, "label": "10,000 Credits", "savings": "30% off"},
+]
+
+
+def _parse_credit_packs() -> dict[int, str]:
+    """Parse STRIPE_CREDIT_PACKS env var into {credits: price_id} mapping."""
+    if not settings.stripe_credit_packs:
+        return {}
+    packs = {}
+    for pair in settings.stripe_credit_packs.split(","):
+        pair = pair.strip()
+        if ":" not in pair:
+            continue
+        credits_str, price_id = pair.split(":", 1)
+        packs[int(credits_str)] = price_id
+    return packs
+
+
+class CreditPack(BaseModel):
+    credits: int
+    price_cents: int
+    label: str
+    savings: str | None = None
+
+
+class CreditPacksResponse(BaseModel):
+    packs: list[CreditPack]
+
+
+@router.get("/credit-packs", response_model=CreditPacksResponse)
+async def get_credit_packs() -> CreditPacksResponse:
+    """Get available credit pack tiers for purchase."""
+    return CreditPacksResponse(packs=[CreditPack(**p) for p in _DEFAULT_PACKS])
+
+
+# ---------------------------------------------------------------------------
 # Credits checkout (one-time payment)
 # ---------------------------------------------------------------------------
 
 
 class CreditsCheckoutRequest(BaseModel):
-    amount: int  # Number of credits to purchase (minimum 100)
+    amount: int  # Number of credits to purchase (must match a pack tier)
 
 
 @router.post("/credits-checkout", response_model=CheckoutResponse)
@@ -134,8 +178,13 @@ async def create_credits_checkout(
     """Create a Stripe Checkout session for a one-time credit purchase."""
     stripe = _get_stripe()
 
-    if data.amount < 100:
-        raise HTTPException(status_code=400, detail="Minimum purchase is 100 credits")
+    # Validate amount matches a known pack
+    valid_amounts = {p["credits"] for p in _DEFAULT_PACKS}
+    if data.amount not in valid_amounts:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid credit amount. Choose from: {sorted(valid_amounts)}",
+        )
 
     user = await _get_user(db, current_user, for_update=True)
 
@@ -151,23 +200,31 @@ async def create_credits_checkout(
         user.stripe_customer_id = customer_id
         await db.commit()
 
-    # $1 per 100 credits (1 cent per credit)
-    unit_amount = data.amount  # 1 credit = 1 cent
+    # Use Stripe Price ID if configured, otherwise use dynamic price_data
+    price_id_map = _parse_credit_packs()
+    price_id = price_id_map.get(data.amount)
+
+    if price_id:
+        line_items = [{"price": price_id, "quantity": 1}]
+    else:
+        # Fallback: dynamic pricing (1 credit = 1 cent)
+        pack = next(p for p in _DEFAULT_PACKS if p["credits"] == data.amount)
+        line_items = [{
+            "price_data": {
+                "currency": "usd",
+                "unit_amount": pack["price_cents"],
+                "product_data": {
+                    "name": f"{data.amount} CrewHub Credits",
+                    "description": f"One-time purchase of {pack['label']}",
+                },
+            },
+            "quantity": 1,
+        }]
 
     session = stripe.checkout.Session.create(
         customer=customer_id,
         mode="payment",
-        line_items=[{
-            "price_data": {
-                "currency": "usd",
-                "unit_amount": unit_amount,
-                "product_data": {
-                    "name": f"{data.amount} CrewHub Credits",
-                    "description": f"One-time purchase of {data.amount} credits",
-                },
-            },
-            "quantity": 1,
-        }],
+        line_items=line_items,
         success_url=f"{settings.frontend_url}/dashboard/credits?purchase=success",
         cancel_url=f"{settings.frontend_url}/dashboard/credits?purchase=cancelled",
         metadata={
