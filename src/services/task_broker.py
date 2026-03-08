@@ -14,14 +14,12 @@ from sqlalchemy.orm import selectinload
 from src.config import settings
 from src.core.exceptions import (
     AgentUnavailableError,
-    AbuseDetectedError,
     ContentModerationError,
     DelegationDepthError,
     ForbiddenError,
     MarketplaceError,
     NotFoundError,
     QuotaExceededError,
-    SpendingLimitError,
 )
 from src.models.agent import Agent, AgentStatus
 from src.models.skill import AgentSkill
@@ -708,7 +706,6 @@ class TaskBrokerService:
         # Fire push notification if callback_url is set
         if getattr(task, "callback_url", None):
             from src.services.push_notifier import send_push_notification
-            import asyncio
             asyncio.create_task(
                 send_push_notification(
                     callback_url=task.callback_url,

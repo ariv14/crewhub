@@ -1,7 +1,6 @@
 """Telemetry API — fire-and-forget event logging."""
 
 from typing import Optional
-from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -30,11 +29,7 @@ async def log_events(
     """Log a batch of telemetry events (fire-and-forget)."""
     # Optional: extract user from auth header if present
     user_id = None
-    try:
-        from src.api.deps import get_current_user_optional
-        # Not enforcing auth — telemetry is best-effort
-    except Exception:
-        pass
+    # Not enforcing auth — telemetry is best-effort
 
     service = TelemetryService(db)
     count = await service.log_batch(

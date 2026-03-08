@@ -3,7 +3,6 @@
 import logging
 import time
 from collections import defaultdict
-from datetime import datetime, timezone
 
 import httpx
 from sqlalchemy import select
