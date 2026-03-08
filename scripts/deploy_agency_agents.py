@@ -182,7 +182,7 @@ def deploy_division(division: str, config: dict, api: HfApi, groq_key: str, dry_
     )
     print(f"Squashed history for {space_id}")
 
-    # Set secrets
+    # Set secrets — primary + fallback LLM provider keys
     secrets = {
         "MODEL": "groq/llama-3.3-70b-versatile",
         "GROQ_API_KEY": groq_key,
@@ -190,6 +190,11 @@ def deploy_division(division: str, config: dict, api: HfApi, groq_key: str, dry_
         "DIVISION": division,
         "CREDITS_PER_TASK": "2",
     }
+    # Add optional fallback provider keys (multi-provider resilience)
+    for env_var in ("GEMINI_API_KEY", "CEREBRAS_API_KEY", "SAMBANOVA_API_KEY"):
+        val = os.environ.get(env_var)
+        if val:
+            secrets[env_var] = val
     for key, value in secrets.items():
         api.add_space_secret(repo_id=space_id, key=key, value=value)
         print(f"Set secret: {key}")

@@ -106,36 +106,106 @@ async def _ollama_call(
         return resp.json()["message"]["content"]
 
 
+# ---------------------------------------------------------------------------
+# Multi-provider LLM Router (built once at import time)
+# ---------------------------------------------------------------------------
+
+# Provider definitions: (env_var, model_string, rpm_limit)
+_PROVIDER_DEFS = [
+    ("GROQ_API_KEY", "groq/llama-3.3-70b-versatile", 30),
+    ("CEREBRAS_API_KEY", "cerebras/llama-3.3-70b", 30),
+    ("SAMBANOVA_API_KEY", "sambanova/Meta-Llama-3.3-70B-Instruct", 20),
+    ("GEMINI_API_KEY", "gemini/gemini-2.0-flash", 15),
+]
+
+_router = None  # Lazy-initialized on first call
+
+
+def _build_router():
+    """Build a LiteLLM Router from available API keys. Returns None if no keys."""
+    try:
+        from litellm import Router
+    except ImportError:
+        return None
+
+    model_list = []
+    for env_var, model_str, rpm in _PROVIDER_DEFS:
+        key = os.environ.get(env_var)
+        if key:
+            model_list.append({
+                "model_name": "agent-llm",
+                "litellm_params": {
+                    "model": model_str,
+                    "api_key": key,
+                    "rpm": rpm,
+                },
+            })
+
+    if not model_list:
+        return None
+
+    providers = [m["litellm_params"]["model"] for m in model_list]
+    logger.info("LLM Router initialized with %d providers: %s", len(model_list), providers)
+
+    return Router(
+        model_list=model_list,
+        num_retries=2,
+        timeout=30,
+        allowed_fails=3,
+        cooldown_time=60,
+        retry_after=1,
+    )
+
+
 async def llm_call(
     system_prompt: str,
     user_message: str,
     model: str | None = None,
 ) -> str:
-    """Call an LLM. Falls back to echo if unavailable.
+    """Call an LLM with automatic multi-provider fallback.
 
-    Reads MODEL env var (default: ollama/llama3.2). For Ollama models, uses
-    direct httpx calls. For other providers, uses LiteLLM.
+    Uses LiteLLM Router to load-balance across available providers and
+    automatically retry on 429/500 errors. Falls back to single-model
+    call if MODEL env var is set explicitly, or echo if nothing works.
     """
-    model = model or os.environ.get("MODEL", "ollama/llama3.2")
+    global _router
+    explicit_model = model or os.environ.get("MODEL")
 
-    try:
-        if model.lower().startswith("ollama/"):
-            ollama_model = model.split("/", 1)[1]
-            return await _ollama_call(ollama_model, system_prompt, user_message)
+    # Ollama: bypass router entirely
+    if explicit_model and explicit_model.lower().startswith("ollama/"):
+        try:
+            return await _ollama_call(explicit_model.split("/", 1)[1], system_prompt, user_message)
+        except Exception as exc:
+            logger.warning("Ollama call failed: %s: %s", type(exc).__name__, exc)
+            return f"[LLM unavailable — echoing input]\n\n{user_message}"
 
-        import litellm
-        response = await litellm.acompletion(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message},
-            ],
-            timeout=60,
-        )
-        return response.choices[0].message.content
-    except Exception as exc:
-        logger.warning("LLM call failed (%s), using fallback: %s: %s", model, type(exc).__name__, exc)
-        return f"[LLM unavailable — echoing input]\n\n{user_message}"
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_message},
+    ]
+
+    # Try Router first (multi-provider with automatic failover)
+    if _router is None:
+        _router = _build_router() or False  # False = no keys available
+    if _router:
+        try:
+            response = await _router.acompletion(model="agent-llm", messages=messages)
+            return response.choices[0].message.content
+        except Exception as exc:
+            logger.warning("Router call failed: %s: %s", type(exc).__name__, exc)
+
+    # Fallback: direct single-model call (if MODEL env var set)
+    if explicit_model:
+        try:
+            import litellm
+            response = await litellm.acompletion(
+                model=explicit_model, messages=messages, timeout=60,
+            )
+            return response.choices[0].message.content
+        except Exception as exc:
+            logger.warning("Direct LLM call failed (%s): %s: %s", explicit_model, type(exc).__name__, exc)
+
+    return f"[LLM unavailable — echoing input]\n\n{user_message}"
 
 
 # In-memory task store shared within one process

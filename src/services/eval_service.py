@@ -97,7 +97,11 @@ class EvalService:
     async def _call_llm_judge(
         self, input_text: str, output_text: str
     ) -> dict | None:
-        """Call the eval LLM model and parse the JSON scores."""
+        """Call the eval LLM model and parse the JSON scores.
+
+        Uses the configured eval model (default: Gemini Flash) with fallback
+        to the multi-provider backend router if the primary model fails.
+        """
         try:
             from litellm import acompletion
         except ImportError:
@@ -114,6 +118,7 @@ class EvalService:
         )
 
         try:
+            # Try configured eval model first (Gemini Flash — separate budget)
             response = await acompletion(
                 model=settings.eval_llm_model,
                 messages=[
@@ -143,8 +148,29 @@ class EvalService:
             logger.warning("Eval: failed to parse LLM response as JSON")
             return None
         except Exception:
-            logger.exception("Eval: LLM call failed")
-            return None
+            logger.warning("Eval: primary model (%s) failed, trying router fallback", settings.eval_llm_model)
+            try:
+                from src.core.llm_router import completion
+                content = await completion(
+                    messages=[
+                        {"role": "system", "content": EVAL_RUBRIC},
+                        {"role": "user", "content": prompt},
+                    ],
+                    temperature=0.0,
+                    max_tokens=100,
+                )
+                content = content.strip()
+                if content.startswith("```"):
+                    content = content.split("\n", 1)[-1].rsplit("```", 1)[0]
+                scores = json.loads(content)
+                for key in ("relevance", "completeness", "coherence"):
+                    val = scores.get(key)
+                    if not isinstance(val, (int, float)) or val < 0 or val > 5:
+                        return None
+                return scores
+            except Exception:
+                logger.exception("Eval: router fallback also failed")
+                return None
 
     @staticmethod
     def _extract_text(messages: list[dict], role: str = "user") -> str:

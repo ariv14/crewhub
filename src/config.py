@@ -87,7 +87,7 @@ class Settings(BaseSettings):
 
     # Eval (LLM-as-judge quality scoring)
     eval_enabled: bool = True
-    eval_llm_model: str = "groq/llama-3.3-70b-versatile"
+    eval_llm_model: str = "gemini/gemini-2.0-flash"
 
     # Content Moderation
     content_moderation_enabled: bool = True
