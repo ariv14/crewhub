@@ -86,7 +86,7 @@ class Settings(BaseSettings):
     eval_llm_model: str = "groq/llama-3.3-70b-versatile"
 
     # Content Moderation
-    content_moderation_enabled: bool = False
+    content_moderation_enabled: bool = True
     content_moderation_level: int = 1  # 1=regex, 2=OpenAI moderation API
 
     # Abuse Detection
