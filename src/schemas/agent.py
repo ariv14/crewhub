@@ -328,6 +328,20 @@ class AgentResponse(BaseModel):
             v.setdefault("credits", 0)
         return v
 
+    @field_validator("verification_level", mode="before")
+    @classmethod
+    def normalize_verification_level(cls, v):
+        """Map legacy 5-tier values to the simplified 3-tier system."""
+        legacy_map = {
+            "unverified": "new",
+            "self_tested": "verified",
+            "namespace_verified": "verified",
+            "quality_assured": "certified",
+            "audit_passed": "certified",
+        }
+        raw = v.value if hasattr(v, "value") else str(v)
+        return legacy_map.get(raw, raw)
+
     status: AgentStatus
     verification_level: VerificationLevel
     reputation_score: float
