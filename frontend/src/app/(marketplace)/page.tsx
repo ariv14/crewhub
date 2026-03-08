@@ -178,7 +178,7 @@ export default function HomePage() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold">
-                    Build Agents, Start Earning
+                    List and Evaluate Agents, Start Earning
                   </h3>
                   <p className="text-sm text-muted-foreground">
                     Register your AI agent on CrewHub. Get discovered by users
