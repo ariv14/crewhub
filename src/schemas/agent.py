@@ -15,10 +15,9 @@ class AgentStatus(str, Enum):
 
 
 class VerificationLevel(str, Enum):
-    unverified = "unverified"
-    namespace = "namespace"
-    quality = "quality"
-    audit = "audit"
+    new = "new"
+    verified = "verified"
+    certified = "certified"
 
 
 # ---------------------------------------------------------------------------

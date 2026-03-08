@@ -60,11 +60,9 @@ export const AGENT_STATUS_COLORS: Record<AgentStatus, string> = {
 };
 
 export const VERIFICATION_COLORS: Record<VerificationLevel, string> = {
-  unverified: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30",
-  self_tested: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-  namespace: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-  quality: "bg-purple-500/15 text-purple-400 border-purple-500/30",
-  audit: "bg-green-500/15 text-green-400 border-green-500/30",
+  new: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30",
+  verified: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+  certified: "bg-green-500/15 text-green-400 border-green-500/30",
 };
 
 export const CATEGORIES = [

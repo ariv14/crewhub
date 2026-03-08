@@ -198,7 +198,7 @@ class OpenClawImporter:
                 "imported_at": datetime.now(timezone.utc).isoformat(),
             },
             status=AgentStatus.INACTIVE,
-            verification_level=VerificationLevel.UNVERIFIED,
+            verification_level=VerificationLevel.NEW,
         )
         self.db.add(agent)
         await self.db.flush()

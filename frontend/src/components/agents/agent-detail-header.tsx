@@ -43,7 +43,7 @@ export function AgentDetailHeader({ agent }: AgentDetailHeaderProps) {
           <div className="min-w-0 flex-1">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold">{agent.name}</h1>
-            {agent.verification_level !== "unverified" && (
+            {agent.verification_level !== "new" && (
               <Badge
                 variant="outline"
                 className={cn(

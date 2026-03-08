@@ -126,28 +126,24 @@ class ReputationService:
     ) -> None:
         """Auto-promote verification tier based on eval performance.
 
-        Tiers (progressive — never demote):
-          unverified → self_tested: agent has test_cases and ≥1 completed task with quality score
-          self_tested → quality: ≥10 tasks, quality > 0.7 (3.5/5), success > 0.9, reputation ≥ 3.0
+        3 tiers (progressive — never demote):
+          new → verified: ≥3 tasks, quality ≥ 0.6 (3.0/5), success ≥ 80%
+          verified → certified: ≥25 tasks, quality ≥ 0.8 (4.0/5), success ≥ 95%, reputation ≥ 3.5
         """
         from src.models.agent import VerificationLevel
 
-        current = agent.verification_level
-        # Handle string values from SQLite
-        if isinstance(current, str):
-            current = current
+        current_str = agent.verification_level.value if hasattr(agent.verification_level, "value") else str(agent.verification_level)
+        # Map legacy values to new tiers
+        legacy_map = {"unverified": "new", "self_tested": "verified", "namespace": "verified", "quality": "certified", "audit": "certified"}
+        current_str = legacy_map.get(current_str, current_str)
 
-        level_order = ["unverified", "self_tested", "namespace", "quality", "audit"]
-        current_str = current.value if hasattr(current, "value") else str(current)
-        current_idx = level_order.index(current_str) if current_str in level_order else 0
+        # new → verified
+        if current_str == "new" and completed >= 3 and quality_norm >= 0.6 and success_rate >= 0.8:
+            agent.verification_level = VerificationLevel.VERIFIED
 
-        # self_tested: has test_cases and at least 1 scored task
-        if current_idx < 1 and agent.test_cases and len(agent.test_cases) > 0 and completed >= 1:
-            agent.verification_level = VerificationLevel.SELF_TESTED
-
-        # quality: strong performance metrics
-        if current_idx < 3 and completed >= 10 and quality_norm > 0.7 and success_rate > 0.9 and score >= 3.0:
-            agent.verification_level = VerificationLevel.QUALITY
+        # verified → certified
+        if current_str == "verified" and completed >= 25 and quality_norm >= 0.8 and success_rate >= 0.95 and score >= 3.5:
+            agent.verification_level = VerificationLevel.CERTIFIED
 
     # ------------------------------------------------------------------
     # Decay
@@ -173,53 +169,28 @@ class ReputationService:
     async def get_verification_requirements(self, level: str) -> dict:
         """Return the requirements for each verification tier."""
         tiers = {
-            "self_tested": {
-                "level": "self_tested",
-                "description": "Agent has test cases and at least one evaluated task.",
+            "verified": {
+                "level": "verified",
+                "description": "Agent is eval'd and working. Gets normal search ranking.",
                 "requirements": [
-                    "Provide test cases during registration",
-                    "Complete at least 1 task with quality scoring",
-                    "Auto-promoted when conditions are met",
+                    "Complete at least 3 tasks",
+                    "AI quality score ≥ 3.0/5",
+                    "Success rate ≥ 80%",
                 ],
                 "min_reputation": 0.0,
-                "min_tasks": 1,
+                "min_tasks": 3,
             },
-            "namespace": {
-                "level": "namespace",
-                "description": "Namespace verification confirms endpoint ownership.",
+            "certified": {
+                "level": "certified",
+                "description": "Top-tier agent. Featured placement and priority ranking.",
                 "requirements": [
-                    "Valid and reachable agent endpoint",
-                    "Serve agent card at /.well-known/agent-card.json",
-                    "DNS TXT record or meta-tag proving ownership",
+                    "Complete at least 25 tasks",
+                    "AI quality score ≥ 4.0/5",
+                    "Success rate ≥ 95%",
+                    "Reputation score ≥ 3.5/5",
                 ],
-                "min_reputation": 0.0,
-                "min_tasks": 0,
-            },
-            "quality": {
-                "level": "quality",
-                "description": "Quality verification validates consistent task performance.",
-                "requirements": [
-                    "Namespace verification completed",
-                    "Minimum 50 completed tasks",
-                    "Success rate above 90%",
-                    "Average rating above 3.5/5",
-                    "Reputation score above 3.0/5",
-                ],
-                "min_reputation": 3.0,
-                "min_tasks": 50,
-            },
-            "audit": {
-                "level": "audit",
-                "description": "Full audit verification with security and compliance review.",
-                "requirements": [
-                    "Quality verification completed",
-                    "Minimum 500 completed tasks",
-                    "Security audit passed",
-                    "SLA compliance above 99%",
-                    "Reputation score above 4.0/5",
-                ],
-                "min_reputation": 4.0,
-                "min_tasks": 500,
+                "min_reputation": 3.5,
+                "min_tasks": 25,
             },
         }
 

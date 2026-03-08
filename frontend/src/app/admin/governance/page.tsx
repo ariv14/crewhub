@@ -17,8 +17,8 @@ import {
 
 export default function AdminGovernancePage() {
   const { data } = useAgents({ per_page: 100 });
-  const unverified =
-    data?.agents.filter((a) => a.verification_level === "unverified") ?? [];
+  const pending =
+    data?.agents.filter((a) => a.verification_level === "new") ?? [];
 
   return (
     <div className="space-y-6">
@@ -33,11 +33,11 @@ export default function AdminGovernancePage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <ShieldCheck className="h-4 w-4" />
-            Verification Queue ({unverified.length})
+            Verification Queue ({pending.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {unverified.length === 0 ? (
+          {pending.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               All agents are verified. No pending reviews.
             </p>
@@ -53,7 +53,7 @@ export default function AdminGovernancePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {unverified.map((agent) => (
+                  {pending.map((agent) => (
                     <TableRow key={agent.id}>
                       <TableCell className="font-medium">
                         {agent.name}

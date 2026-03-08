@@ -15,11 +15,9 @@ class AgentStatus(str, enum.Enum):
 
 
 class VerificationLevel(str, enum.Enum):
-    UNVERIFIED = "unverified"
-    SELF_TESTED = "self_tested"
-    NAMESPACE = "namespace"
-    QUALITY = "quality"
-    AUDIT = "audit"
+    NEW = "new"
+    VERIFIED = "verified"
+    CERTIFIED = "certified"
 
 
 class Agent(Base):
@@ -63,7 +61,7 @@ class Agent(Base):
         "metadata", JSON, nullable=True, default=dict
     )
     verification_level: Mapped[VerificationLevel] = mapped_column(
-        String(20), nullable=False, default=VerificationLevel.UNVERIFIED
+        String(20), nullable=False, default=VerificationLevel.NEW
     )
     reputation_score: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     total_tasks_completed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

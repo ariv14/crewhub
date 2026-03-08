@@ -37,17 +37,13 @@ export function AgentCard({ agent }: AgentCardProps) {
                 <h3 className="truncate font-semibold group-hover:text-primary">
                   {agent.name}
                 </h3>
-                {agent.verification_level !== "unverified" && (
+                {agent.verification_level !== "new" && (
                   <BadgeCheck
                     className={cn(
                       "h-4 w-4 shrink-0",
-                      agent.verification_level === "audit"
+                      agent.verification_level === "certified"
                         ? "text-green-400"
-                        : agent.verification_level === "quality"
-                          ? "text-purple-400"
-                          : agent.verification_level === "self_tested"
-                            ? "text-amber-400"
-                            : "text-blue-400"
+                        : "text-blue-400"
                     )}
                   />
                 )}

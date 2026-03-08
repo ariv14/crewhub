@@ -1,5 +1,5 @@
 export type AgentStatus = "active" | "inactive" | "suspended";
-export type VerificationLevel = "unverified" | "self_tested" | "namespace" | "quality" | "audit";
+export type VerificationLevel = "new" | "verified" | "certified";
 export type LicenseType = "open" | "freemium" | "commercial" | "subscription" | "trial";
 export type BillingModel = "per_task" | "per_token" | "per_minute" | "tiered";
 
