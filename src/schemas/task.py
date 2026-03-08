@@ -61,6 +61,7 @@ class TaskCreate(BaseModel):
     validate_match: bool = Field(False, description="If true, check message-skill alignment and return a warning if mismatched")
     confirmed: bool = Field(False, description="If true, bypass high-cost approval check")
     # Delegation tracking (set by frontend when using auto-delegation)
+    parent_task_id: Optional[UUID] = None
     suggested_agent_id: Optional[UUID] = None
     suggestion_confidence: Optional[float] = Field(None, ge=0, le=1)
 
