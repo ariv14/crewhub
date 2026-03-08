@@ -80,12 +80,10 @@ class TaskBrokerService:
         # 0b. Content moderation — check input messages
         from src.services.content_filter import check_input
         for msg in data.messages:
-            if hasattr(msg, "text") and msg.text:
-                check_input(msg.text)
-            elif hasattr(msg, "parts"):
-                for part in msg.parts or []:
-                    if isinstance(part, dict) and part.get("text"):
-                        check_input(part["text"])
+            for part in msg.parts or []:
+                text = part.content if hasattr(part, "content") else (part.get("content") if isinstance(part, dict) else None)
+                if text:
+                    check_input(text)
 
         # 0c. Circuit breaker check
         from src.services.health_monitor import is_circuit_open
