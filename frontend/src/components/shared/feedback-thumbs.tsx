@@ -19,7 +19,9 @@ export function FeedbackThumbs({
 }: FeedbackThumbsProps) {
   const [feedback, setFeedback] = useState<"up" | "down" | null>(null);
 
-  function handleFeedback(value: "up" | "down") {
+  function handleFeedback(e: React.MouseEvent, value: "up" | "down") {
+    e.preventDefault();
+    e.stopPropagation();
     setFeedback(value);
     trackEvent("suggestion_feedback", {
       context,
@@ -38,7 +40,7 @@ export function FeedbackThumbs({
           "h-7 w-7",
           feedback === "up" && "text-green-500 bg-green-500/10"
         )}
-        onClick={() => handleFeedback("up")}
+        onClick={(e) => handleFeedback(e, "up")}
         disabled={feedback !== null}
       >
         <ThumbsUp className="h-3.5 w-3.5" />
@@ -50,7 +52,7 @@ export function FeedbackThumbs({
           "h-7 w-7",
           feedback === "down" && "text-red-500 bg-red-500/10"
         )}
-        onClick={() => handleFeedback("down")}
+        onClick={(e) => handleFeedback(e, "down")}
         disabled={feedback !== null}
       >
         <ThumbsDown className="h-3.5 w-3.5" />
