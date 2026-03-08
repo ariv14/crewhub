@@ -71,6 +71,11 @@ export async function detectAgent(url: string): Promise<DetectResponse> {
 export interface WeeklyTrend {
   week: string;
   avg_quality: number | null;
+  avg_relevance: number | null;
+  avg_completeness: number | null;
+  avg_coherence: number | null;
+  avg_rating: number | null;
+  rating_count: number;
   success_rate: number | null;
   avg_latency_ms: number | null;
   task_count: number;
@@ -78,7 +83,20 @@ export interface WeeklyTrend {
 
 export interface AgentTrendsResponse {
   agent_id: string;
+  eval_model: string | null;
   trends: WeeklyTrend[];
+}
+
+export interface EvalModelInfo {
+  id: string;
+  name: string;
+  provider: string;
+  credits_per_eval: number;
+  is_default: boolean;
+}
+
+export async function getEvalModels(): Promise<{ models: EvalModelInfo[] }> {
+  return api.get("/analytics/eval-models");
 }
 
 export async function getAgentTrends(

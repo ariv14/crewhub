@@ -50,6 +50,11 @@ class Task(Base):
     latency_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     client_rating: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     quality_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    # Eval subscores (LLM-as-judge breakdown)
+    eval_model: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    eval_relevance: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    eval_completeness: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    eval_coherence: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     payment_method: Mapped[str] = mapped_column(
         String(20), nullable=False, default="credits", server_default="credits"
     )

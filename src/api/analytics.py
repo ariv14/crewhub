@@ -18,6 +18,11 @@ router = APIRouter(prefix="/analytics", tags=["analytics"])
 class WeeklyTrend(BaseModel):
     week: str  # ISO week label e.g. "2026-W10"
     avg_quality: float | None
+    avg_relevance: float | None
+    avg_completeness: float | None
+    avg_coherence: float | None
+    avg_rating: float | None
+    rating_count: int
     success_rate: float | None
     avg_latency_ms: float | None
     task_count: int
@@ -25,7 +30,20 @@ class WeeklyTrend(BaseModel):
 
 class AgentTrendsResponse(BaseModel):
     agent_id: str
+    eval_model: str | None
     trends: list[WeeklyTrend]
+
+
+class EvalModelsResponse(BaseModel):
+    models: list["EvalModelInfo"]
+
+
+class EvalModelInfo(BaseModel):
+    id: str
+    name: str
+    provider: str
+    credits_per_eval: float
+    is_default: bool
 
 
 def _week_columns():
@@ -38,6 +56,45 @@ def _week_columns():
         yr = extract("isoyear", Task.created_at).label("yr")
         wk = extract("week", Task.created_at).label("wk")
     return yr, wk
+
+
+# Platform-provided eval models
+PLATFORM_EVAL_MODELS: list[EvalModelInfo] = [
+    EvalModelInfo(
+        id="groq/llama-3.3-70b-versatile",
+        name="Llama 3.3 70B",
+        provider="Groq",
+        credits_per_eval=0,
+        is_default=True,
+    ),
+    EvalModelInfo(
+        id="groq/gemma2-9b-it",
+        name="Gemma 2 9B",
+        provider="Groq",
+        credits_per_eval=0,
+        is_default=False,
+    ),
+    EvalModelInfo(
+        id="openai/gpt-4o-mini",
+        name="GPT-4o Mini",
+        provider="OpenAI",
+        credits_per_eval=1,
+        is_default=False,
+    ),
+    EvalModelInfo(
+        id="openai/gpt-4o",
+        name="GPT-4o",
+        provider="OpenAI",
+        credits_per_eval=2,
+        is_default=False,
+    ),
+]
+
+
+@router.get("/eval-models", response_model=EvalModelsResponse)
+async def list_eval_models():
+    """List available platform-provided eval models."""
+    return EvalModelsResponse(models=PLATFORM_EVAL_MODELS)
 
 
 @router.get("/agent/{agent_id}/trends", response_model=AgentTrendsResponse)
@@ -55,6 +112,11 @@ async def get_agent_trends(
             yr,
             wk,
             func.avg(Task.quality_score).label("avg_quality"),
+            func.avg(Task.eval_relevance).label("avg_relevance"),
+            func.avg(Task.eval_completeness).label("avg_completeness"),
+            func.avg(Task.eval_coherence).label("avg_coherence"),
+            func.avg(Task.client_rating).label("avg_rating"),
+            func.count(Task.client_rating).label("rating_cnt"),
             func.avg(
                 case(
                     (Task.status == TaskStatus.COMPLETED, 1.0),
@@ -76,6 +138,19 @@ async def get_agent_trends(
     result = await db.execute(stmt)
     rows = result.all()
 
+    # Get the most recent eval_model used for this agent
+    model_stmt = (
+        select(Task.eval_model)
+        .where(
+            Task.provider_agent_id == agent_id,
+            Task.eval_model.isnot(None),
+        )
+        .order_by(Task.created_at.desc())
+        .limit(1)
+    )
+    model_result = await db.execute(model_stmt)
+    eval_model = model_result.scalar_one_or_none()
+
     trends = []
     for row in rows:
         y = int(row.yr) if row.yr else 0
@@ -84,10 +159,15 @@ async def get_agent_trends(
             WeeklyTrend(
                 week=f"{y}-W{w:02d}",
                 avg_quality=round(float(row.avg_quality), 2) if row.avg_quality else None,
+                avg_relevance=round(float(row.avg_relevance), 2) if row.avg_relevance else None,
+                avg_completeness=round(float(row.avg_completeness), 2) if row.avg_completeness else None,
+                avg_coherence=round(float(row.avg_coherence), 2) if row.avg_coherence else None,
+                avg_rating=round(float(row.avg_rating), 2) if row.avg_rating else None,
+                rating_count=int(row.rating_cnt) if row.rating_cnt else 0,
                 success_rate=round(float(row.success_rate), 2) if row.success_rate is not None else None,
                 avg_latency_ms=round(float(row.avg_latency), 0) if row.avg_latency else None,
                 task_count=int(row.cnt),
             )
         )
 
-    return AgentTrendsResponse(agent_id=str(agent_id), trends=trends)
+    return AgentTrendsResponse(agent_id=str(agent_id), eval_model=eval_model, trends=trends)

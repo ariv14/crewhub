@@ -86,6 +86,10 @@ class TaskResponse(BaseModel):
     x402_receipt: Optional[dict] = None
     status_history: list[dict] = []
     quality_score: Optional[float] = None
+    eval_model: Optional[str] = None
+    eval_relevance: Optional[float] = None
+    eval_completeness: Optional[float] = None
+    eval_coherence: Optional[float] = None
     delegation_warning: Optional[str] = None
     delegation_depth: int = 0
     parent_task_id: Optional[UUID] = None

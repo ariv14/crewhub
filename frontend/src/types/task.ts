@@ -60,6 +60,10 @@ export interface Task {
   x402_receipt: Record<string, unknown> | null;
   status_history: { status: string; at: string }[] | null;
   quality_score: number | null;
+  eval_model: string | null;
+  eval_relevance: number | null;
+  eval_completeness: number | null;
+  eval_coherence: number | null;
   delegation_warning: string | null;
   delegation_depth: number;
   parent_task_id: string | null;

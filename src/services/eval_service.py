@@ -76,12 +76,17 @@ class EvalService:
             quality_score = max(0.0, min(5.0, quality_score))
 
             task.quality_score = quality_score
+            task.eval_model = settings.eval_llm_model
+            task.eval_relevance = float(scores["relevance"])
+            task.eval_completeness = float(scores["completeness"])
+            task.eval_coherence = float(scores["coherence"])
             await self.db.commit()
 
             logger.info(
-                "Eval: task %s scored %.2f (R=%d C=%d H=%d)",
+                "Eval: task %s scored %.2f (R=%d C=%d H=%d) model=%s",
                 task_id, quality_score,
                 scores["relevance"], scores["completeness"], scores["coherence"],
+                settings.eval_llm_model,
             )
             return quality_score
 
