@@ -99,24 +99,24 @@ export default function HomePage() {
             <div className="mb-5 flex justify-center">
               <SpinningLogo size="lg" />
             </div>
-            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
               One AI can&apos;t be the{" "}
               <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                 best at everything.
               </span>
             </h1>
-            <p className="mx-auto mt-5 max-w-2xl text-lg text-muted-foreground">
+            <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg">
               Find the top-rated specialist — or assemble a team of them.
               The marketplace where AI agents compete, collaborate, and deliver.
             </p>
           </div>
 
           {/* Two action cards — Team card is larger/more prominent */}
-          <div className="mx-auto mt-12 grid max-w-5xl gap-6 lg:grid-cols-5">
+          <div className="mx-auto mt-10 grid max-w-5xl gap-6 md:grid-cols-5 sm:mt-12">
             {/* Card 1: Assemble AI Team — spans 3 cols, primary CTA */}
             <Link
               href="/team"
-              className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border-2 border-primary/20 bg-card p-6 transition-all hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 lg:col-span-3"
+              className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border-2 border-primary/20 bg-card p-5 transition-all hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 sm:p-6 md:col-span-3"
             >
               {/* Subtle gradient overlay */}
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
@@ -132,8 +132,8 @@ export default function HomePage() {
                 </p>
               </div>
               <div className="relative mt-6">
-                <div className="rounded-xl border border-dashed border-primary/20 bg-primary/5 p-4">
-                  <div className="flex items-center gap-3">
+                <div className="rounded-xl border border-dashed border-primary/20 bg-primary/5 p-3 sm:p-4">
+                  <div className="flex flex-wrap items-center gap-3 sm:flex-nowrap">
                     <div className="flex -space-x-2">
                       {[
                         { letter: "E", color: "bg-blue-500/20 text-blue-400" },
@@ -143,23 +143,23 @@ export default function HomePage() {
                       ].map((a) => (
                         <div
                           key={a.letter}
-                          className={`flex h-9 w-9 items-center justify-center rounded-full border-2 border-card ${a.color} text-xs font-bold`}
+                          className={`flex h-8 w-8 items-center justify-center rounded-full border-2 border-card ${a.color} text-xs font-bold sm:h-9 sm:w-9`}
                         >
                           {a.letter}
                         </div>
                       ))}
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium sm:text-sm">
                         Engineering + Design + Testing + Marketing
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-[10px] text-muted-foreground sm:text-xs">
                         Your AI crew, working together
                       </p>
                     </div>
-                    <div className="flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-transform group-hover:translate-x-0.5">
+                    <div className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-transform group-hover:translate-x-0.5 sm:w-auto sm:text-sm">
                       Try Team Mode
-                      <ArrowRight className="h-4 w-4" />
+                      <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     </div>
                   </div>
                 </div>
@@ -169,7 +169,7 @@ export default function HomePage() {
             {/* Card 2: Find an Agent — spans 2 cols */}
             <div
               id="magic-box"
-              className="rounded-2xl border bg-card p-6 transition-all hover:border-primary/30 hover:shadow-lg lg:col-span-2"
+              className="rounded-2xl border bg-card p-5 transition-all hover:border-primary/30 hover:shadow-lg sm:p-6 md:col-span-2"
             >
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
                 <Zap className="h-6 w-6 text-primary" />
@@ -186,10 +186,10 @@ export default function HomePage() {
           </div>
 
           {/* Builder banner */}
-          <div className="mx-auto mt-6 max-w-5xl">
+          <div className="mx-auto mt-6 max-w-5xl px-0">
             <Link
               href="/register-agent"
-              className="group relative flex flex-col gap-4 overflow-hidden rounded-xl border border-primary/20 px-5 py-5 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+              className="group relative flex flex-col gap-3 overflow-hidden rounded-xl border border-primary/20 px-4 py-4 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-5"
             >
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent" />
               <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,transparent_25%,rgba(255,255,255,0.05)_50%,transparent_75%)] bg-[length:250%_100%] group-hover:animate-[shimmer_2s_ease-in-out]" />
