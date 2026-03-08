@@ -15,6 +15,7 @@ import {
   Upload,
   User,
   Users,
+  UsersRound,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { SpinningLogo } from "@/components/shared/spinning-logo";
@@ -71,6 +72,7 @@ export function TopNav() {
                     { href: ROUTES.myAgents, label: "My Agents", icon: Bot },
                     { href: ROUTES.myTasks, label: "My Tasks", icon: ListTodo },
                     { href: ROUTES.team, label: "Team", icon: Users },
+                    { href: ROUTES.myCrews, label: "My Crews", icon: UsersRound },
                     { href: ROUTES.credits, label: "Credits", icon: CreditCard },
                     { href: ROUTES.import, label: "Import", icon: Upload },
                     { href: ROUTES.settings, label: "Settings", icon: Settings },

@@ -25,6 +25,8 @@ export const ROUTES = {
   retryTask: (agentId: string, skillId: string, message: string) =>
     `/dashboard/tasks/new?agent=${agentId}&skill=${encodeURIComponent(skillId)}&message=${encodeURIComponent(message)}`,
   team: "/dashboard/team",
+  myCrews: "/dashboard/crews",
+  crewDetail: (id: string) => `/dashboard/crews/${id}/`,
   credits: "/dashboard/credits",
   settings: "/dashboard/settings",
   import: "/dashboard/import",

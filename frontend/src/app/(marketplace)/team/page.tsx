@@ -15,16 +15,28 @@ import {
   ChevronRight,
   Circle,
   Coins,
+  Save,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { SpinningLogo } from "@/components/shared/spinning-logo";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useCreateTask, useTask } from "@/lib/hooks/use-tasks";
+import { useCreateCrew } from "@/lib/hooks/use-crews";
 import { suggestAgents } from "@/lib/api/tasks";
 import { useAuth } from "@/lib/auth-context";
+import { ROUTES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type { SkillSuggestion, Task, Artifact } from "@/types/task";
 
@@ -375,6 +387,10 @@ export default function TeamPage() {
   const [error, setError] = useState<string | null>(null);
 
   const createTask = useCreateTask();
+  const createCrew = useCreateCrew();
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [crewName, setCrewName] = useState("");
+  const [crewDesc, setCrewDesc] = useState("");
 
   function deduplicateSuggestions(raw: SkillSuggestion[]): SkillSuggestion[] {
     const seen = new Set<string>();
@@ -468,6 +484,29 @@ export default function TeamPage() {
       next.set(agentId, task);
       return next;
     });
+  }
+
+  async function handleSaveAsCrew() {
+    if (!crewName.trim() || suggestions.length === 0) return;
+    try {
+      const crew = await createCrew.mutateAsync({
+        name: crewName.trim(),
+        description: crewDesc.trim() || undefined,
+        is_public: false,
+        members: suggestions.map((s, i) => ({
+          agent_id: s.agent.id,
+          skill_id: s.skill.id,
+          position: i,
+        })),
+      });
+      setShowSaveDialog(false);
+      setCrewName("");
+      setCrewDesc("");
+      window.location.href = ROUTES.crewDetail(crew.id);
+    } catch {
+      setError("Failed to save crew. Please try again.");
+      setShowSaveDialog(false);
+    }
   }
 
   function handleReset() {
@@ -675,15 +714,28 @@ export default function TeamPage() {
           {/* Actions */}
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Combined Result</h2>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleReset}
-              className="gap-1"
-            >
-              <RotateCcw className="h-3 w-3" />
-              New Team
-            </Button>
+            <div className="flex gap-2">
+              {user && completedCount + failedCount === suggestions.length && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowSaveDialog(true)}
+                  className="gap-1"
+                >
+                  <Save className="h-3 w-3" />
+                  Save as Crew
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReset}
+                className="gap-1"
+              >
+                <RotateCcw className="h-3 w-3" />
+                New Team
+              </Button>
+            </div>
           </div>
 
           {/* The single merged report */}
@@ -701,6 +753,52 @@ export default function TeamPage() {
           {error}
         </div>
       )}
+
+      {/* Save as Crew dialog */}
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save as Crew</DialogTitle>
+            <DialogDescription>
+              Save this team for easy re-use. You can run it again from My Crews.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Input
+              placeholder="Crew name"
+              value={crewName}
+              onChange={(e) => setCrewName(e.target.value)}
+              autoFocus
+            />
+            <Textarea
+              placeholder="Description (optional)"
+              value={crewDesc}
+              onChange={(e) => setCrewDesc(e.target.value)}
+              className="min-h-[60px] resize-none"
+            />
+            <p className="text-xs text-muted-foreground">
+              {suggestions.length} member{suggestions.length !== 1 ? "s" : ""} will be saved
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveAsCrew}
+              disabled={!crewName.trim() || createCrew.isPending}
+              className="gap-1"
+            >
+              {createCrew.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Save className="h-3.5 w-3.5" />
+              )}
+              Save Crew
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
