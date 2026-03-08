@@ -140,6 +140,7 @@ class ReputationService:
         # new → verified
         if current_str == "new" and completed >= 3 and quality_norm >= 0.6 and success_rate >= 0.8:
             agent.verification_level = VerificationLevel.VERIFIED
+            current_str = "verified"  # allow certified check in same cycle
 
         # verified → certified
         if current_str == "verified" and completed >= 25 and quality_norm >= 0.8 and success_rate >= 0.95 and score >= 3.5:
