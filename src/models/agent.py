@@ -16,6 +16,7 @@ class AgentStatus(str, enum.Enum):
 
 class VerificationLevel(str, enum.Enum):
     UNVERIFIED = "unverified"
+    SELF_TESTED = "self_tested"
     NAMESPACE = "namespace"
     QUALITY = "quality"
     AUDIT = "audit"

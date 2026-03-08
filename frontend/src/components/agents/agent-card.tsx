@@ -45,7 +45,9 @@ export function AgentCard({ agent }: AgentCardProps) {
                         ? "text-green-400"
                         : agent.verification_level === "quality"
                           ? "text-purple-400"
-                          : "text-blue-400"
+                          : agent.verification_level === "self_tested"
+                            ? "text-amber-400"
+                            : "text-blue-400"
                     )}
                   />
                 )}

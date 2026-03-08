@@ -108,9 +108,46 @@ class ReputationService:
         agent.reputation_score = score
         agent.success_rate = success_rate
         agent.total_tasks_completed = completed
+
+        # Auto-promote verification level based on eval performance
+        self._auto_promote_verification(agent, completed, success_rate, quality_norm, score)
+
         await self.db.commit()
 
         return score
+
+    @staticmethod
+    def _auto_promote_verification(
+        agent: "Agent",
+        completed: int,
+        success_rate: float,
+        quality_norm: float,
+        score: float,
+    ) -> None:
+        """Auto-promote verification tier based on eval performance.
+
+        Tiers (progressive — never demote):
+          unverified → self_tested: agent has test_cases and ≥1 completed task with quality score
+          self_tested → quality: ≥10 tasks, quality > 0.7 (3.5/5), success > 0.9, reputation ≥ 3.0
+        """
+        from src.models.agent import VerificationLevel
+
+        current = agent.verification_level
+        # Handle string values from SQLite
+        if isinstance(current, str):
+            current = current
+
+        level_order = ["unverified", "self_tested", "namespace", "quality", "audit"]
+        current_str = current.value if hasattr(current, "value") else str(current)
+        current_idx = level_order.index(current_str) if current_str in level_order else 0
+
+        # self_tested: has test_cases and at least 1 scored task
+        if current_idx < 1 and agent.test_cases and len(agent.test_cases) > 0 and completed >= 1:
+            agent.verification_level = VerificationLevel.SELF_TESTED
+
+        # quality: strong performance metrics
+        if current_idx < 3 and completed >= 10 and quality_norm > 0.7 and success_rate > 0.9 and score >= 3.0:
+            agent.verification_level = VerificationLevel.QUALITY
 
     # ------------------------------------------------------------------
     # Decay
@@ -136,6 +173,17 @@ class ReputationService:
     async def get_verification_requirements(self, level: str) -> dict:
         """Return the requirements for each verification tier."""
         tiers = {
+            "self_tested": {
+                "level": "self_tested",
+                "description": "Agent has test cases and at least one evaluated task.",
+                "requirements": [
+                    "Provide test cases during registration",
+                    "Complete at least 1 task with quality scoring",
+                    "Auto-promoted when conditions are met",
+                ],
+                "min_reputation": 0.0,
+                "min_tasks": 1,
+            },
             "namespace": {
                 "level": "namespace",
                 "description": "Namespace verification confirms endpoint ownership.",
