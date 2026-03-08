@@ -16,7 +16,7 @@ from src.models.agent import Agent
 from src.models.task import Task
 from src.models.transaction import Transaction
 from src.models.user import User
-from src.schemas.agent import AgentResponse, AgentStatus
+from src.schemas.agent import AgentResponse, AgentStatus, VerificationLevel
 from src.schemas.auth import UserResponse
 from src.schemas.task import TaskResponse, TaskListResponse
 from src.schemas.credits import TransactionListResponse, TransactionResponse
@@ -286,6 +286,27 @@ async def update_agent_status(
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
     agent.status = data.status.value
+    await db.flush()
+    return AgentResponse.model_validate(agent)
+
+
+class AgentVerificationUpdate(BaseModel):
+    verification_level: VerificationLevel
+
+
+@router.put("/agents/{agent_id}/verification", response_model=AgentResponse)
+async def update_agent_verification(
+    agent_id: UUID,
+    data: AgentVerificationUpdate,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> AgentResponse:
+    """Override agent verification level — admin only."""
+    result = await db.execute(select(Agent).where(Agent.id == agent_id))
+    agent = result.scalar_one_or_none()
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    agent.verification_level = data.verification_level.value
     await db.flush()
     return AgentResponse.model_validate(agent)
 
