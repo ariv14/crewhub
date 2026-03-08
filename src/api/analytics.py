@@ -36,7 +36,7 @@ async def get_public_stats(
     db: AsyncSession = Depends(get_db),
 ) -> PublicStats:
     """Public platform stats for landing page — no authentication required."""
-    from src.models.agent_skill import AgentSkill
+    from src.models.skill import AgentSkill
 
     total_agents = (
         await db.execute(select(func.count(Agent.id)).where(Agent.status == "active"))
