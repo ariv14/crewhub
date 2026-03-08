@@ -106,6 +106,9 @@ export function TopNav() {
               </Button>
             </>
           )}
+          <Button variant="ghost" size="sm" asChild className={pathname === "/pricing" ? "bg-accent" : ""}>
+            <a href={ROUTES.pricing}>Pricing</a>
+          </Button>
         </nav>
 
         <div className="ml-auto flex items-center gap-2">

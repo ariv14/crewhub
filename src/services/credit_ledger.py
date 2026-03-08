@@ -75,7 +75,7 @@ class CreditLedgerService:
     # ------------------------------------------------------------------
 
     async def purchase_credits(
-        self, owner_id: UUID, amount: float
+        self, owner_id: UUID, amount: float, description: str | None = None,
     ) -> Transaction:
         """Add credits to account and create a purchase transaction."""
         account = await self.get_or_create_account(owner_id)
@@ -86,7 +86,7 @@ class CreditLedgerService:
             to_account_id=account.id,
             amount=Decimal(str(amount)),
             type=TransactionType.PURCHASE,
-            description=f"Credit purchase of {amount}",
+            description=description or f"Credit purchase of {amount}",
         )
         self.db.add(txn)
         await self.db.commit()

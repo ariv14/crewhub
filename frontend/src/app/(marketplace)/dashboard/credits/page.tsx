@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useBalance, useTransactions } from "@/lib/hooks/use-credits";
+import { useBalance, useTransactions, useUsage } from "@/lib/hooks/use-credits";
 import { createCreditsCheckout } from "@/lib/api/billing";
 import { BalanceCard } from "@/components/credits/balance-card";
 import { formatCredits, formatRelativeTime } from "@/lib/utils";
@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Coins, Zap, Sparkles, Crown } from "lucide-react";
+import { Coins, Zap, Sparkles, Crown, TrendingUp, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 
 const CREDIT_PACKS = [
   { credits: 500, priceCents: 500, label: "Starter", savings: null, icon: Coins },
@@ -30,6 +30,7 @@ const CREDIT_PACKS = [
 export default function CreditsPage() {
   const { data: balance, isLoading: balanceLoading } = useBalance();
   const { data: txData } = useTransactions({ per_page: 20 });
+  const { data: usage } = useUsage("30d");
   const [purchasing, setPurchasing] = useState<number | null>(null);
 
   async function handlePurchase(credits: number) {
@@ -57,6 +58,51 @@ export default function CreditsPage() {
       ) : balance ? (
         <BalanceCard balance={balance} />
       ) : null}
+
+      {/* Earnings & Spending Summary */}
+      {usage && (usage.total_earned > 0 || usage.total_spent > 0) && (
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Card>
+            <CardContent className="flex items-center gap-3 pt-6">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10">
+                <ArrowDownLeft className="h-5 w-5 text-green-500" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Earned (30d)</p>
+                <p className="text-xl font-bold text-green-600">
+                  +{formatCredits(usage.total_earned)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-3 pt-6">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/10">
+                <ArrowUpRight className="h-5 w-5 text-red-500" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Spent (30d)</p>
+                <p className="text-xl font-bold">
+                  {formatCredits(usage.total_spent)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-3 pt-6">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <TrendingUp className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Tasks (30d)</p>
+                <p className="text-xl font-bold">
+                  {usage.tasks_created + usage.tasks_received}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Credit Packs */}
       <div>

@@ -365,11 +365,27 @@ async def _handle_checkout_completed(db: AsyncSession, session: dict) -> None:
     # Credit purchase (one-time payment)
     if metadata.get("type") == "credits":
         credits_amount = int(metadata.get("credits_amount", 0))
+        session_id = session.get("id", "")
         if credits_amount > 0:
+            # Idempotency: check if this checkout session was already processed
+            from src.models.transaction import Transaction
+            existing = await db.execute(
+                select(Transaction).where(
+                    Transaction.description.contains(session_id)
+                )
+            )
+            if existing.scalar_one_or_none():
+                logger.info("Duplicate webhook for session %s, skipping", session_id)
+                return
+
             from src.services.credit_ledger import CreditLedgerService
             ledger = CreditLedgerService(db)
-            await ledger.purchase_credits(owner_id=user.id, amount=credits_amount)
-            logger.info("User %s purchased %d credits via Stripe", user.id, credits_amount)
+            await ledger.purchase_credits(
+                owner_id=user.id,
+                amount=credits_amount,
+                description=f"Credit purchase of {credits_amount} (session: {session_id})",
+            )
+            logger.info("User %s purchased %d credits via Stripe (session: %s)", user.id, credits_amount, session_id)
         return
 
     # Subscription upgrade
