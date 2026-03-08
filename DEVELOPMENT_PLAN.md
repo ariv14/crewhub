@@ -1,6 +1,6 @@
 # CrewHub Development Plan — Post Production-Readiness
 
-## Status: All Foundation Complete (Mar 8, 2026)
+## Status: Phase 1 Complete, Phase 2 Next (Mar 9, 2026)
 
 ### Completed
 - **Production-Readiness** — All 4 pillars (Evals, Guardrails, Autonomy vs Control, User Behavior Anticipation)
@@ -9,49 +9,29 @@
   - Sprint 3: Eval trends dashboard, low-confidence suggestion guard, feedback loop UI
 - **Phase 0A: Stripe Integration** — Stripe checkout with tiered credit packs (500/2K/5K/10K), webhook idempotency, pricing page, earnings display, nav link
 - **Phase 0B: Multi-Provider LLM** — LiteLLM Router (Groq → Cerebras → SambaNova → Gemini), separate eval budget (Gemini Flash), deployed to all 9 HF Spaces
+- **Phase 1: Landing Page Repositioning** — Hero rewrite ("One AI can't be the best at everything"), two action cards (Team Mode + Magic Box), builder banner CTA, live stats from API (`/analytics/public-stats`), three audience value props, features section, fully responsive (tested 390px/768px/1280px)
+- **UX Fixes (Mar 9):**
+  - Mobile hamburger menu now mirrors full sidebar (Overview, My Agents, Team, Import were missing)
+  - Dashboard stat cards now clickable (Credits → credits page, Tasks → tasks page, Agents → agents page)
 
 56 agents across 9 divisions deployed. 3-tier verification battle-tested. Responsive UI verified. 230 tests passing.
 
 ---
 
-## Phase 1: Positioning & Landing Page (3 days)
+## Phase 1: Positioning & Landing Page ✅ Done (Mar 9, 2026)
 
 **Goal**: Make users "get it" in 5 seconds — CrewHub is NOT another chatbot, it's the marketplace where AI agents compete and collaborate.
 
-### 1.1 Hero Messaging Rewrite
-**File**: `frontend/src/app/(marketplace)/page.tsx`
-
-Current headline: "One Goal. Multiple AI Agents. One Result."
-New headline: **"One AI can't be the best at everything."**
-New subline: *"Find the top-rated specialist — or assemble a team of them."*
-
-Why: Current headline describes the product. New headline creates contrast with ChatGPT/Claude and positions CrewHub as the alternative.
-
-### 1.2 Elevate the "Assemble AI Team" Card
-The team feature is the #1 differentiator. Currently it's a static card with "E D T" circles.
-
-**Changes:**
-- Make it visually larger/more prominent than the Magic Box card
-- Add animated agent avatars assembling (CSS animation, no JS)
-- Change copy to: "Like hiring a freelance team — but they're AI agents that work in seconds"
-- Add mini-stat: "Teams complete tasks 3x faster than solo agents"
-
-### 1.3 Three Audience Value Props
-Replace the current "How It Works" section with audience-specific value props:
-
-| For Users | For Developers | For Agents (A2A) |
-|-----------|---------------|------------------|
-| "Don't settle for generic. Pick the top-rated specialist." | "Build an agent. List it. Earn credits every time it's used." | "Your agent can discover and hire other agents autonomously." |
-| CTA: Try it now | CTA: Register Agent | CTA: View A2A Docs |
-
-### 1.4 Live Stats That Tell the Story
-Update stats bar from static counts to dynamic proof:
-- "56+ Specialized Agents" (existing)
-- "X Tasks Completed" (pull from API)
-- "96% Avg Success Rate" (pull from API)
-- "X Credits Earned by Builders" (new — shows developer economics)
-
-**Backend**: Add `GET /api/v1/stats/public` endpoint returning aggregated platform stats (no auth required, cached 5min).
+**Delivered:**
+- ✅ 1.1 Hero rewrite: "One AI can't be the best at everything." + gradient text
+- ✅ 1.2 Elevated Team card (3-col prominence, 4 agent avatars E/D/T/M, "Try Team Mode" CTA)
+- ✅ 1.3 Three audience value props (Users, Developers, A2A Agents) replacing "How It Works"
+- ✅ 1.4 Live stats from `GET /analytics/public-stats` (agents, tasks, success rate, credits earned)
+- ✅ Builder banner CTA: "List Your Agent, Start Earning" with shimmer effect
+- ✅ Features section: Semantic Discovery, Verified & Governed, Credit-Based Billing
+- ✅ Full mobile responsiveness (tested 390px, 768px, 1280px)
+- ✅ Mobile hamburger menu: all sidebar items (Overview, My Agents, Team, Import, etc.)
+- ✅ Dashboard stat cards: clickable with navigation to relevant pages
 
 ---
 
@@ -252,19 +232,20 @@ Features:
 |-------|------|--------|--------|--------|
 | **0A** | Stripe integration | 2 days | Critical | ✅ Done |
 | **0B** | Multi-provider LLM | 1 day | Critical | ✅ Done |
-| **1** | Landing page repositioning | 3 days | High — first impressions | ⬜ Next |
-| **2** | Saved teams + personalization | 5 days | High — retention + stickiness | ⬜ Planned |
+| **1** | Landing page repositioning | 3 days | High — first impressions | ✅ Done |
+| **UX** | Mobile nav + clickable cards | 0.5 days | Medium — usability | ✅ Done |
+| **2** | Saved teams + personalization | 5 days | High — retention + stickiness | 🔜 Next |
 | **3** | Developer experience | 3 days | Medium — supply side growth | ⬜ Planned |
 | **4** | Social & viral features | 2 days | Medium — organic distribution | ⬜ Planned |
 | **5** | Production launch | 1 day | Critical — ship it | ⬜ Planned |
 
-**Remaining: ~14 days to full launch-ready product.**
+**Remaining: ~11 days to full launch-ready product.**
 
 ### Recommended Order
 1. ~~Phase 0A + 0B~~ ✅ Complete
-2. Phase 5 (ship to prod — it's ready)
-3. Phase 1 (landing page — first impressions matter)
-4. Phase 2 (saved teams — the killer feature)
+2. ~~Phase 1~~ ✅ Complete
+3. **Phase 2 (saved teams — the killer retention feature)** ← NOW
+4. Phase 5 (ship to prod)
 5. Phase 3 + 4 (developer experience + social — growth loop)
 
 ---
@@ -295,10 +276,15 @@ Features:
 | `frontend/.../dashboard/settings/page.tsx` | 0A | Subscription management UI |
 | `src/services/eval_service.py` | 0B | Separate eval model (Gemini Flash) |
 | `demo_agents/agency/app.py` | 0B | Multi-provider fallback in agents |
-| `frontend/src/app/(marketplace)/page.tsx` | 1 | Hero copy, stats, value props |
+| `frontend/src/app/(marketplace)/page.tsx` | 1 ✅ | Hero copy, two action cards, audience props, features |
 | `frontend/src/app/(marketplace)/team/page.tsx` | 2 | "Save this team" button |
 | `src/models/agent.py` | 3 | `forked_from_id` field |
 | `src/api/analytics.py` | 3 | Earnings endpoint |
 | `frontend/.../agents/[id]/agent-detail-client.tsx` | 3 | Fork button |
 | `frontend/.../dashboard/agents/[id]/*` | 3 | Earnings section |
-| `src/api/stats.py` (new) | 1 | Public stats endpoint |
+| `src/api/analytics.py` | 1 ✅ | Public stats endpoint (`/analytics/public-stats`) |
+| `frontend/src/components/landing/live-stats.tsx` (new) | 1 ✅ | Client component for live stats with fallbacks |
+| `frontend/src/lib/api/agents.ts` | 1 ✅ | PublicStats type + getPublicStats() |
+| `frontend/src/components/layout/top-nav.tsx` | UX ✅ | Mobile hamburger menu mirrors full sidebar |
+| `frontend/src/components/shared/stat-card.tsx` | UX ✅ | Optional href prop for clickable cards |
+| `frontend/src/app/(marketplace)/dashboard/page.tsx` | UX ✅ | Stat cards linked to relevant pages |
