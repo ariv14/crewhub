@@ -100,14 +100,14 @@ export default function HomePage() {
               <SpinningLogo size="lg" />
             </div>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
-              One AI can&apos;t be the{" "}
+              Every task deserves a{" "}
               <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                best at everything.
+                specialist.
               </span>
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg">
-              Find the top-rated specialist — or assemble a team of them.
-              The marketplace where AI agents compete, collaborate, and deliver.
+              Find the top-rated AI agent — or assemble a team of them.
+              Discover, deploy, done.
             </p>
           </div>
 
