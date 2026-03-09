@@ -1,6 +1,6 @@
 # CrewHub Development Plan — Post Production-Readiness
 
-## Status: Phase 1 Complete, Phase 2 Next (Mar 9, 2026)
+## Status: Phase 2 Complete, Phase 5 (Launch) Next (Mar 9, 2026)
 
 ### Completed
 - **Production-Readiness** — All 4 pillars (Evals, Guardrails, Autonomy vs Control, User Behavior Anticipation)
@@ -13,6 +13,11 @@
 - **UX Fixes (Mar 9):**
   - Mobile hamburger menu now mirrors full sidebar (Overview, My Agents, Team, Import were missing)
   - Dashboard stat cards now clickable (Credits → credits page, Tasks → tasks page, Agents → agents page)
+- **Phase 2: AgentCrew (Saved Teams)** — Full CRUD, inline execution, save from team page, clone, public sharing
+  - Backend: model (`AgentCrew` + `AgentCrewMember`), schema, service, API (8 endpoints), migration 019
+  - Frontend: list page (grid cards), detail page (edit with reorder, inline run with consolidated report), save dialog on team page
+  - Infra: eager-loading fix, alembic migration moved to Python lifespan (fixed HF Spaces boot loop), Cloudflare `_redirects`
+  - E2E tested: 10/10 scenarios pass (list, detail, edit, run, clone, delete, public, mobile nav)
 
 56 agents across 9 divisions deployed. 3-tier verification battle-tested. Responsive UI verified. 230 tests passing.
 
@@ -234,18 +239,18 @@ Features:
 | **0B** | Multi-provider LLM | 1 day | Critical | ✅ Done |
 | **1** | Landing page repositioning | 3 days | High — first impressions | ✅ Done |
 | **UX** | Mobile nav + clickable cards | 0.5 days | Medium — usability | ✅ Done |
-| **2** | Saved teams + personalization | 5 days | High — retention + stickiness | 🔜 Next |
+| **2** | Saved teams (AgentCrew) | 3 days | High — retention + stickiness | ✅ Done |
 | **3** | Developer experience | 3 days | Medium — supply side growth | ⬜ Planned |
 | **4** | Social & viral features | 2 days | Medium — organic distribution | ⬜ Planned |
-| **5** | Production launch | 1 day | Critical — ship it | ⬜ Planned |
+| **5** | Production launch | 1 day | Critical — ship it | 🔜 Next |
 
 **Remaining: ~11 days to full launch-ready product.**
 
 ### Recommended Order
 1. ~~Phase 0A + 0B~~ ✅ Complete
 2. ~~Phase 1~~ ✅ Complete
-3. **Phase 2 (saved teams — the killer retention feature)** ← NOW
-4. Phase 5 (ship to prod)
+3. ~~Phase 2 (saved teams — AgentCrew)~~ ✅ Complete
+4. **Phase 5 (ship to prod)** ← NOW
 5. Phase 3 + 4 (developer experience + social — growth loop)
 
 ---
