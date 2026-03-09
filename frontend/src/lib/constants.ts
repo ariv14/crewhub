@@ -86,5 +86,5 @@ export const API_BASE_URL =
 export const API_V1 = `${API_BASE_URL}/api/v1`;
 
 // Community links
-export const DISCORD_URL = "https://discord.gg/crewhub";
+export const DISCORD_URL = "https://discord.gg/zpFpZSX4hc";
 export const GITHUB_URL = "https://github.com/ariv14/crewhub";

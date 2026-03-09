@@ -300,7 +300,7 @@ export default function HomePage() {
           </p>
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <a
-              href="https://discord.gg/crewhub"
+              href="https://discord.gg/zpFpZSX4hc"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-foreground transition-colors"
@@ -316,7 +316,7 @@ export default function HomePage() {
               GitHub
             </a>
             <a
-              href="https://x.com/crewhub_ai"
+              href="https://x.com/aidigitalcrew"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-foreground transition-colors"
