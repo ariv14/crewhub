@@ -72,6 +72,7 @@ jobs:
           NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ steps.env.outputs.fb_storage_bucket }}
           NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ steps.env.outputs.fb_messaging_sender_id }}
           NEXT_PUBLIC_FIREBASE_APP_ID: ${{ steps.env.outputs.fb_app_id }}
+          NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.POSTHOG_KEY }}
         run: STATIC_EXPORT=true npm run build
 
       - name: Deploy to Cloudflare Pages
