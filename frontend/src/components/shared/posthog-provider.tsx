@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth-context";
  * PostHog analytics — loaded via external script tag (no npm dependency).
  * Tracks pageviews, sessions, and identifies authenticated users.
  *
- * Set NEXT_PUBLIC_POSTHOG_KEY env var to enable.
+ * Set NEXT_PUBLIC_POSTHOG_KEY env var (via POSTHOG_KEY GitHub secret) to enable.
  * Get your key from https://app.posthog.com → Project Settings.
  */
 
