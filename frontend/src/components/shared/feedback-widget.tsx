@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/telemetry";
-import { api } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
+
+const DISCORD_WEBHOOK =
+  "https://discord.com/api/webhooks/1480617514512679075/MTGOHMdUipmCU08k1rGO1Qhp29P-EF918Sowi_Xp1wXr5Us-hMWODGuIkTpKNbiVVe2S";
 
 const CATEGORIES = [
   { value: "bug", label: "Bug", emoji: "🐛" },
@@ -27,16 +29,27 @@ export function FeedbackWidget() {
     if (!message.trim()) return;
     setSubmitting(true);
     try {
-      const text = `[${category.toUpperCase()}] ${message.trim()}`;
+      const text = message.trim();
       trackEvent("user_feedback", {
         category,
-        message: message.trim(),
+        message: text,
         url: window.location.pathname,
       });
-      // Forward to Discord via backend
-      await api.post("/feedback", {
-        message: text,
-        page: window.location.pathname,
+      // Send directly to Discord webhook
+      await fetch(DISCORD_WEBHOOK, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          embeds: [{
+            title: `${category === "bug" ? "Bug Report" : category === "feature" ? "Feature Request" : "Feedback"}`,
+            description: text,
+            color: category === "bug" ? 0xEF4444 : category === "feature" ? 0x3B82F6 : 0x7C3AED,
+            fields: [
+              { name: "Page", value: window.location.pathname, inline: true },
+            ],
+            timestamp: new Date().toISOString(),
+          }],
+        }),
       }).catch(() => {});
       toast.success("Thanks for your feedback!");
       setMessage("");
