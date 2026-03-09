@@ -1,6 +1,6 @@
 # CrewHub Development Roadmap
 
-**Last updated:** 2026-03-07
+**Last updated:** 2026-03-10
 **Staging:** marketplace-staging.aidigitalcrew.com | arimatch1-crewhub-staging.hf.space
 **Production:** arimatch1/crewhub (HF Space)
 
@@ -49,27 +49,61 @@
 
 See `2026-03-07-bug-fixes-progress.md` for details.
 
+### Marketplace Polish (Mar 9-10) — ON STAGING
+- [x] Comprehensive `/docs` page — 6 sections (Getting Started, Users, Developers, API, Architecture, FAQ)
+- [x] Expandable API reference with 30 endpoints across 6 groups (Auth, Agents, Tasks, Discovery, Credits, Crews)
+- [x] Security sanitization — removed all internal URLs, thresholds, infra details from public docs
+- [x] Custom API domain — `api.aidigitalcrew.com` via Cloudflare Worker proxy (staging + prod)
+- [x] Repo made private, GitHub link removed from footer
+- [x] Landing page headline — "Every task deserves a specialist." (positive framing)
+- [x] Nav logo resized (20px → 28px) with larger brand text
+- [x] Free credits corrected in docs (500 → 100 to match backend)
+- [x] Feedback widget → Discord webhook (color-coded embeds: bug/feature/general)
+- [x] Docs link added to top nav
+
+---
+
+## Tomorrow (Mar 11) — Production Deploy
+
+### Pre-Deploy Checklist
+- [ ] Verify `DEBUG=false` on production HF Space (`arimatch1/crewhub`)
+- [ ] Set `DISCORD_FEEDBACK_WEBHOOK` secret on production HF Space
+- [ ] Verify Cloudflare Worker routes `api.aidigitalcrew.com` → production Space
+- [ ] Verify DNS CNAME for `api.aidigitalcrew.com` → Cloudflare
+- [ ] Merge `staging` → `main` (`git checkout main && git merge staging && git push origin main`)
+- [ ] Verify frontend deploy (Cloudflare Pages prod) succeeds
+- [ ] Verify backend deploy (HF Spaces prod) succeeds
+- [ ] Smoke test: landing page, docs, agents browse, feedback widget, search box
+
+### Post-Deploy Verification
+- [ ] `https://api.aidigitalcrew.com/health` returns healthy
+- [ ] Feedback widget sends to Discord from production
+- [ ] Docs page loads at production URL
+- [ ] Swagger UI is NOT accessible on production (`/docs` returns 404)
+
 ---
 
 ## In Progress / Remaining
 
-### Immediate (this sprint)
+### Completed (this sprint)
 - [x] Write E2E test for register-agent flow (detect → review → register → success)
 - [x] Fix HF Space storage limit (>1GB, failing `upload_folder` deploys)
 - [x] Agent activity tab / task logs per agent
-- [ ] Merge staging → main (production deploy)
-
-### Near-Term (Week 2+)
 - [x] Analytics dashboard for agent owners
 - [x] Webhook logs viewer (with 90-day retention policy)
 - [x] Version bumping UI (patch/minor/major)
+
+### Near-Term (after production deploy)
+- [ ] Activate Stripe payments (business verification, live mode keys)
+- [ ] Pricing page — connect to real Stripe checkout
 - [ ] Magic box onboarding for end users (Approach B from simplified-onboarding-design)
+- [ ] Delegation accuracy analytics query (data captured, no reporting endpoint)
 
 ### Backlog
 - [ ] x402/OpenClaw payment integration (design: `2026-02-27-x402-openclaw-design.md`)
 - [ ] Task lifecycle UX enhancement (design: `2026-03-05-task-lifecycle-ux-design.md`)
 - [ ] Inline skill editor
-- [ ] Agent verification system (currently placeholder)
+- [ ] Premium tier implementation (monthly credits, priority matching)
 - [ ] Multi-agent workflows / chaining
 
 ---
@@ -93,3 +127,6 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 | 2026-03-05 | Simplified onboarding design | Superseded |
 | 2026-03-07 | Streamlined developer journey design | 9/10 complete |
 | 2026-03-07 | Bug fixes progress | All verified |
+| 2026-03-08 | 4 Pillars production-readiness | All complete |
+| 2026-03-09 | Marketplace polish (docs, domain, feedback) | Complete |
+| 2026-03-11 | Production deploy | Planned |
