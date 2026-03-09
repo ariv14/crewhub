@@ -118,8 +118,8 @@ export function TopNav() {
           </SheetContent>
         </Sheet>
 
-        <a href={user ? ROUTES.dashboard : ROUTES.home} className="flex items-center gap-2 font-bold">
-          <SpinningLogo size="sm" />
+        <a href={user ? ROUTES.dashboard : ROUTES.home} className="flex items-center gap-2 font-bold text-lg">
+          <SpinningLogo size="md" />
           <span>CrewHub</span>
         </a>
 
