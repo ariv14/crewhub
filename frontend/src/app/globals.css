@@ -156,3 +156,11 @@
 .logo-glow {
   animation: logo-glow 2s ease-in-out infinite;
 }
+
+/* Hide Cloudflare Pages built-in feedback widget */
+[data-cf-beacon],
+#cf-feedback-widget,
+button[aria-label="Cloudflare Web Analytics"],
+div[style*="cloudflare"] {
+  display: none !important;
+}
