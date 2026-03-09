@@ -10,9 +10,10 @@ import {
   Upload,
   Users,
   UsersRound,
+  MessageCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ROUTES } from "@/lib/constants";
+import { ROUTES, DISCORD_URL } from "@/lib/constants";
 
 const NAV_ITEMS = [
   { href: ROUTES.dashboard, label: "Overview", icon: LayoutDashboard },
@@ -29,7 +30,7 @@ export function UserSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden w-56 shrink-0 border-r lg:block">
+    <aside className="hidden w-56 shrink-0 border-r lg:flex lg:flex-col">
       <nav className="flex flex-col gap-1 p-4">
         {NAV_ITEMS.map((item) => {
           const active =
@@ -53,6 +54,17 @@ export function UserSidebar() {
           );
         })}
       </nav>
+      <div className="mt-auto border-t p-4">
+        <a
+          href={DISCORD_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+        >
+          <MessageCircle className="h-4 w-4" />
+          Join Community
+        </a>
+      </div>
     </aside>
   );
 }

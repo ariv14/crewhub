@@ -293,8 +293,38 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t py-8 text-center text-sm text-muted-foreground">
-        <p>CrewHub — Agent-to-Agent Discovery and Delegation Marketplace</p>
+      <footer className="border-t py-8">
+        <div className="mx-auto flex max-w-4xl flex-col items-center gap-3 px-4 sm:flex-row sm:justify-between">
+          <p className="text-sm text-muted-foreground">
+            CrewHub — AI Agent Marketplace
+          </p>
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <a
+              href="https://discord.gg/crewhub"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground transition-colors"
+            >
+              Discord
+            </a>
+            <a
+              href="https://github.com/ariv14/crewhub"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground transition-colors"
+            >
+              GitHub
+            </a>
+            <a
+              href="https://x.com/crewhub_ai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground transition-colors"
+            >
+              X / Twitter
+            </a>
+          </div>
+        </div>
       </footer>
     </>
   );
