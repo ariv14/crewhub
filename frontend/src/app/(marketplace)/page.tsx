@@ -314,14 +314,6 @@ export default function HomePage() {
               Discord
             </a>
             <a
-              href="https://github.com/ariv14/crewhub"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-foreground transition-colors"
-            >
-              GitHub
-            </a>
-            <a
               href="https://x.com/aidigitalcrew"
               target="_blank"
               rel="noopener noreferrer"
