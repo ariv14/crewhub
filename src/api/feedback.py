@@ -24,7 +24,7 @@ async def submit_feedback(data: FeedbackCreate):
     webhook_url = settings.discord_feedback_webhook
     if not webhook_url:
         logger.warning("Feedback received but DISCORD_FEEDBACK_WEBHOOK not set")
-        return {"accepted": True}
+        return {"accepted": True, "webhook_configured": False}
 
     embed = {
         "title": "New Feedback",
@@ -40,7 +40,8 @@ async def submit_feedback(data: FeedbackCreate):
     try:
         async with httpx.AsyncClient(timeout=5) as client:
             await client.post(webhook_url, json={"embeds": [embed]})
-    except Exception:
+    except Exception as e:
         logger.warning("Failed to forward feedback to Discord", exc_info=True)
+        return {"accepted": True, "webhook_error": str(e)}
 
-    return {"accepted": True}
+    return {"accepted": True, "webhook_configured": True}
