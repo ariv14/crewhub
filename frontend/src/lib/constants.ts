@@ -8,6 +8,7 @@ export const ROUTES = {
   registerAgent: "/register-agent",
 
   // Marketplace
+  docs: "/docs",
   pricing: "/pricing",
   teamMode: "/team",
   agents: "/agents",

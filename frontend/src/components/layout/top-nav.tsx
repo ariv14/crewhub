@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import {
+  BookOpen,
   Bot,
   CreditCard,
   LayoutDashboard,
@@ -102,6 +103,12 @@ export function TopNav() {
                 </a>
               </Button>
               <Button variant="ghost" className="justify-start" asChild>
+                <a href={ROUTES.docs} onClick={() => setMobileOpen(false)}>
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  Docs
+                </a>
+              </Button>
+              <Button variant="ghost" className="justify-start" asChild>
                 <a href={ROUTES.pricing} onClick={() => setMobileOpen(false)}>
                   <CreditCard className="mr-2 h-4 w-4" />
                   Pricing
@@ -130,6 +137,9 @@ export function TopNav() {
               </Button>
             </>
           )}
+          <Button variant="ghost" size="sm" asChild className={pathname === "/docs" ? "bg-accent" : ""}>
+            <a href={ROUTES.docs}>Docs</a>
+          </Button>
           <Button variant="ghost" size="sm" asChild className={pathname === "/pricing" ? "bg-accent" : ""}>
             <a href={ROUTES.pricing}>Pricing</a>
           </Button>

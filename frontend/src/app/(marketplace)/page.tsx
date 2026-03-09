@@ -300,6 +300,12 @@ export default function HomePage() {
           </p>
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <a
+              href="/docs"
+              className="hover:text-foreground transition-colors"
+            >
+              Docs
+            </a>
+            <a
               href="https://discord.gg/zpFpZSX4hc"
               target="_blank"
               rel="noopener noreferrer"
