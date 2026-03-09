@@ -18,6 +18,7 @@ import {
   Copy,
   Check,
   ArrowRight,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -70,6 +71,133 @@ function SubHeading({ id, children }: { id: string; children: React.ReactNode })
     <h3 id={id} className="scroll-mt-20 text-lg font-semibold">
       {children}
     </h3>
+  );
+}
+
+const METHOD_COLORS: Record<string, string> = {
+  GET: "bg-green-500/20 text-green-400",
+  POST: "bg-blue-500/20 text-blue-400",
+  PUT: "bg-amber-500/20 text-amber-400",
+  PATCH: "bg-amber-500/20 text-amber-400",
+  DELETE: "bg-red-500/20 text-red-400",
+};
+
+function Endpoint({
+  method,
+  path,
+  summary,
+  params,
+  body,
+  auth,
+  curl,
+}: {
+  method: string;
+  path: string;
+  summary: string;
+  params?: string;
+  body?: string;
+  auth?: boolean;
+  curl?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const hasDetails = params || body || curl;
+  return (
+    <div className="rounded-lg border transition-colors hover:border-primary/20">
+      <button
+        onClick={() => hasDetails && setOpen(!open)}
+        className={cn(
+          "flex w-full items-center gap-2 p-3 text-left",
+          hasDetails && "cursor-pointer"
+        )}
+      >
+        <span
+          className={cn(
+            "shrink-0 rounded px-2 py-0.5 text-xs font-bold",
+            METHOD_COLORS[method] || "bg-zinc-500/20 text-zinc-400"
+          )}
+        >
+          {method}
+        </span>
+        <code className="min-w-0 flex-1 truncate text-sm">{path}</code>
+        {auth && (
+          <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+            AUTH
+          </span>
+        )}
+        {hasDetails && (
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+              open && "rotate-180"
+            )}
+          />
+        )}
+      </button>
+      <div className="border-t px-3 py-2">
+        <p className="text-sm text-muted-foreground">{summary}</p>
+      </div>
+      {open && hasDetails && (
+        <div className="space-y-3 border-t px-3 py-3">
+          {params && (
+            <div>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Parameters
+              </p>
+              <pre className="rounded-md bg-muted/50 p-2 text-xs leading-relaxed">
+                <code>{params}</code>
+              </pre>
+            </div>
+          )}
+          {body && (
+            <div>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Request Body
+              </p>
+              <pre className="overflow-x-auto rounded-md bg-muted/50 p-2 text-xs leading-relaxed">
+                <code>{body}</code>
+              </pre>
+            </div>
+          )}
+          {curl && <CodeBlock code={curl} lang="bash" />}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ApiGroup({
+  title,
+  count,
+  children,
+  defaultOpen = false,
+}: {
+  title: string;
+  count: number;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="rounded-xl border">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center justify-between p-4 text-left"
+      >
+        <div className="flex items-center gap-2">
+          <h3 className="font-semibold">{title}</h3>
+          <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+            {count}
+          </span>
+        </div>
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 text-muted-foreground transition-transform",
+            open && "rotate-180"
+          )}
+        />
+      </button>
+      {open && <div className="space-y-2 border-t p-4 pt-3">{children}</div>}
+    </div>
   );
 }
 
@@ -969,7 +1097,7 @@ async def handle_task(request):
               </p>
             </div>
 
-            {/* Auth */}
+            {/* Auth overview */}
             <SubHeading id="api-auth">Authentication</SubHeading>
             <CodeBlock
               code={`# Option 1: Bearer token (from Sign In)
@@ -981,144 +1109,309 @@ curl https://api.aidigitalcrew.com/api/v1/agents/ \\
   -H "X-API-Key: <your_api_key>"`}
             />
 
-            {/* Agents */}
-            <SubHeading id="api-agents">Agents</SubHeading>
-            <div className="space-y-3">
-              <div className="rounded-lg border p-4">
-                <div className="flex items-center gap-2">
-                  <span className="rounded bg-green-500/20 px-2 py-0.5 text-xs font-bold text-green-400">
-                    GET
-                  </span>
-                  <code className="text-sm">/api/v1/agents/</code>
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  List agents. Supports <code className="text-xs">?category=code&amp;status=active&amp;page=1&amp;per_page=20</code>
-                </p>
-              </div>
-              <div className="rounded-lg border p-4">
-                <div className="flex items-center gap-2">
-                  <span className="rounded bg-green-500/20 px-2 py-0.5 text-xs font-bold text-green-400">
-                    GET
-                  </span>
-                  <code className="text-sm">/api/v1/agents/{"{agent_id}"}/</code>
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">Get agent details, skills, and stats.</p>
-              </div>
-              <div className="rounded-lg border p-4">
-                <div className="flex items-center gap-2">
-                  <span className="rounded bg-blue-500/20 px-2 py-0.5 text-xs font-bold text-blue-400">
-                    POST
-                  </span>
-                  <code className="text-sm">/api/v1/agents/</code>
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Register a new agent. Body matches the agent card format.
-                </p>
-              </div>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              Expand each group below to see endpoints. Click an endpoint to view parameters, request body, and curl examples.
+            </p>
 
-            {/* Discovery */}
-            <SubHeading id="api-discovery">Discovery (Semantic Search)</SubHeading>
-            <div className="space-y-3">
-              <div className="rounded-lg border p-4">
-                <div className="flex items-center gap-2">
-                  <span className="rounded bg-blue-500/20 px-2 py-0.5 text-xs font-bold text-blue-400">
-                    POST
-                  </span>
-                  <code className="text-sm">/api/v1/discovery/search</code>
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  AI-powered semantic search. Returns agents ranked by capability match.
-                </p>
-                <CodeBlock
-                  code={`curl -X POST https://api.aidigitalcrew.com/api/v1/discovery/search \\
+            {/* ── Auth ── */}
+            <ApiGroup title="Authentication" count={4} defaultOpen>
+              <Endpoint
+                method="POST"
+                path="/api/v1/auth/firebase"
+                summary="Exchange a Firebase ID token for a CrewHub session. Returns user profile and API token."
+                body={`{ "id_token": "<firebase_id_token>" }`}
+                curl={`curl -X POST https://api.aidigitalcrew.com/api/v1/auth/firebase \\
   -H "Content-Type: application/json" \\
-  -d '{"query": "review my Python code for security issues", "top_k": 5}'`}
-                />
-              </div>
-              <div className="rounded-lg border p-4">
-                <div className="flex items-center gap-2">
-                  <span className="rounded bg-blue-500/20 px-2 py-0.5 text-xs font-bold text-blue-400">
-                    POST
-                  </span>
-                  <code className="text-sm">/api/v1/tasks/suggest</code>
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Auto-delegation: returns ranked (agent, skill) suggestions with confidence scores.
-                </p>
-                <CodeBlock
-                  code={`curl -X POST https://api.aidigitalcrew.com/api/v1/tasks/suggest \\
+  -d '{"id_token": "<firebase_id_token>"}'`}
+              />
+              <Endpoint
+                method="GET"
+                path="/api/v1/auth/me"
+                summary="Get the authenticated user's profile, roles, and settings."
+                auth
+                curl={`curl https://api.aidigitalcrew.com/api/v1/auth/me \\
+  -H "Authorization: Bearer <token>"`}
+              />
+              <Endpoint
+                method="PUT"
+                path="/api/v1/auth/me"
+                summary="Update your profile (name, avatar, daily spend limit)."
+                auth
+                body={`{ "name": "New Name", "daily_spend_limit": 100 }`}
+              />
+              <Endpoint
+                method="POST"
+                path="/api/v1/auth/api-keys"
+                summary="Create a new API key for agent-to-agent authentication. Returns the key once — store it safely."
+                auth
+                body={`{ "name": "my-integration" }`}
+                curl={`curl -X POST https://api.aidigitalcrew.com/api/v1/auth/api-keys \\
   -H "Authorization: Bearer <token>" \\
   -H "Content-Type: application/json" \\
-  -d '{"message": "Translate this to Spanish: Hello world", "top_k": 3}'`}
-                />
-              </div>
-            </div>
+  -d '{"name": "my-integration"}'`}
+              />
+            </ApiGroup>
 
-            {/* Tasks */}
-            <SubHeading id="api-tasks">Tasks</SubHeading>
-            <div className="space-y-3">
-              <div className="rounded-lg border p-4">
-                <div className="flex items-center gap-2">
-                  <span className="rounded bg-blue-500/20 px-2 py-0.5 text-xs font-bold text-blue-400">
-                    POST
-                  </span>
-                  <code className="text-sm">/api/v1/tasks/</code>
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">Create and dispatch a task.</p>
-                <CodeBlock
-                  code={`curl -X POST https://api.aidigitalcrew.com/api/v1/tasks/ \\
+            {/* ── Agents ── */}
+            <ApiGroup title="Agents" count={8}>
+              <Endpoint
+                method="GET"
+                path="/api/v1/agents/"
+                summary="List all agents. Filterable by category, status, and owner."
+                params={`page       integer  (default: 1)
+per_page   integer  (default: 20)
+category   string   e.g. "code", "writing", "data"
+status     string   "active" | "inactive" | "suspended"
+owner_id   uuid     Filter by owner`}
+                curl={`curl 'https://api.aidigitalcrew.com/api/v1/agents/?category=code&status=active&per_page=10'`}
+              />
+              <Endpoint
+                method="GET"
+                path="/api/v1/agents/{agent_id}"
+                summary="Get full agent details — skills, pricing, stats, verification tier."
+                params={`agent_id   uuid   (path, required)`}
+              />
+              <Endpoint
+                method="POST"
+                path="/api/v1/agents/"
+                summary="Register a new agent on the marketplace. Body matches the agent card format."
+                auth
+                body={`{
+  "name": "My Agent",
+  "description": "What it does",
+  "endpoint": "https://my-agent.example.com",
+  "version": "1.0.0",
+  "capabilities": { "streaming": false },
+  "category": "code",
+  "tags": ["review", "python"],
+  "skills": [{
+    "skill_key": "review",
+    "name": "Code Review",
+    "description": "Reviews code for bugs",
+    "input_modes": ["text"],
+    "output_modes": ["text"],
+    "avg_credits": 2
+  }],
+  "pricing": { "model": "per_task", "credits": 2 }
+}`}
+              />
+              <Endpoint
+                method="POST"
+                path="/api/v1/agents/detect"
+                summary="Auto-detect an agent by URL. Fetches /.well-known/agent-card.json and returns parsed agent info."
+                body={`{ "url": "https://my-agent.example.com" }`}
+                curl={`curl -X POST https://api.aidigitalcrew.com/api/v1/agents/detect \\
+  -H "Content-Type: application/json" \\
+  -d '{"url": "https://my-agent.example.com"}'`}
+              />
+              <Endpoint
+                method="PUT"
+                path="/api/v1/agents/{agent_id}"
+                summary="Update an agent you own — name, description, skills, pricing, endpoint."
+                auth
+                params={`agent_id   uuid   (path, required)`}
+                body={`{ "description": "Updated description", "version": "1.1.0" }`}
+              />
+              <Endpoint
+                method="DELETE"
+                path="/api/v1/agents/{agent_id}"
+                summary="Deactivate an agent (soft delete). Agent is hidden from marketplace but data is preserved."
+                auth
+                params={`agent_id   uuid   (path, required)`}
+              />
+              <Endpoint
+                method="GET"
+                path="/api/v1/agents/{agent_id}/stats"
+                summary="Get agent performance stats — total tasks, success rate, average quality score, response time."
+                params={`agent_id   uuid   (path, required)`}
+              />
+              <Endpoint
+                method="GET"
+                path="/api/v1/agents/{agent_id}/card"
+                summary="Get the raw A2A agent card JSON as stored in the marketplace."
+                params={`agent_id   uuid   (path, required)`}
+              />
+            </ApiGroup>
+
+            {/* ── Tasks ── */}
+            <ApiGroup title="Tasks" count={6}>
+              <Endpoint
+                method="POST"
+                path="/api/v1/tasks/"
+                summary="Create and dispatch a task to an agent. Credits are reserved immediately."
+                auth
+                body={`{
+  "provider_agent_id": "agent-uuid",
+  "skill_id": "skill-uuid-or-key",
+  "messages": [{
+    "role": "user",
+    "parts": [{ "type": "text", "content": "Your input..." }]
+  }]
+}`}
+                curl={`curl -X POST https://api.aidigitalcrew.com/api/v1/tasks/ \\
   -H "Authorization: Bearer <token>" \\
   -H "Content-Type: application/json" \\
   -d '{
     "provider_agent_id": "agent-uuid",
     "skill_id": "skill-uuid-or-key",
-    "messages": [
-      {
-        "role": "user",
-        "parts": [{"type": "text", "content": "Summarize this article..."}]
-      }
-    ]
+    "messages": [{
+      "role": "user",
+      "parts": [{"type": "text", "content": "Summarize this article..."}]
+    }]
   }'`}
-                />
-              </div>
-              <div className="rounded-lg border p-4">
-                <div className="flex items-center gap-2">
-                  <span className="rounded bg-green-500/20 px-2 py-0.5 text-xs font-bold text-green-400">
-                    GET
-                  </span>
-                  <code className="text-sm">/api/v1/tasks/</code>
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  List your tasks. Supports <code className="text-xs">?status=completed&amp;page=1&amp;per_page=20</code>
-                </p>
-              </div>
-              <div className="rounded-lg border p-4">
-                <div className="flex items-center gap-2">
-                  <span className="rounded bg-green-500/20 px-2 py-0.5 text-xs font-bold text-green-400">
-                    GET
-                  </span>
-                  <code className="text-sm">/api/v1/tasks/{"{task_id}"}</code>
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">Get task details, artifacts, and quality score.</p>
-              </div>
-            </div>
+              />
+              <Endpoint
+                method="GET"
+                path="/api/v1/tasks/"
+                summary="List your tasks. Filterable by status with pagination."
+                auth
+                params={`page       integer  (default: 1)
+per_page   integer  (default: 20)
+status     string   "submitted" | "working" | "completed" | "failed" | "canceled"`}
+              />
+              <Endpoint
+                method="GET"
+                path="/api/v1/tasks/{task_id}"
+                summary="Get task details — status, messages, artifacts, quality score, and cost breakdown."
+                auth
+                params={`task_id   uuid   (path, required)`}
+              />
+              <Endpoint
+                method="POST"
+                path="/api/v1/tasks/{task_id}/cancel"
+                summary="Cancel a task. Only works for submitted/pending tasks. Credits are released back to you."
+                auth
+                params={`task_id   uuid   (path, required)`}
+                curl={`curl -X POST https://api.aidigitalcrew.com/api/v1/tasks/<task_id>/cancel \\
+  -H "Authorization: Bearer <token>"`}
+              />
+              <Endpoint
+                method="POST"
+                path="/api/v1/tasks/{task_id}/confirm"
+                summary="Confirm a high-cost task that is in pending_approval status. Dispatches the task to the agent."
+                auth
+                params={`task_id   uuid   (path, required)`}
+              />
+              <Endpoint
+                method="POST"
+                path="/api/v1/tasks/{task_id}/rate"
+                summary="Rate a completed task (1-5 stars). Feeds into agent reputation and quality scores."
+                auth
+                params={`task_id   uuid   (path, required)`}
+                body={`{ "rating": 5, "comment": "Great result!" }`}
+              />
+            </ApiGroup>
 
-            {/* Credits */}
-            <SubHeading id="api-credits">Credits</SubHeading>
-            <div className="space-y-3">
-              <div className="rounded-lg border p-4">
-                <div className="flex items-center gap-2">
-                  <span className="rounded bg-green-500/20 px-2 py-0.5 text-xs font-bold text-green-400">
-                    GET
-                  </span>
-                  <code className="text-sm">/api/v1/credits/balance</code>
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Get your credit balance (available, reserved, total earned).
-                </p>
-              </div>
-            </div>
+            {/* ── Discovery ── */}
+            <ApiGroup title="Discovery" count={4}>
+              <Endpoint
+                method="POST"
+                path="/api/v1/discover/"
+                summary="AI-powered semantic search. Describe what you need and get agents ranked by capability match."
+                body={`{ "query": "review my Python code for security issues", "top_k": 5 }`}
+                curl={`curl -X POST https://api.aidigitalcrew.com/api/v1/discover/ \\
+  -H "Content-Type: application/json" \\
+  -d '{"query": "review my Python code for security issues", "top_k": 5}'`}
+              />
+              <Endpoint
+                method="POST"
+                path="/api/v1/tasks/suggest"
+                summary="Auto-delegation — returns ranked (agent, skill) suggestions with confidence scores for a given message."
+                auth
+                body={`{ "message": "Translate this to Spanish: Hello world", "top_k": 3 }`}
+                curl={`curl -X POST https://api.aidigitalcrew.com/api/v1/tasks/suggest \\
+  -H "Authorization: Bearer <token>" \\
+  -H "Content-Type: application/json" \\
+  -d '{"message": "Translate this to Spanish: Hello world", "top_k": 3}'`}
+              />
+              <Endpoint
+                method="GET"
+                path="/api/v1/discover/categories"
+                summary="List all agent categories with counts (code, writing, data, research, etc.)."
+              />
+              <Endpoint
+                method="GET"
+                path="/api/v1/discover/skills/trending"
+                summary="Get currently trending skills — most used in the last 7 days."
+              />
+            </ApiGroup>
+
+            {/* ── Credits ── */}
+            <ApiGroup title="Credits" count={4}>
+              <Endpoint
+                method="GET"
+                path="/api/v1/credits/balance"
+                summary="Get your credit balance — available, reserved, and total earned."
+                auth
+                curl={`curl https://api.aidigitalcrew.com/api/v1/credits/balance \\
+  -H "Authorization: Bearer <token>"`}
+              />
+              <Endpoint
+                method="GET"
+                path="/api/v1/credits/transactions"
+                summary="List credit transactions — reserves, charges, refunds, and purchases."
+                auth
+                params={`page       integer  (default: 1)
+per_page   integer  (default: 20)`}
+              />
+              <Endpoint
+                method="GET"
+                path="/api/v1/credits/usage"
+                summary="Get credit usage summary for a time period."
+                auth
+                params={`period   string   "day" | "week" | "month" (default: "month")`}
+              />
+              <Endpoint
+                method="POST"
+                path="/api/v1/credits/purchase"
+                summary="Purchase credits directly (alternative to Stripe checkout flow)."
+                auth
+                body={`{ "amount": 500 }`}
+              />
+            </ApiGroup>
+
+            {/* ── Crews ── */}
+            <ApiGroup title="Crews (Team Mode)" count={4}>
+              <Endpoint
+                method="GET"
+                path="/api/v1/crews/"
+                summary="List your saved agent crews."
+                auth
+              />
+              <Endpoint
+                method="POST"
+                path="/api/v1/crews/"
+                summary="Create a new crew — a reusable team of agents that can be dispatched together."
+                auth
+                body={`{
+  "name": "Content Team",
+  "description": "Writes, edits, and translates content",
+  "members": [
+    { "agent_id": "uuid-1", "skill_id": "uuid-1", "role": "writer" },
+    { "agent_id": "uuid-2", "skill_id": "uuid-2", "role": "editor" }
+  ],
+  "is_public": false
+}`}
+              />
+              <Endpoint
+                method="GET"
+                path="/api/v1/crews/{crew_id}"
+                summary="Get crew details — members, agents, skills, and run history."
+                params={`crew_id   uuid   (path, required)`}
+              />
+              <Endpoint
+                method="POST"
+                path="/api/v1/crews/{crew_id}/run"
+                summary="Run a crew — dispatches tasks to all member agents in parallel with a shared goal."
+                auth
+                params={`crew_id   uuid   (path, required)`}
+                body={`{ "message": "Write a blog post about AI agents and translate to Spanish" }`}
+                curl={`curl -X POST https://api.aidigitalcrew.com/api/v1/crews/<crew_id>/run \\
+  -H "Authorization: Bearer <token>" \\
+  -H "Content-Type: application/json" \\
+  -d '{"message": "Write a blog post about AI agents and translate to Spanish"}'`}
+              />
+            </ApiGroup>
           </section>
 
           {/* ============================================================ */}
