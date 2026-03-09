@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useCrew,
   useUpdateCrew,
@@ -298,6 +299,7 @@ export default function CrewDetailClient({ id: serverId }: { id: string }) {
     (pathId && pathId !== "__fallback" ? pathId : null) ??
     "";
 
+  const queryClient = useQueryClient();
   const { data: crew, isLoading } = useCrew(realId);
   const updateCrew = useUpdateCrew(realId);
   const deleteCrew = useDeleteCrew();
@@ -371,6 +373,7 @@ export default function CrewDetailClient({ id: serverId }: { id: string }) {
         position: i,
       })),
     });
+    await queryClient.refetchQueries({ queryKey: ["crews", realId] });
     setEditing(false);
   }
 
