@@ -1,7 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { Bot, CreditCard, ListTodo, Search, TrendingUp, Rocket } from "lucide-react";
+import {
+  Bot,
+  CreditCard,
+  ListTodo,
+  Search,
+  TrendingUp,
+  Rocket,
+  Users,
+  Zap,
+  ArrowRight,
+} from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useBalance } from "@/lib/hooks/use-credits";
 import { useTasks } from "@/lib/hooks/use-tasks";
@@ -11,8 +21,58 @@ import { ROUTES } from "@/lib/constants";
 import { formatCredits } from "@/lib/utils";
 import { ActivityFeed } from "@/components/shared/activity-feed";
 import { AgentStatusBoard } from "@/components/agents/agent-status-board";
-import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api-client";
+
+const ACTION_CARDS = [
+  {
+    icon: Users,
+    title: "Assemble Your AI Team",
+    description: "One goal, multiple specialists, one combined result.",
+    cta: "Try Team Mode",
+    href: ROUTES.teamMode,
+    track: "dashboard_card_team",
+    border: "border-2 border-primary/20 bg-card",
+    hover: "hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5",
+    gradient: true,
+    iconBg: "bg-primary/10",
+    iconColor: "text-primary",
+    ctaColor: "text-primary",
+  },
+  {
+    icon: Zap,
+    title: "Find the Right Agent",
+    description: "Describe your task — get matched with the best specialist.",
+    cta: "Browse Agents",
+    href: ROUTES.agents,
+    track: "dashboard_card_find_agent",
+    border: "border bg-card",
+    hover: "hover:border-blue-500/30 hover:shadow-lg",
+    gradient: false,
+    iconBg: "bg-blue-500/10",
+    iconColor: "text-blue-500",
+    ctaColor: "text-blue-500",
+  },
+  {
+    icon: Rocket,
+    title: "List Your Agent",
+    description: "Register your agent. Get discovered. Earn 90% per task.",
+    cta: "Register Agent",
+    href: ROUTES.registerAgent,
+    track: "dashboard_card_list_agent",
+    border: "border bg-card",
+    hover: "hover:border-green-500/30 hover:shadow-lg",
+    gradient: false,
+    iconBg: "bg-green-500/10",
+    iconColor: "text-green-500",
+    ctaColor: "text-green-500",
+  },
+] as const;
+
+function trackCardClick(event: string) {
+  if (typeof window !== "undefined" && window.posthog?.capture) {
+    window.posthog.capture(event);
+  }
+}
 
 export default function DashboardPage() {
   const { user, refreshUser } = useAuth();
@@ -77,16 +137,33 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="flex gap-3">
-        <Button asChild>
-          <Link href={ROUTES.agents}>Browse Agents</Link>
-        </Button>
-        <Button variant="outline" asChild>
-          <Link href={ROUTES.registerAgent}>Register Agent</Link>
-        </Button>
-        <Button variant="outline" asChild>
-          <Link href={ROUTES.newTask}>Create Task</Link>
-        </Button>
+      {/* Quick Action Cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {ACTION_CARDS.map((card) => (
+          <Link
+            key={card.href}
+            href={card.href}
+            onClick={() => trackCardClick(card.track)}
+            className={`group relative flex min-h-[140px] flex-col justify-between overflow-hidden rounded-xl p-5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${card.border} ${card.hover}`}
+          >
+            {card.gradient && (
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
+            )}
+            <div className="relative">
+              <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg ${card.iconBg}`}>
+                <card.icon className={`h-5 w-5 ${card.iconColor}`} />
+              </div>
+              <h3 className="font-semibold">{card.title}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {card.description}
+              </p>
+            </div>
+            <div className={`relative mt-4 flex items-center gap-1.5 text-sm font-medium ${card.ctaColor}`}>
+              {card.cta}
+              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+            </div>
+          </Link>
+        ))}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
