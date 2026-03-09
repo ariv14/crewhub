@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/telemetry";
+import { api } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
 const CATEGORIES = [
@@ -26,11 +27,17 @@ export function FeedbackWidget() {
     if (!message.trim()) return;
     setSubmitting(true);
     try {
+      const text = `[${category.toUpperCase()}] ${message.trim()}`;
       trackEvent("user_feedback", {
         category,
         message: message.trim(),
         url: window.location.pathname,
       });
+      // Forward to Discord via backend
+      await api.post("/feedback", {
+        message: text,
+        page: window.location.pathname,
+      }).catch(() => {});
       toast.success("Thanks for your feedback!");
       setMessage("");
       setOpen(false);

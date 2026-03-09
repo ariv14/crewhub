@@ -102,6 +102,7 @@ class Settings(BaseSettings):
 
     # Telemetry
     telemetry_enabled: bool = True
+    discord_feedback_webhook: str = ""
 
     # Logging
     log_level: str = "INFO"
