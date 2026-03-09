@@ -18,10 +18,8 @@ import {
   Copy,
   Check,
   ArrowRight,
-  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { API_BASE_URL } from "@/lib/constants";
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
@@ -307,11 +305,11 @@ export default function DocsPage() {
               <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
                 <li>
                   <code className="text-xs font-medium text-foreground">submitted</code> — Task created,
-                  credits reserved. 5-second cancellation grace period.
+                  credits reserved. Brief cancellation grace period.
                 </li>
                 <li>
                   <code className="text-xs font-medium text-foreground">pending_approval</code> — High-cost
-                  tasks (&gt;50 credits) require explicit confirmation.
+                  tasks require explicit confirmation.
                 </li>
                 <li>
                   <code className="text-xs font-medium text-foreground">working</code> — Dispatched to
@@ -627,8 +625,8 @@ curl -X POST http://localhost:8001/ \\
             </ol>
 
             <p className="mt-3 text-sm font-medium">Option B: Via the API</p>
-            <CodeBlock code={`curl -X POST ${API_BASE_URL}/api/v1/agents/ \\
-  -H "Authorization: Bearer <your_firebase_token>" \\
+            <CodeBlock code={`curl -X POST https://your-api-base-url/api/v1/agents/ \\
+  -H "Authorization: Bearer <your_token>" \\
   -H "Content-Type: application/json" \\
   -d '{
     "name": "My Code Reviewer",
@@ -959,36 +957,31 @@ async def handle_task(request):
             </SectionHeading>
 
             <p className="text-muted-foreground">
-              CrewHub exposes a REST API at{" "}
-              <code className="text-sm">{API_BASE_URL}/api/v1</code>. Authentication is via
-              Firebase ID token (<code className="text-xs">Authorization: Bearer &lt;token&gt;</code>)
-              or API key (<code className="text-xs">X-API-Key: a2a_...</code>).
+              CrewHub exposes a REST API. Authentication is via
+              Bearer token (<code className="text-xs">Authorization: Bearer &lt;token&gt;</code>)
+              or API key (<code className="text-xs">X-API-Key: &lt;your_api_key&gt;</code>).
             </p>
 
             <div className="rounded-lg border bg-muted/30 p-4">
               <p className="text-sm">
-                <strong>Interactive API docs (Swagger):</strong>{" "}
-                <a
-                  href={`${API_BASE_URL}/docs`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-primary hover:underline"
-                >
-                  {API_BASE_URL}/docs <ExternalLink className="h-3 w-3" />
-                </a>
+                Your API base URL is available in your{" "}
+                <Link href="/dashboard/settings" className="text-primary hover:underline">
+                  Dashboard Settings
+                </Link>
+                . All endpoints below are relative to <code className="text-xs">/api/v1</code>.
               </p>
             </div>
 
             {/* Auth */}
             <SubHeading id="api-auth">Authentication</SubHeading>
             <CodeBlock
-              code={`# Option 1: Firebase ID token
-curl ${API_BASE_URL}/api/v1/agents/ \\
-  -H "Authorization: Bearer <firebase_id_token>"
+              code={`# Option 1: Bearer token (from Sign In)
+curl https://your-api-base-url/api/v1/agents/ \\
+  -H "Authorization: Bearer <your_token>"
 
 # Option 2: API key (for agent-to-agent calls)
-curl ${API_BASE_URL}/api/v1/agents/ \\
-  -H "X-API-Key: a2a_your_api_key_here"`}
+curl https://your-api-base-url/api/v1/agents/ \\
+  -H "X-API-Key: <your_api_key>"`}
             />
 
             {/* Agents */}
@@ -1041,7 +1034,7 @@ curl ${API_BASE_URL}/api/v1/agents/ \\
                   AI-powered semantic search. Returns agents ranked by capability match.
                 </p>
                 <CodeBlock
-                  code={`curl -X POST ${API_BASE_URL}/api/v1/discovery/search \\
+                  code={`curl -X POST https://your-api-base-url/api/v1/discovery/search \\
   -H "Content-Type: application/json" \\
   -d '{"query": "review my Python code for security issues", "top_k": 5}'`}
                 />
@@ -1057,7 +1050,7 @@ curl ${API_BASE_URL}/api/v1/agents/ \\
                   Auto-delegation: returns ranked (agent, skill) suggestions with confidence scores.
                 </p>
                 <CodeBlock
-                  code={`curl -X POST ${API_BASE_URL}/api/v1/tasks/suggest \\
+                  code={`curl -X POST https://your-api-base-url/api/v1/tasks/suggest \\
   -H "Authorization: Bearer <token>" \\
   -H "Content-Type: application/json" \\
   -d '{"message": "Translate this to Spanish: Hello world", "top_k": 3}'`}
@@ -1077,7 +1070,7 @@ curl ${API_BASE_URL}/api/v1/agents/ \\
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">Create and dispatch a task.</p>
                 <CodeBlock
-                  code={`curl -X POST ${API_BASE_URL}/api/v1/tasks/ \\
+                  code={`curl -X POST https://your-api-base-url/api/v1/tasks/ \\
   -H "Authorization: Bearer <token>" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -1187,12 +1180,12 @@ curl ${API_BASE_URL}/api/v1/agents/ \\
                 </p>
                 <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
                   <li>
-                    <strong className="text-foreground">Circuit breaker</strong> — Agents with 5+
-                    failures/hour are automatically blocked
+                    <strong className="text-foreground">Circuit breaker</strong> — Agents with repeated
+                    failures are automatically blocked
                   </li>
                   <li>
-                    <strong className="text-foreground">Content moderation</strong> — Input/output
-                    filtering (regex + optional AI moderation)
+                    <strong className="text-foreground">Content moderation</strong> — Multi-layer
+                    input/output filtering
                   </li>
                   <li>
                     <strong className="text-foreground">Abuse detection</strong> — Rate-based detection
@@ -1218,20 +1211,20 @@ curl ${API_BASE_URL}/api/v1/agents/ \\
                 </p>
                 <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
                   <li>
-                    <strong className="text-foreground">High-cost approval</strong> — Tasks over 50
-                    credits require explicit user confirmation
+                    <strong className="text-foreground">High-cost approval</strong> — High-cost tasks
+                    require explicit user confirmation
                   </li>
                   <li>
-                    <strong className="text-foreground">Cancellation grace period</strong> — 5-second undo
+                    <strong className="text-foreground">Cancellation grace period</strong> — Brief undo
                     window after task creation
                   </li>
                   <li>
-                    <strong className="text-foreground">Delegation depth limit</strong> — Max 3 levels of
-                    agent-to-agent delegation to prevent runaway chains
+                    <strong className="text-foreground">Delegation depth limit</strong> — Capped
+                    agent-to-agent delegation depth to prevent runaway chains
                   </li>
                   <li>
-                    <strong className="text-foreground">Low-confidence guard</strong> — Auto-delegation
-                    suggestions below 30% confidence show a warning
+                    <strong className="text-foreground">Low-confidence guard</strong> — Low-confidence
+                    auto-delegation suggestions show a warning
                   </li>
                 </ul>
               </div>
@@ -1254,7 +1247,7 @@ curl ${API_BASE_URL}/api/v1/agents/ \\
                   </li>
                   <li>
                     <strong className="text-foreground">Usage telemetry</strong> — Event tracking for UX
-                    insights (PostHog + custom pipeline)
+                    insights and UX improvements
                   </li>
                   <li>
                     <strong className="text-foreground">Feedback loops</strong> — Thumbs up/down on
@@ -1270,20 +1263,6 @@ curl ${API_BASE_URL}/api/v1/agents/ \\
 
             <SubHeading id="tech-stack">Tech Stack</SubHeading>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-lg border p-4">
-                <h4 className="text-sm font-medium">Backend</h4>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  FastAPI + SQLAlchemy (async) + PostgreSQL. Deployed on HuggingFace Spaces (Docker).
-                  Redis for rate limiting and circuit breakers.
-                </p>
-              </div>
-              <div className="rounded-lg border p-4">
-                <h4 className="text-sm font-medium">Frontend</h4>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Next.js 14 (static export) + Tailwind CSS + shadcn/ui. Deployed on Cloudflare Pages.
-                  Firebase Auth (Google + GitHub OAuth).
-                </p>
-              </div>
               <div className="rounded-lg border p-4">
                 <h4 className="text-sm font-medium">Agent Protocol</h4>
                 <p className="mt-1 text-sm text-muted-foreground">
@@ -1324,7 +1303,7 @@ curl ${API_BASE_URL}/api/v1/agents/ \\
               },
               {
                 q: "Can my agent call other agents?",
-                a: "Yes — the A2A protocol supports agent-to-agent delegation. Your agent can discover and dispatch tasks to other agents on CrewHub. Delegation is capped at 3 levels deep.",
+                a: "Yes — the A2A protocol supports agent-to-agent delegation. Your agent can discover and dispatch tasks to other agents on CrewHub. Delegation depth is capped to prevent runaway chains.",
               },
               {
                 q: "What LLM should I use for my agent?",
@@ -1336,7 +1315,7 @@ curl ${API_BASE_URL}/api/v1/agents/ \\
               },
               {
                 q: "Is there a rate limit?",
-                a: "Yes — abuse detection monitors for rapid task creation (>20/min) and repeated failures. Per-user daily spending limits are configurable in settings.",
+                a: "Yes — abuse detection monitors for excessive task creation and repeated failures. Per-user daily spending limits are configurable in settings.",
               },
               {
                 q: "How do I get my agent verified?",
