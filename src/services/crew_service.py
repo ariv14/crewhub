@@ -5,11 +5,13 @@ from uuid import UUID
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from src.core.exceptions import ForbiddenError, NotFoundError
 from src.models.agent import Agent
 from src.models.crew import AgentCrew, AgentCrewMember
 from src.models.skill import AgentSkill
+from src.models.user import User
 from src.schemas.crew import (
     CrewCreate,
     CrewRunRequest,
@@ -28,7 +30,19 @@ class CrewService:
     # ------------------------------------------------------------------
 
     async def _get_crew_or_404(self, crew_id: UUID) -> AgentCrew:
-        result = await self.db.execute(select(AgentCrew).where(AgentCrew.id == crew_id))
+        result = await self.db.execute(
+            select(AgentCrew)
+            .where(AgentCrew.id == crew_id)
+            .options(
+                selectinload(AgentCrew.members)
+                .selectinload(AgentCrewMember.agent)
+                .selectinload(Agent.skills),
+                selectinload(AgentCrew.members)
+                .selectinload(AgentCrewMember.agent)
+                .selectinload(Agent.owner),
+                selectinload(AgentCrew.members).selectinload(AgentCrewMember.skill),
+            )
+        )
         crew = result.scalar_one_or_none()
         if not crew:
             raise NotFoundError("Crew not found")
@@ -94,8 +108,8 @@ class CrewService:
             self.db.add(member)
 
         await self.db.commit()
-        await self.db.refresh(crew)
-        return crew
+        # Re-fetch with all nested relationships eagerly loaded
+        return await self._get_crew_or_404(crew.id)
 
     async def get_crew(self, crew_id: UUID) -> AgentCrew:
         return await self._get_crew_or_404(crew_id)
@@ -107,10 +121,19 @@ class CrewService:
         q = (
             select(AgentCrew)
             .where(AgentCrew.owner_id == owner_id)
+            .options(
+                selectinload(AgentCrew.members)
+                .selectinload(AgentCrewMember.agent)
+                .selectinload(Agent.skills),
+                selectinload(AgentCrew.members)
+                .selectinload(AgentCrewMember.agent)
+                .selectinload(Agent.owner),
+                selectinload(AgentCrew.members).selectinload(AgentCrewMember.skill),
+            )
             .order_by(AgentCrew.updated_at.desc())
         )
         result = await self.db.execute(q)
-        crews = list(result.scalars().all())
+        crews = list(result.scalars().unique().all())
         return crews, total
 
     async def list_public_crews(self) -> tuple[list[AgentCrew], int]:
@@ -120,10 +143,19 @@ class CrewService:
         q = (
             select(AgentCrew)
             .where(AgentCrew.is_public == True)  # noqa: E712
+            .options(
+                selectinload(AgentCrew.members)
+                .selectinload(AgentCrewMember.agent)
+                .selectinload(Agent.skills),
+                selectinload(AgentCrew.members)
+                .selectinload(AgentCrewMember.agent)
+                .selectinload(Agent.owner),
+                selectinload(AgentCrew.members).selectinload(AgentCrewMember.skill),
+            )
             .order_by(AgentCrew.created_at.desc())
         )
         result = await self.db.execute(q)
-        crews = list(result.scalars().all())
+        crews = list(result.scalars().unique().all())
         return crews, total
 
     async def update_crew(self, crew_id: UUID, owner_id: UUID, data: CrewUpdate) -> AgentCrew:
@@ -141,16 +173,19 @@ class CrewService:
 
         if data.members is not None:
             await self._validate_member_refs(data.members)
-            # Full replace: delete existing members, insert new ones
-            await self.db.execute(
-                delete(AgentCrewMember).where(AgentCrewMember.crew_id == crew_id)
-            )
+            # Evict cached members from session identity map
+            for m in crew.members:
+                await self.db.delete(m)
+            await self.db.flush()
+            # Insert new members
             for member in self._build_members(crew_id, data.members):
                 self.db.add(member)
 
         await self.db.commit()
-        await self.db.refresh(crew)
-        return crew
+        # Expire all cached state so re-fetch gets fresh data
+        self.db.expire_all()
+        # Re-fetch with all nested relationships eagerly loaded
+        return await self._get_crew_or_404(crew_id)
 
     async def delete_crew(self, crew_id: UUID, owner_id: UUID) -> None:
         crew = await self._get_crew_or_404(crew_id)
@@ -187,8 +222,8 @@ class CrewService:
             ))
 
         await self.db.commit()
-        await self.db.refresh(new_crew)
-        return new_crew
+        # Re-fetch with all nested relationships eagerly loaded
+        return await self._get_crew_or_404(new_crew.id)
 
     # ------------------------------------------------------------------
     # Run
