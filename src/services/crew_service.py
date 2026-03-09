@@ -3,7 +3,7 @@
 import uuid as _uuid
 from uuid import UUID
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -11,7 +11,6 @@ from src.core.exceptions import ForbiddenError, NotFoundError
 from src.models.agent import Agent
 from src.models.crew import AgentCrew, AgentCrewMember
 from src.models.skill import AgentSkill
-from src.models.user import User
 from src.schemas.crew import (
     CrewCreate,
     CrewRunRequest,
