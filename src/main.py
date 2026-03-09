@@ -86,7 +86,6 @@ async def lifespan(app: FastAPI):
     _init_firebase()
 
     # Validate database connectivity (fail fast if unreachable)
-    # Schema management is handled by Alembic migrations (alembic upgrade head)
     try:
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
@@ -95,8 +94,24 @@ async def lifespan(app: FastAPI):
         logger.exception("Database connection failed")
         raise
 
-    # Auto-create tables for SQLite (dev/local only)
-    if "sqlite" in settings.database_url:
+    # Run Alembic migrations (non-blocking — skip on failure)
+    if "sqlite" not in settings.database_url:
+        try:
+            import subprocess
+            result = subprocess.run(
+                ["alembic", "upgrade", "head"],
+                capture_output=True, text=True, timeout=30,
+            )
+            if result.returncode == 0:
+                logger.info("Alembic migrations applied successfully")
+            else:
+                logger.warning("Alembic migration failed: %s", result.stderr[-500:] if result.stderr else "no output")
+        except subprocess.TimeoutExpired:
+            logger.warning("Alembic migration timed out (30s) — skipping")
+        except Exception:
+            logger.warning("Alembic migration error — skipping", exc_info=True)
+    else:
+        # Auto-create tables for SQLite (dev/local only)
         from src.database import init_db
         await init_db()
         logger.info("SQLite tables auto-created")
