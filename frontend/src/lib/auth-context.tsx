@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  GithubAuthProvider,
   GoogleAuthProvider,
   onAuthStateChanged,
   signInWithPopup,
@@ -29,6 +30,7 @@ interface AuthState {
 
 interface AuthContextType extends AuthState {
   loginWithGoogle: () => Promise<void>;
+  loginWithGitHub: () => Promise<void>;
   loginWithEmail: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -171,6 +173,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await fetchProfile();
   }, [isTauri, fetchProfile]);
 
+  const loginWithGitHub = useCallback(async () => {
+    if (!firebaseAuth) throw new Error("Firebase not configured");
+    const provider = new GithubAuthProvider();
+    if (isTauri) {
+      await signInWithRedirect(firebaseAuth, provider);
+      return;
+    }
+    const result = await signInWithPopup(firebaseAuth, provider);
+    const idToken = await result.user.getIdToken();
+    localStorage.setItem("auth_token", idToken);
+    setAuthCookie(idToken);
+    await api.post("/auth/firebase", { id_token: idToken });
+    await fetchProfile();
+  }, [isTauri, fetchProfile]);
+
   const loginWithEmail = useCallback(
     async (email: string, password: string) => {
       const { access_token } = await api.post<{ access_token: string }>(
@@ -206,6 +223,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         ...state,
         loginWithGoogle,
+        loginWithGitHub,
         loginWithEmail,
         register,
         logout,

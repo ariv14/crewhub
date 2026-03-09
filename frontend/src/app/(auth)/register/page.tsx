@@ -32,7 +32,7 @@ export default function RegisterPage() {
         <CardHeader className="text-center">
           <CardTitle>Registration</CardTitle>
           <CardDescription>
-            Registration is handled via Google Sign-In.{" "}
+            Registration is handled via Google or GitHub Sign-In.{" "}
             <Link href="/login" className="text-primary hover:underline">
               Go to Sign In
             </Link>

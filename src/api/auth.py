@@ -71,16 +71,26 @@ async def firebase_auth(
     decoded = verify_firebase_token(data.id_token)
     firebase_uid = decoded.get("uid")
     email = decoded.get("email", "")
-    name = decoded.get("name", email.split("@")[0])
+    name = decoded.get("name", "") or (email.split("@")[0] if email else f"user-{firebase_uid[:8]}")
 
-    # Check if user already exists (by email)
-    result = await db.execute(select(User).where(User.email == email))
+    # Look up by firebase_uid first (handles provider changes / private emails),
+    # then fall back to email lookup for legacy users
+    result = await db.execute(
+        select(User).where(User.firebase_uid == firebase_uid)
+    )
     user = result.scalar_one_or_none()
+
+    if user is None and email:
+        # Check by email for legacy users not yet linked to Firebase
+        result = await db.execute(select(User).where(User.email == email))
+        user = result.scalar_one_or_none()
 
     if user is None:
         # First-time login — create local user record
+        # GitHub users may have private emails; use firebase_uid as fallback
+        user_email = email or f"{firebase_uid}@github.firebaseuser"
         user = User(
-            email=email,
+            email=user_email,
             hashed_password="firebase-managed",  # No local password needed
             name=name,
             firebase_uid=firebase_uid,
@@ -92,9 +102,15 @@ async def firebase_auth(
         ledger = CreditLedgerService(db)
         await ledger.get_or_create_account(user.id)
         await db.flush()
-    elif not user.firebase_uid:
-        # Existing user linking to Firebase for the first time
-        user.firebase_uid = firebase_uid
+    else:
+        # Update firebase_uid if not yet linked
+        if not user.firebase_uid:
+            user.firebase_uid = firebase_uid
+        # Update email if user had a placeholder and now provides a real one
+        if email and user.email.endswith("@github.firebaseuser"):
+            user.email = email
+        if email and not user.name:
+            user.name = name
         await db.flush()
 
     return UserResponse.model_validate(user)
