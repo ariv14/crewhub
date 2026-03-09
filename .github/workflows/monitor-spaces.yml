@@ -1,0 +1,37 @@
+name: Monitor & Auto-Recover HF Spaces
+
+on:
+  schedule:
+    # Every hour
+    - cron: "0 * * * *"
+  workflow_dispatch: # manual trigger
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install huggingface_hub httpx
+
+      - name: Check & recover spaces
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python scripts/monitor_spaces.py --json | tee monitor-output.json
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Space Monitor Results" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f monitor-output.json ]; then
+            python3 scripts/monitor_summary.py monitor-output.json >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Monitor script failed to produce output" >> "$GITHUB_STEP_SUMMARY"
+          fi
