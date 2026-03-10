@@ -8,6 +8,8 @@ on:
 
 jobs:
   monitor:
+    # Scheduled runs only on main (GitHub triggers cron on all branches with the workflow)
+    if: github.event_name != 'schedule' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:
