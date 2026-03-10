@@ -362,7 +362,7 @@ class TestSuggestDelegationIntegration:
         # Mock EmbeddingService to return a vector similar to frontend embedding
         with patch("src.core.embeddings.EmbeddingService") as MockEmb:
             instance = AsyncMock()
-            instance.generate = AsyncMock(return_value=[0.85, 0.2, 0.1, 0.0, 0.0])
+            instance.generate = AsyncMock(return_value=_pad_embedding([0.85, 0.2, 0.1, 0.0, 0.0]))
             MockEmb.return_value = instance
 
             result = await service.suggest_delegation(
@@ -385,7 +385,7 @@ class TestSuggestDelegationIntegration:
         with patch("src.core.embeddings.EmbeddingService") as MockEmb:
             instance = AsyncMock()
             # Vector similar to translation embedding
-            instance.generate = AsyncMock(return_value=[0.1, 0.85, 0.15, 0.0, 0.0])
+            instance.generate = AsyncMock(return_value=_pad_embedding([0.1, 0.85, 0.15, 0.0, 0.0]))
             MockEmb.return_value = instance
 
             result = await service.suggest_delegation(
@@ -427,7 +427,7 @@ class TestSuggestDelegationIntegration:
 
         with patch("src.core.embeddings.EmbeddingService") as MockEmb:
             instance = AsyncMock()
-            instance.generate = AsyncMock(return_value=[1.0, 0.0])
+            instance.generate = AsyncMock(return_value=_pad_embedding([1.0, 0.0]))
             MockEmb.return_value = instance
 
             result = await service.suggest_delegation(message="anything")
@@ -443,7 +443,7 @@ class TestSuggestDelegationIntegration:
 
         with patch("src.core.embeddings.EmbeddingService") as MockEmb:
             instance = AsyncMock()
-            instance.generate = AsyncMock(return_value=[0.85, 0.2, 0.1, 0.0, 0.0])
+            instance.generate = AsyncMock(return_value=_pad_embedding([0.85, 0.2, 0.1, 0.0, 0.0]))
             MockEmb.return_value = instance
 
             # Frontend skill costs 5 credits, translator costs 3
@@ -466,7 +466,7 @@ class TestSuggestDelegationIntegration:
 
         with patch("src.core.embeddings.EmbeddingService") as MockEmb:
             instance = AsyncMock()
-            instance.generate = AsyncMock(return_value=[0.5, 0.5, 0.0, 0.0, 0.0])
+            instance.generate = AsyncMock(return_value=_pad_embedding([0.5, 0.5, 0.0, 0.0, 0.0]))
             MockEmb.return_value = instance
 
             # Both agents are in "engineering" — this should return both
@@ -494,7 +494,7 @@ class TestSuggestDelegationIntegration:
         with patch("src.core.embeddings.EmbeddingService") as MockEmb:
             instance = AsyncMock()
             # Orthogonal to both skill embeddings
-            instance.generate = AsyncMock(return_value=[0.0, 0.0, 0.0, 0.0, 1.0])
+            instance.generate = AsyncMock(return_value=_pad_embedding([0.0, 0.0, 0.0, 0.0, 1.0]))
             MockEmb.return_value = instance
 
             result = await service.suggest_delegation(
@@ -515,7 +515,7 @@ class TestSuggestDelegationIntegration:
 
         with patch("src.core.embeddings.EmbeddingService") as MockEmb:
             instance = AsyncMock()
-            instance.generate = AsyncMock(return_value=[0.5, 0.5, 0.0, 0.0, 0.0])
+            instance.generate = AsyncMock(return_value=_pad_embedding([0.5, 0.5, 0.0, 0.0, 0.0]))
             MockEmb.return_value = instance
 
             result = await service.suggest_delegation(message="anything", limit=1)
@@ -535,7 +535,7 @@ class TestCheckSkillMismatch:
         with patch("src.core.embeddings.EmbeddingService") as MockEmb:
             instance = AsyncMock()
             # Embedding orthogonal to frontend skill [0.9, 0.3, 0.1, 0.0, 0.0]
-            instance.generate = AsyncMock(return_value=[0.0, 0.0, 0.0, 1.0, 0.0])
+            instance.generate = AsyncMock(return_value=_pad_embedding([0.0, 0.0, 0.0, 1.0, 0.0]))
             MockEmb.return_value = instance
 
             warning = await service.check_skill_mismatch(
@@ -557,7 +557,7 @@ class TestCheckSkillMismatch:
         with patch("src.core.embeddings.EmbeddingService") as MockEmb:
             instance = AsyncMock()
             # Frontend-like embedding (matches frontend skill)
-            instance.generate = AsyncMock(return_value=[0.9, 0.3, 0.1, 0.0, 0.0])
+            instance.generate = AsyncMock(return_value=_pad_embedding([0.9, 0.3, 0.1, 0.0, 0.0]))
             MockEmb.return_value = instance
 
             warning = await service.check_skill_mismatch(

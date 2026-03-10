@@ -131,9 +131,14 @@ class RegistryService:
             await self.db.flush()
 
         await self.db.commit()
-        # Re-fetch with skills eagerly loaded (refresh alone won't load relationships)
+        # Re-fetch with skills eagerly loaded.
+        # populate_existing=True forces SQLAlchemy to overwrite the identity-map
+        # cache so skills are actually loaded even with expire_on_commit=False.
         result = await self.db.execute(
-            select(Agent).options(selectinload(Agent.skills)).where(Agent.id == agent.id)
+            select(Agent)
+            .options(selectinload(Agent.skills))
+            .where(Agent.id == agent.id)
+            .execution_options(populate_existing=True)
         )
         return result.scalar_one()
 
@@ -252,7 +257,10 @@ class RegistryService:
 
         await self.db.commit()
         result = await self.db.execute(
-            select(Agent).options(selectinload(Agent.skills)).where(Agent.id == agent.id)
+            select(Agent)
+            .options(selectinload(Agent.skills))
+            .where(Agent.id == agent.id)
+            .execution_options(populate_existing=True)
         )
         return result.scalar_one()
 

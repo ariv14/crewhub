@@ -376,8 +376,8 @@ class TaskBrokerService:
             for skill in agent.skills:
                 if max_credits is not None and skill.avg_credits and skill.avg_credits > max_credits:
                     continue
-                if skill.embedding:
-                    sim = DiscoveryService._cosine_similarity(query_embedding, skill.embedding)
+                if skill.embedding is not None:
+                    sim = DiscoveryService._cosine_similarity(query_embedding, list(skill.embedding))
                     scored.append((agent, skill, sim))
         return scored
 
@@ -424,7 +424,7 @@ class TaskBrokerService:
         if not use_db:
             stmt = select(AgentSkill.embedding).where(AgentSkill.id == skill.id)
             skill_embedding = (await self.db.execute(stmt)).scalar_one_or_none()
-            if not skill_embedding:
+            if skill_embedding is None:
                 return None
 
         # Extract text from messages
@@ -454,7 +454,7 @@ class TaskBrokerService:
             similarity = float(row) if row is not None else 0.0
         else:
             from src.services.discovery import DiscoveryService
-            similarity = DiscoveryService._cosine_similarity(query_embedding, skill_embedding)
+            similarity = DiscoveryService._cosine_similarity(query_embedding, list(skill_embedding))
 
         if similarity < threshold:
             return (

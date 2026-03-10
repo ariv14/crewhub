@@ -210,8 +210,8 @@ class DiscoveryService:
         for agent in agents:
             best_sim = 0.0
             for skill in agent.skills:
-                if skill.embedding:
-                    sim = self._cosine_similarity(query_embedding, skill.embedding)
+                if skill.embedding is not None:
+                    sim = self._cosine_similarity(query_embedding, list(skill.embedding))
                     best_sim = max(best_sim, sim)
             scored.append((agent, best_sim))
 
