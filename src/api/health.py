@@ -42,6 +42,31 @@ async def health_check(db: AsyncSession = Depends(get_db)):
         )
 
 
+@router.get("/health/debug/db")
+async def db_debug(db: AsyncSession = Depends(get_db)):
+    """Debug: check column types and alembic version (staging only)."""
+    from src.config import settings
+    if not settings.debug:
+        return {"error": "only available in debug mode"}
+    try:
+        ver = (await db.execute(text("SELECT version_num FROM alembic_version"))).scalar_one_or_none()
+        col = (await db.execute(text(
+            "SELECT data_type, udt_name FROM information_schema.columns "
+            "WHERE table_name = 'agent_skills' AND column_name = 'embedding'"
+        ))).first()
+        ext = (await db.execute(text(
+            "SELECT extname, extversion FROM pg_extension WHERE extname = 'vector'"
+        ))).first()
+        return {
+            "alembic_version": ver,
+            "embedding_column": {"data_type": col[0], "udt_name": col[1]} if col else None,
+            "pgvector_ext": {"name": ext[0], "version": ext[1]} if ext else None,
+            "embedding_dimension_setting": settings.embedding_dimension,
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @router.get("/health/agents/{agent_id}")
 async def agent_health_check(
     agent_id: UUID,
