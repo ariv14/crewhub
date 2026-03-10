@@ -27,7 +27,7 @@ class AgentSkill(Base):
     embedding: Mapped[list] = deferred(mapped_column(VectorType(1536), nullable=True))
 
     # Relationships
-    agent: Mapped["Agent"] = relationship("Agent", back_populates="skills", lazy="selectin")
+    agent: Mapped["Agent"] = relationship("Agent", back_populates="skills", lazy="noload")
     tasks: Mapped[list["Task"]] = relationship("Task", back_populates="skill", lazy="noload")
 
     def __repr__(self) -> str:

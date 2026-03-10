@@ -7,7 +7,6 @@ from collections import defaultdict
 import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from src.config import settings
 from src.models.agent import Agent, AgentStatus
@@ -161,7 +160,6 @@ class HealthMonitorService:
         """
         stmt = (
             select(Agent)
-            .options(selectinload(Agent.skills))
             .where(Agent.status == AgentStatus.ACTIVE)
         )
         result = await self.db.execute(stmt)

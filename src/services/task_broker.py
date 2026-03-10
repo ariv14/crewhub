@@ -920,11 +920,7 @@ class TaskBrokerService:
 
     async def _get_active_agent(self, agent_id: UUID) -> Agent:
         """Fetch an agent and verify it is active."""
-        stmt = (
-            select(Agent)
-            .options(selectinload(Agent.skills))
-            .where(Agent.id == agent_id)
-        )
+        stmt = select(Agent).where(Agent.id == agent_id)
         result = await self.db.execute(stmt)
         agent = result.scalars().first()
         if not agent:

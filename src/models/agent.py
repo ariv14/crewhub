@@ -77,7 +77,7 @@ class Agent(Base):
     # Relationships
     owner: Mapped["User"] = relationship("User", back_populates="agents", lazy="selectin")
     skills: Mapped[list["AgentSkill"]] = relationship(
-        "AgentSkill", back_populates="agent", lazy="selectin", cascade="all, delete-orphan"
+        "AgentSkill", back_populates="agent", lazy="noload", cascade="all, delete-orphan"
     )
     client_tasks: Mapped[list["Task"]] = relationship(
         "Task", back_populates="client_agent", foreign_keys="[Task.client_agent_id]", lazy="noload"
