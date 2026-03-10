@@ -1,11 +1,16 @@
-"""Convert embedding column from JSON to pgvector vector(1536).
+"""Convert embedding column from JSON to pgvector vector(N).
 
-Enables DB-side cosine similarity search and ~65% storage reduction.
+Reads EMBEDDING_DIMENSION from env (default 1536).
+NULLs existing embeddings first to avoid dimension mismatch during cast.
+Embeddings will be regenerated on next agent registration/update.
+
 Only runs on PostgreSQL; SQLite (local dev) is unaffected.
 
 Revision ID: 020
 Revises: 019
 """
+
+import os
 
 from alembic import op
 
@@ -20,22 +25,25 @@ def upgrade() -> None:
     if conn.dialect.name != "postgresql":
         return  # Skip on SQLite
 
+    dim = int(os.environ.get("EMBEDDING_DIMENSION", "1536"))
+
     # Enable pgvector extension (pre-installed on Supabase)
     op.execute("CREATE EXTENSION IF NOT EXISTS vector")
 
-    # Convert JSON → vector(1536)
-    # JSON stores [0.1, 0.2, ...] which casts to vector via text representation
-    op.execute("""
+    # NULL out existing embeddings — dimension may mismatch the target vector type
+    op.execute("UPDATE agent_skills SET embedding = NULL")
+
+    # Convert JSON → vector(dim)
+    op.execute(f"""
         ALTER TABLE agent_skills
         ALTER COLUMN embedding
-        TYPE vector(1536)
-        USING embedding::text::vector(1536)
+        TYPE vector({dim})
+        USING embedding::text::vector({dim})
     """)
 
     # IVFFlat index for approximate nearest neighbor search
     # lists=1 is optimal for <100 rows; increase when skill count grows
-    # (rule of thumb: lists = sqrt(num_rows))
-    op.execute("""
+    op.execute(f"""
         CREATE INDEX IF NOT EXISTS ix_agent_skills_embedding_cosine
         ON agent_skills
         USING ivfflat (embedding vector_cosine_ops)

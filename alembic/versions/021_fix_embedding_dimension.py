@@ -1,7 +1,10 @@
-"""Fix embedding column dimension: vector(1536) → vector(EMBEDDING_DIMENSION).
+"""Fix embedding column if migration 020 ran with wrong dimension or failed.
 
-Staging uses Gemini gemini-embedding-001 which produces 3072-dim vectors.
-Reads EMBEDDING_DIMENSION from environment (default 1536 for backwards compat).
+Handles both cases:
+- Column still JSON (020 failed) → convert to vector(N)
+- Column is vector(wrong_dim) → re-type to vector(N)
+
+Uses USING NULL to bypass cast issues. Embeddings regenerated on next use.
 
 Revision ID: 021
 Revises: 020
@@ -23,25 +26,22 @@ def upgrade() -> None:
         return
 
     dim = int(os.environ.get("EMBEDDING_DIMENSION", "1536"))
-    if dim == 1536:
-        return  # Already correct from migration 020
 
-    # Drop existing index (dimension is changing)
+    op.execute("CREATE EXTENSION IF NOT EXISTS vector")
     op.execute("DROP INDEX IF EXISTS ix_agent_skills_embedding_cosine")
-
-    # Wipe embeddings — dimension change means old vectors are incompatible
     op.execute("UPDATE agent_skills SET embedding = NULL")
 
-    # Alter column to new dimension
-    op.execute(f"ALTER TABLE agent_skills ALTER COLUMN embedding TYPE vector({dim})")
+    # USING NULL::vector(dim) works from any source type (json, vector, etc.)
+    op.execute(
+        f"ALTER TABLE agent_skills ALTER COLUMN embedding "
+        f"TYPE vector({dim}) USING NULL::vector({dim})"
+    )
 
-    # Recreate index
-    op.execute(f"""
-        CREATE INDEX IF NOT EXISTS ix_agent_skills_embedding_cosine
-        ON agent_skills
-        USING ivfflat (embedding vector_cosine_ops)
-        WITH (lists = 1)
-    """)
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS ix_agent_skills_embedding_cosine "
+        "ON agent_skills USING ivfflat (embedding vector_cosine_ops) "
+        "WITH (lists = 1)"
+    )
 
 
 def downgrade() -> None:
@@ -51,10 +51,7 @@ def downgrade() -> None:
 
     op.execute("DROP INDEX IF EXISTS ix_agent_skills_embedding_cosine")
     op.execute("UPDATE agent_skills SET embedding = NULL")
-    op.execute("ALTER TABLE agent_skills ALTER COLUMN embedding TYPE vector(1536)")
-    op.execute("""
-        CREATE INDEX IF NOT EXISTS ix_agent_skills_embedding_cosine
-        ON agent_skills
-        USING ivfflat (embedding vector_cosine_ops)
-        WITH (lists = 1)
-    """)
+    op.execute(
+        "ALTER TABLE agent_skills ALTER COLUMN embedding "
+        "TYPE json USING NULL::json"
+    )
