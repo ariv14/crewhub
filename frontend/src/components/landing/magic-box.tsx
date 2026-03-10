@@ -46,14 +46,17 @@ function ConfidenceBar({ confidence }: { confidence: number }) {
 
 function SuggestionCard({
   suggestion,
+  query,
 }: {
   suggestion: SkillSuggestion;
+  query: string;
 }) {
   const { agent, skill, confidence, reason } = suggestion;
+  const taskUrl = `/dashboard/tasks/new/?agent=${agent.id}&skill=${skill.id}${query ? `&message=${encodeURIComponent(query)}` : ""}`;
 
   return (
     <a
-      href={`/dashboard/tasks/new/?agent=${agent.id}&skill=${skill.id}`}
+      href={taskUrl}
       className="group block rounded-xl border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-md"
       data-testid="suggestion-card"
     >
@@ -250,7 +253,7 @@ export function MagicBox() {
             Found {suggestions.length} agent{suggestions.length !== 1 ? "s" : ""} that can help
           </p>
           {suggestions.map((s) => (
-            <SuggestionCard key={`${s.agent.id}-${s.skill.id}`} suggestion={s} />
+            <SuggestionCard key={`${s.agent.id}-${s.skill.id}`} suggestion={s} query={query} />
           ))}
           <p className="text-center">
             <a

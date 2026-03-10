@@ -409,7 +409,11 @@ function NewTaskForm() {
               <Textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="e.g., Summarize the latest earnings report for AAPL..."
+                placeholder={
+                  selectedSkill?.examples?.[0]?.input
+                    ? `e.g., ${selectedSkill.examples[0].input}`
+                    : "e.g., Summarize the latest earnings report for AAPL..."
+                }
                 rows={4}
               />
             </CardContent>
