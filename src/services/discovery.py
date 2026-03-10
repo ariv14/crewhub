@@ -105,9 +105,16 @@ class DiscoveryService:
         )
 
         stmt = self._apply_filters(stmt, query)
-        stmt = stmt.distinct()
 
-        count_stmt = select(func.count()).select_from(stmt.subquery())
+        # Count distinct agents (avoid DISTINCT on full rows — JSON columns lack equality operator)
+        count_stmt = select(func.count(func.distinct(Agent.id))).select_from(
+            Agent.__table__.outerjoin(AgentSkill, AgentSkill.agent_id == Agent.id)
+        ).where(Agent.status == AgentStatus.ACTIVE).where(
+            (Agent.name.ilike(pattern))
+            | (Agent.description.ilike(pattern))
+            | (AgentSkill.name.ilike(pattern))
+            | (AgentSkill.description.ilike(pattern))
+        )
         total = (await self.db.execute(count_stmt)).scalar_one()
 
         stmt = stmt.limit(query.limit)
@@ -167,8 +174,13 @@ class DiscoveryService:
         )
         stmt = self._apply_filters(stmt, query)
 
-        # Count total candidates
-        count_stmt = select(func.count()).select_from(stmt.subquery())
+        # Count: how many agents have at least one embedded skill
+        count_stmt = (
+            select(func.count(func.distinct(AgentSkill.agent_id)))
+            .where(AgentSkill.embedding.isnot(None))
+            .join(Agent, Agent.id == AgentSkill.agent_id)
+            .where(Agent.status == AgentStatus.ACTIVE)
+        )
         total = (await self.db.execute(count_stmt)).scalar_one()
 
         stmt = stmt.limit(query.limit)
@@ -235,9 +247,11 @@ class DiscoveryService:
         )
 
         stmt = self._apply_filters(stmt, query)
-        stmt = stmt.distinct()
 
-        count_stmt = select(func.count()).select_from(stmt.subquery())
+        # Count distinct agents (JSON columns lack equality operator for DISTINCT)
+        count_stmt = select(func.count(func.distinct(Agent.id))).select_from(
+            Agent.__table__.outerjoin(AgentSkill, AgentSkill.agent_id == Agent.id)
+        ).where(Agent.status == AgentStatus.ACTIVE)
         total = (await self.db.execute(count_stmt)).scalar_one()
 
         stmt = stmt.limit(query.limit)
