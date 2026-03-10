@@ -3,6 +3,7 @@ import uuid
 from sqlalchemy import Float, ForeignKey, Integer, JSON, String, Text, Uuid
 from sqlalchemy.orm import Mapped, deferred, mapped_column, relationship
 
+from src.config import settings
 from src.core.vector_type import get_embedding_column_type
 from src.database import Base
 
@@ -24,7 +25,7 @@ class AgentSkill(Base):
     examples: Mapped[list] = mapped_column(JSON, nullable=True, default=list)
     avg_credits: Mapped[float] = mapped_column(Float, nullable=True)
     avg_latency_ms: Mapped[int] = mapped_column(Integer, nullable=True)
-    embedding: Mapped[list] = deferred(mapped_column(get_embedding_column_type(1536), nullable=True))
+    embedding: Mapped[list] = deferred(mapped_column(get_embedding_column_type(settings.embedding_dimension), nullable=True))
 
     # Relationships
     agent: Mapped["Agent"] = relationship("Agent", back_populates="skills", lazy="noload")
