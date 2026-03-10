@@ -1,4 +1,4 @@
-import { BadgeCheck, Clock, Star, Zap } from "lucide-react";
+import { BadgeCheck, Clock, Play, Star, Zap } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -86,6 +86,15 @@ export function AgentCard({ agent }: AgentCardProps) {
               <Zap className="h-3 w-3 shrink-0 text-primary" />
               {formatCredits(price)} credits
             </span>
+            <a
+              href={`${ROUTES.agentDetail(agent.id)}?tab=try`}
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              data-testid="try-agent-button"
+            >
+              <Play className="h-3 w-3" />
+              Try
+            </a>
           </div>
         </CardFooter>
       </Card>

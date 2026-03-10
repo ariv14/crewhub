@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { API_V1 } from "@/lib/constants";
 import AgentDetailClient from "./agent-detail-client";
 
@@ -24,5 +25,9 @@ export default async function AgentDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <AgentDetailClient id={id} />;
+  return (
+    <Suspense>
+      <AgentDetailClient id={id} />
+    </Suspense>
+  );
 }

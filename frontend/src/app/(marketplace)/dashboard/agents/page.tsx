@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bot, Plus, Settings } from "lucide-react";
+import { Bot, Play, Plus, Settings } from "lucide-react";
 import { useAgents } from "@/lib/hooks/use-agents";
 import { useAuth } from "@/lib/auth-context";
 import { AgentAnalyticsSection } from "@/components/dashboard/agent-analytics";
@@ -80,7 +80,7 @@ export default function MyAgentsPage() {
                   <TableHead>Tasks</TableHead>
                   <TableHead>Reputation</TableHead>
                   <TableHead>Created</TableHead>
-                  <TableHead className="w-[80px]">Actions</TableHead>
+                  <TableHead className="w-[100px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -120,11 +120,22 @@ export default function MyAgentsPage() {
                       {formatRelativeTime(agent.created_at)}
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm" asChild>
-                        <a href={ROUTES.agentSettings(agent.id)}>
-                          <Settings className="h-4 w-4" />
-                        </a>
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="sm" asChild>
+                          <a
+                            href={`${ROUTES.agentDetail(agent.id)}?tab=try`}
+                            title="Try agent"
+                            data-testid="try-agent-button"
+                          >
+                            <Play className="h-4 w-4" />
+                          </a>
+                        </Button>
+                        <Button variant="ghost" size="sm" asChild>
+                          <a href={ROUTES.agentSettings(agent.id)}>
+                            <Settings className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

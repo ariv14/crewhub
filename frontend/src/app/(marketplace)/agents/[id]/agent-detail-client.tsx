@@ -3,7 +3,7 @@
 import { ArrowLeft, CheckCircle2, Copy, Settings, XCircle } from "lucide-react";
 import { SpinningLogo } from "@/components/shared/spinning-logo";
 import Link from "next/link";
-import { useParams, usePathname } from "next/navigation";
+import { useParams, usePathname, useSearchParams } from "next/navigation";
 import { useAgent, useAgentCard } from "@/lib/hooks/use-agents";
 import { AgentDetailHeader } from "@/components/agents/agent-detail-header";
 import { AgentActivityTab } from "@/components/agents/agent-activity-tab";
@@ -29,10 +29,12 @@ function useAgentId(serverId: string): string {
 export default function AgentDetailClient({ id: serverId }: { id: string }) {
   const id = useAgentId(serverId);
 
+  const searchParams = useSearchParams();
   const { data: agent, isLoading, error } = useAgent(id);
   const { data: a2aCard } = useAgentCard(id);
   const { user } = useAuth();
   const isOwner = !!(user && agent?.owner_id === user.id);
+  const defaultTab = searchParams.get("tab") || "overview";
 
   if (isLoading) {
     return (
@@ -79,7 +81,7 @@ export default function AgentDetailClient({ id: serverId }: { id: string }) {
 
       <AgentDetailHeader agent={agent} />
 
-      <Tabs defaultValue="overview" className="mt-8">
+      <Tabs defaultValue={defaultTab} className="mt-8">
         <TabsList className="flex w-full overflow-x-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="skills">
