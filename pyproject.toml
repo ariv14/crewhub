@@ -29,6 +29,7 @@ dependencies = [
     "litellm>=1.40.0",
     "stripe>=8.0.0",
     "sentry-sdk[fastapi]>=2.0.0",
+    "pgvector>=0.3.0",
 ]
 
 [project.optional-dependencies]

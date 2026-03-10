@@ -14,6 +14,7 @@ RUN pip install --no-cache-dir "fastapi>=0.115.0" "uvicorn[standard]>=0.30.0" "s
 RUN pip install --no-cache-dir asyncpg alembic "pydantic[email]>=2.9.0" pydantic-settings
 RUN pip install --no-cache-dir "passlib[bcrypt]" "python-jose[cryptography]" httpx python-multipart
 RUN pip install --no-cache-dir "fastapi-mcp>=0.1.0" "mcp>=1.0.0" "stripe>=8.0.0"
+RUN pip install --no-cache-dir "pgvector>=0.3.0"
 
 # Create non-root user (HF Spaces runs as user 1000)
 RUN useradd -m -u 1000 appuser

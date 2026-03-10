@@ -10,6 +10,7 @@ from sqlalchemy.orm import selectinload, undefer
 
 from src.config import settings
 from src.core.embeddings import EmbeddingService, MissingAPIKeyError
+from src.core.vector_type import is_pgvector
 from src.models.agent import Agent, AgentStatus
 from src.models.skill import AgentSkill
 from src.models.task import Task
@@ -22,8 +23,8 @@ logger = logging.getLogger(__name__)
 class DiscoveryService:
     """Search and discovery of marketplace agents.
 
-    Uses in-memory cosine similarity for semantic search (no Qdrant dependency).
-    Qdrant can be added later when scale requires it.
+    Uses pgvector DB-side cosine similarity on PostgreSQL.
+    Falls back to in-memory cosine similarity on SQLite (local dev).
     """
 
     # Composite ranking weights
@@ -116,7 +117,7 @@ class DiscoveryService:
         return agents, total
 
     # ------------------------------------------------------------------
-    # Semantic search (in-memory cosine similarity, no Qdrant needed)
+    # Semantic search (pgvector DB-side on PG, in-memory fallback on SQLite)
     # ------------------------------------------------------------------
 
     async def _semantic_search(
@@ -124,6 +125,8 @@ class DiscoveryService:
     ) -> tuple[list[Agent], int]:
         """Generate embedding for query, compute cosine similarity against skill embeddings.
 
+        On PostgreSQL: uses pgvector's <=> operator for DB-side cosine distance.
+        On SQLite: falls back to Python-side cosine similarity.
         Gracefully degrades to keyword search if no API key is configured.
         """
         try:
@@ -135,7 +138,49 @@ class DiscoveryService:
             )
             return await self._keyword_search(query)
 
-        # Fetch all active agents with their skills (including deferred embeddings)
+        if is_pgvector(settings.database_url):
+            return await self._semantic_search_db(query, query_embedding)
+        return await self._semantic_search_python(query, query_embedding)
+
+    async def _semantic_search_db(
+        self, query: SearchQuery, query_embedding: list[float]
+    ) -> tuple[list[Agent], int]:
+        """DB-side semantic search using pgvector cosine distance."""
+        # Subquery: best similarity per agent
+        best_sim = (
+            select(
+                AgentSkill.agent_id,
+                func.min(AgentSkill.embedding.cosine_distance(query_embedding)).label("min_dist"),
+            )
+            .where(AgentSkill.embedding.isnot(None))
+            .group_by(AgentSkill.agent_id)
+            .subquery()
+        )
+
+        # Main query: agents ranked by best skill similarity
+        stmt = (
+            select(Agent)
+            .join(best_sim, Agent.id == best_sim.c.agent_id)
+            .options(selectinload(Agent.skills))
+            .where(Agent.status == AgentStatus.ACTIVE)
+            .order_by(best_sim.c.min_dist)
+        )
+        stmt = self._apply_filters(stmt, query)
+
+        # Count total candidates
+        count_stmt = select(func.count()).select_from(stmt.subquery())
+        total = (await self.db.execute(count_stmt)).scalar_one()
+
+        stmt = stmt.limit(query.limit)
+        result = await self.db.execute(stmt)
+        agents = list(result.scalars().unique().all())
+
+        return agents, total
+
+    async def _semantic_search_python(
+        self, query: SearchQuery, query_embedding: list[float]
+    ) -> tuple[list[Agent], int]:
+        """In-memory semantic search fallback for SQLite."""
         stmt = (
             select(Agent)
             .options(selectinload(Agent.skills).undefer(AgentSkill.embedding))
@@ -149,7 +194,6 @@ class DiscoveryService:
         if not agents:
             return [], 0
 
-        # Score each agent by best-matching skill embedding
         scored = []
         for agent in agents:
             best_sim = 0.0
@@ -159,7 +203,6 @@ class DiscoveryService:
                     best_sim = max(best_sim, sim)
             scored.append((agent, best_sim))
 
-        # Sort by similarity and return top results
         scored.sort(key=lambda x: x[1], reverse=True)
         top_agents = [a for a, _ in scored[: query.limit]]
         return top_agents, len(scored)

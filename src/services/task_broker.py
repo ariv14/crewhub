@@ -21,6 +21,7 @@ from src.core.exceptions import (
     NotFoundError,
     QuotaExceededError,
 )
+from src.core.vector_type import is_pgvector
 from src.models.agent import Agent, AgentStatus
 from src.models.skill import AgentSkill
 from src.models.task import Task, TaskStatus
@@ -238,22 +239,6 @@ class TaskBrokerService:
         from src.schemas.agent import AgentResponse, SkillResponse
         from src.schemas.suggestion import SkillSuggestion, SuggestionResponse
 
-        # Fetch all active agents with skills (include deferred embeddings for scoring)
-        stmt = (
-            select(Agent)
-            .options(selectinload(Agent.skills).undefer(AgentSkill.embedding))
-            .where(Agent.status == AgentStatus.ACTIVE)
-        )
-        if category:
-            stmt = stmt.where(Agent.category == category)
-        if tags:
-            stmt = stmt.where(Agent.tags.contains(tags))
-        result = await self.db.execute(stmt)
-        agents = list(result.scalars().unique().all())
-
-        if not agents:
-            return SuggestionResponse(suggestions=[], hint="No active agents found.")
-
         # Try semantic search first
         fallback_used = False
         hint = None
@@ -264,12 +249,23 @@ class TaskBrokerService:
                 api_key=api_key, user_id=user_id, account_tier=account_tier,
             )
             query_embedding = await embeddings.generate(message)
-            scored = self._score_skills_semantic(agents, query_embedding, max_credits)
+
+            if is_pgvector(settings.database_url):
+                scored = await self._score_skills_db(
+                    query_embedding, max_credits, category, tags, limit,
+                )
+            else:
+                agents = await self._fetch_agents_with_embeddings(category, tags)
+                scored = self._score_skills_python(agents, query_embedding, max_credits)
         except MissingAPIKeyError:
             logger.info("No embedding API key — falling back to keyword suggestion")
+            agents = await self._fetch_agents(category, tags)
             scored = self._score_skills_keyword(agents, message, max_credits)
             fallback_used = True
             hint = "Configure an API key in Settings > LLM Keys for smarter suggestions."
+
+        if not scored and not fallback_used:
+            return SuggestionResponse(suggestions=[], hint="No active agents found.")
 
         # Sort by score descending and take top N
         scored.sort(key=lambda x: x[2], reverse=True)
@@ -289,19 +285,91 @@ class TaskBrokerService:
             hint=hint,
         )
 
+    async def _fetch_agents(
+        self, category: str | None, tags: list[str] | None,
+    ) -> list[Agent]:
+        """Fetch active agents with skills (no embeddings)."""
+        stmt = (
+            select(Agent)
+            .options(selectinload(Agent.skills))
+            .where(Agent.status == AgentStatus.ACTIVE)
+        )
+        if category:
+            stmt = stmt.where(Agent.category == category)
+        if tags:
+            stmt = stmt.where(Agent.tags.contains(tags))
+        result = await self.db.execute(stmt)
+        return list(result.scalars().unique().all())
+
+    async def _fetch_agents_with_embeddings(
+        self, category: str | None, tags: list[str] | None,
+    ) -> list[Agent]:
+        """Fetch active agents with skills including embeddings (SQLite path)."""
+        stmt = (
+            select(Agent)
+            .options(selectinload(Agent.skills).undefer(AgentSkill.embedding))
+            .where(Agent.status == AgentStatus.ACTIVE)
+        )
+        if category:
+            stmt = stmt.where(Agent.category == category)
+        if tags:
+            stmt = stmt.where(Agent.tags.contains(tags))
+        result = await self.db.execute(stmt)
+        return list(result.scalars().unique().all())
+
+    async def _score_skills_db(
+        self,
+        query_embedding: list[float],
+        max_credits: float | None,
+        category: str | None,
+        tags: list[str] | None,
+        limit: int,
+    ) -> list[tuple[Agent, AgentSkill, float]]:
+        """DB-side scoring using pgvector cosine distance. Returns (agent, skill, similarity)."""
+        # Query: each (agent, skill) pair with cosine similarity, ordered by best match
+        similarity = (1 - AgentSkill.embedding.cosine_distance(query_embedding)).label("similarity")
+        stmt = (
+            select(Agent, AgentSkill, similarity)
+            .join(AgentSkill, AgentSkill.agent_id == Agent.id)
+            .where(Agent.status == AgentStatus.ACTIVE)
+            .where(AgentSkill.embedding.isnot(None))
+        )
+        if max_credits is not None:
+            stmt = stmt.where(
+                (AgentSkill.avg_credits.is_(None)) | (AgentSkill.avg_credits <= max_credits)
+            )
+        if category:
+            stmt = stmt.where(Agent.category == category)
+        if tags:
+            stmt = stmt.where(Agent.tags.contains(tags))
+        stmt = stmt.order_by(AgentSkill.embedding.cosine_distance(query_embedding))
+        stmt = stmt.limit(limit * 3)  # over-fetch to allow dedup per agent
+
+        result = await self.db.execute(stmt)
+        rows = result.all()
+
+        # Ensure agents have skills loaded for response serialization
+        scored = []
+        for agent, skill, sim_score in rows:
+            # Trigger skill loading via selectinload if not already loaded
+            if not agent.skills:
+                await self.db.refresh(agent, ["skills"])
+            scored.append((agent, skill, float(sim_score)))
+        return scored
+
     @staticmethod
-    def _score_skills_semantic(
+    def _score_skills_python(
         agents: list[Agent],
         query_embedding: list[float],
         max_credits: float | None,
     ) -> list[tuple[Agent, AgentSkill, float]]:
-        """Score each (agent, skill) pair by cosine similarity."""
+        """In-memory scoring fallback for SQLite."""
         from src.services.discovery import DiscoveryService
 
         scored = []
         for agent in agents:
             for skill in agent.skills:
-                if max_credits is not None and skill.avg_credits > max_credits:
+                if max_credits is not None and skill.avg_credits and skill.avg_credits > max_credits:
                     continue
                 if skill.embedding:
                     sim = DiscoveryService._cosine_similarity(query_embedding, skill.embedding)
@@ -319,7 +387,7 @@ class TaskBrokerService:
         scored = []
         for agent in agents:
             for skill in agent.skills:
-                if max_credits is not None and skill.avg_credits > max_credits:
+                if max_credits is not None and skill.avg_credits and skill.avg_credits > max_credits:
                     continue
                 skill_text = f"{skill.name} {skill.description}".lower()
                 skill_words = set(skill_text.split())
@@ -342,11 +410,17 @@ class TaskBrokerService:
         Silently returns None if embeddings are unavailable.
         """
         from src.core.embeddings import EmbeddingService, MissingAPIKeyError
-        from src.services.discovery import DiscoveryService
 
         skill = await self._get_skill_on_agent(skill_id, agent_id)
-        if not skill.embedding:
-            return None
+        use_db = is_pgvector(settings.database_url)
+
+        # On SQLite, load the deferred embedding for Python-side cosine sim
+        skill_embedding = None
+        if not use_db:
+            stmt = select(AgentSkill.embedding).where(AgentSkill.id == skill.id)
+            skill_embedding = (await self.db.execute(stmt)).scalar_one_or_none()
+            if not skill_embedding:
+                return None
 
         # Extract text from messages
         text_parts = []
@@ -365,7 +439,18 @@ class TaskBrokerService:
         except (MissingAPIKeyError, Exception):
             return None
 
-        similarity = DiscoveryService._cosine_similarity(query_embedding, skill.embedding)
+        # Compute similarity: DB-side on PG, Python-side on SQLite
+        if use_db:
+            stmt = select(
+                (1 - AgentSkill.embedding.cosine_distance(query_embedding)).label("similarity")
+            ).where(AgentSkill.id == skill.id)
+            result = await self.db.execute(stmt)
+            row = result.scalar_one_or_none()
+            similarity = float(row) if row is not None else 0.0
+        else:
+            from src.services.discovery import DiscoveryService
+            similarity = DiscoveryService._cosine_similarity(query_embedding, skill_embedding)
+
         if similarity < threshold:
             return (
                 f"Your message may not match the selected skill '{skill.name}' "
@@ -856,7 +941,7 @@ class TaskBrokerService:
             skill_filter = (AgentSkill.skill_key == skill_id) | (AgentSkill.id == skill_uuid)
         except (ValueError, AttributeError):
             skill_filter = AgentSkill.skill_key == skill_id
-        stmt = select(AgentSkill).options(undefer(AgentSkill.embedding)).where(
+        stmt = select(AgentSkill).where(
             AgentSkill.agent_id == agent_id,
             skill_filter,
         )

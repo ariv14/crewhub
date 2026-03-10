@@ -2,7 +2,7 @@
 
 Tests cover:
 1. Schema validation (SuggestionRequest, SkillSuggestion, SuggestionResponse)
-2. Semantic scoring logic (_score_skills_semantic)
+2. Semantic scoring logic (_score_skills_python)
 3. Keyword fallback logic (_score_skills_keyword)
 4. suggest_delegation() end-to-end with DB
 5. check_skill_mismatch()
@@ -136,7 +136,7 @@ class TestScoringLogic:
         skill.skill_key = name.lower().replace(" ", "-")
         return skill
 
-    def test_score_skills_semantic_basic(self):
+    def test_score_skills_python_basic(self):
         from src.services.task_broker import TaskBrokerService
 
         # Create a skill with a known embedding (unit vector along axis 0)
@@ -150,14 +150,14 @@ class TestScoringLogic:
 
         # Query embedding aligned with skill_a
         query = [0.9, 0.1, 0.0]
-        scored = TaskBrokerService._score_skills_semantic([agent], query, max_credits=None)
+        scored = TaskBrokerService._score_skills_python([agent], query, max_credits=None)
 
         assert len(scored) == 2
         # skill_a should score higher (cosine sim closer to 1)
         scores_by_name = {s[1].name: s[2] for s in scored}
         assert scores_by_name["Frontend Dev"] > scores_by_name["Translator"]
 
-    def test_score_skills_semantic_respects_max_credits(self):
+    def test_score_skills_python_respects_max_credits(self):
         from src.services.task_broker import TaskBrokerService
 
         skill_cheap = self._make_skill("Cheap", "Cheap skill", embedding=[1.0, 0.0], avg_credits=5)
@@ -165,11 +165,11 @@ class TestScoringLogic:
 
         agent = self._make_agent(skills=[skill_cheap, skill_expensive])
 
-        scored = TaskBrokerService._score_skills_semantic([agent], [1.0, 0.0], max_credits=10)
+        scored = TaskBrokerService._score_skills_python([agent], [1.0, 0.0], max_credits=10)
         assert len(scored) == 1
         assert scored[0][1].name == "Cheap"
 
-    def test_score_skills_semantic_skips_no_embedding(self):
+    def test_score_skills_python_skips_no_embedding(self):
         from src.services.task_broker import TaskBrokerService
 
         skill_no_emb = self._make_skill("NoEmb", "No embedding", embedding=None)
@@ -177,7 +177,7 @@ class TestScoringLogic:
 
         agent = self._make_agent(skills=[skill_no_emb, skill_emb])
 
-        scored = TaskBrokerService._score_skills_semantic([agent], [1.0, 0.0], max_credits=None)
+        scored = TaskBrokerService._score_skills_python([agent], [1.0, 0.0], max_credits=None)
         assert len(scored) == 1
         assert scored[0][1].name == "WithEmb"
 
