@@ -87,7 +87,8 @@ async def migrate_debug(db: AsyncSession = Depends(get_db)):
     from src.config import settings
     if not settings.debug:
         return {"error": "only available in debug mode"}
-    import subprocess, os
+    import os
+    import subprocess
     try:
         result = subprocess.run(
             ["alembic", "upgrade", "head"],

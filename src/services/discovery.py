@@ -6,7 +6,7 @@ from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload, undefer
+from sqlalchemy.orm import selectinload
 
 from src.config import settings
 from src.core.embeddings import EmbeddingService, MissingAPIKeyError
