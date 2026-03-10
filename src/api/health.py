@@ -81,6 +81,28 @@ async def db_debug(db: AsyncSession = Depends(get_db)):
         return {"error": str(e)}
 
 
+@router.get("/health/debug/migrate")
+async def migrate_debug(db: AsyncSession = Depends(get_db)):
+    """Debug: manually trigger alembic and show output (staging only)."""
+    from src.config import settings
+    if not settings.debug:
+        return {"error": "only available in debug mode"}
+    import subprocess, os
+    try:
+        result = subprocess.run(
+            ["alembic", "upgrade", "head"],
+            capture_output=True, text=True, timeout=30,
+            env={**os.environ},
+        )
+        return {
+            "returncode": result.returncode,
+            "stdout": result.stdout[-2000:] if result.stdout else "",
+            "stderr": result.stderr[-2000:] if result.stderr else "",
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @router.get("/health/agents/{agent_id}")
 async def agent_health_check(
     agent_id: UUID,
