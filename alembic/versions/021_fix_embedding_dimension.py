@@ -1,10 +1,6 @@
 """Fix embedding column if migration 020 ran with wrong dimension or failed.
 
-Handles both cases:
-- Column still JSON (020 failed) → convert to vector(N)
-- Column is vector(wrong_dim) → re-type to vector(N)
-
-Uses USING NULL to bypass cast issues. Embeddings regenerated on next use.
+Safety net — re-types column to vector(N) using HNSW index.
 
 Revision ID: 021
 Revises: 020
@@ -31,7 +27,6 @@ def upgrade() -> None:
     op.execute("DROP INDEX IF EXISTS ix_agent_skills_embedding_cosine")
     op.execute("UPDATE agent_skills SET embedding = NULL")
 
-    # USING NULL::vector(dim) works from any source type (json, vector, etc.)
     op.execute(
         f"ALTER TABLE agent_skills ALTER COLUMN embedding "
         f"TYPE vector({dim}) USING NULL::vector({dim})"
@@ -39,8 +34,7 @@ def upgrade() -> None:
 
     op.execute(
         "CREATE INDEX IF NOT EXISTS ix_agent_skills_embedding_cosine "
-        "ON agent_skills USING ivfflat (embedding vector_cosine_ops) "
-        "WITH (lists = 1)"
+        "ON agent_skills USING hnsw (embedding vector_cosine_ops)"
     )
 
 
