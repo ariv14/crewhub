@@ -9,7 +9,7 @@ from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, undefer
 
 from src.config import settings
 from src.core.exceptions import (
@@ -238,10 +238,10 @@ class TaskBrokerService:
         from src.schemas.agent import AgentResponse, SkillResponse
         from src.schemas.suggestion import SkillSuggestion, SuggestionResponse
 
-        # Fetch all active agents with skills
+        # Fetch all active agents with skills (include deferred embeddings for scoring)
         stmt = (
             select(Agent)
-            .options(selectinload(Agent.skills))
+            .options(selectinload(Agent.skills).undefer(AgentSkill.embedding))
             .where(Agent.status == AgentStatus.ACTIVE)
         )
         if category:
@@ -856,7 +856,7 @@ class TaskBrokerService:
             skill_filter = (AgentSkill.skill_key == skill_id) | (AgentSkill.id == skill_uuid)
         except (ValueError, AttributeError):
             skill_filter = AgentSkill.skill_key == skill_id
-        stmt = select(AgentSkill).where(
+        stmt = select(AgentSkill).options(undefer(AgentSkill.embedding)).where(
             AgentSkill.agent_id == agent_id,
             skill_filter,
         )

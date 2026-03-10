@@ -6,7 +6,7 @@ from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, undefer
 
 from src.config import settings
 from src.core.embeddings import EmbeddingService, MissingAPIKeyError
@@ -135,10 +135,10 @@ class DiscoveryService:
             )
             return await self._keyword_search(query)
 
-        # Fetch all active agents with their skills
+        # Fetch all active agents with their skills (including deferred embeddings)
         stmt = (
             select(Agent)
-            .options(selectinload(Agent.skills))
+            .options(selectinload(Agent.skills).undefer(AgentSkill.embedding))
             .where(Agent.status == AgentStatus.ACTIVE)
         )
         stmt = self._apply_filters(stmt, query)
