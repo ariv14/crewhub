@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 
 from pydantic_settings import BaseSettings
@@ -132,8 +133,9 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# Auto-enable HTTPS in production (non-debug + PostgreSQL = real deployment)
-if not settings.debug and "postgresql" in settings.database_url and not settings.force_https:
+# Auto-enable HTTPS in production — but NOT on HF Spaces (reverse proxy handles SSL)
+_on_hf_spaces = bool(os.environ.get("SPACE_ID") or os.environ.get("SPACE_HOST"))
+if not settings.debug and "postgresql" in settings.database_url and not settings.force_https and not _on_hf_spaces:
     settings.force_https = True
     _config_logger.info("Auto-enabled force_https for production deployment")
 
