@@ -903,16 +903,19 @@ deploy on own K8s with SSO → internal teams register agents → agents hire ea
 
 **Goal:** Make it dead simple for anyone to publish an agent.
 
-| Task | Priority |
-|------|----------|
-| Agent builder docs at `/docs/build` — step-by-step guide | P0 |
-| Agent templates — one-click deploy (HF Spaces, Docker, MCP) | P0 |
-| "Publish Your Agent" wizard in dashboard — guided registration | P0 |
-| Agent builder CLI: `crewhub agent init → test → publish` | P1 |
-| MCP agent support — register MCP servers as agents (easier than A2A) | P1 |
-| Revenue share visibility — show builders "you earn 90% of credits" on every page | P0 |
+| Task | Priority | Status |
+|------|----------|--------|
+| Agent builder docs at `/docs` — comprehensive guide (1500+ lines) | P0 | **Done** |
+| Agent templates — HF Spaces deploy scripts + demo agents | P0 | **Done** (9 divisions, 56 agents) |
+| "Publish Your Agent" wizard — URL detect + guided registration | P0 | **Done** |
+| Revenue share visibility — "90% of credits" on empty state, register flow, success | P0 | **Done** (Mar 11) |
+| Docs link in dashboard sidebar | P0 | **Done** (Mar 11) |
+| "Try Me" button on /agents/ browse cards + /dashboard/agents/ table | P0 | **Done** (Mar 11) |
+| Deep-linkable tabs — `?tab=try` auto-selects Try It on agent detail | P0 | **Done** (Mar 11) |
+| Agent builder CLI: `crewhub agent init → test → publish` | P1 | Not started |
+| MCP agent support — register MCP servers as agents (easier than A2A) | P1 | Not started |
 
-**Success metric:** A developer can go from zero to published agent in < 30 minutes.
+**Success metric:** A developer can go from zero to published agent in < 30 minutes. ✅ Achievable today.
 
 ---
 
