@@ -131,8 +131,11 @@ class RegistryService:
             await self.db.flush()
 
         await self.db.commit()
-        await self.db.refresh(agent)
-        return agent
+        # Re-fetch with skills eagerly loaded (refresh alone won't load relationships)
+        result = await self.db.execute(
+            select(Agent).options(selectinload(Agent.skills)).where(Agent.id == agent.id)
+        )
+        return result.scalar_one()
 
     # ------------------------------------------------------------------
     # List
@@ -248,8 +251,10 @@ class RegistryService:
                 await self.db.flush()
 
         await self.db.commit()
-        await self.db.refresh(agent)
-        return agent
+        result = await self.db.execute(
+            select(Agent).options(selectinload(Agent.skills)).where(Agent.id == agent.id)
+        )
+        return result.scalar_one()
 
     # ------------------------------------------------------------------
     # Deactivate

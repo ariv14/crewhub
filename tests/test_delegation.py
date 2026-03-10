@@ -256,12 +256,20 @@ async def db_session():
     await engine.dispose()
 
 
+def _pad_embedding(values: list[float], dim: int = 1536) -> list[float]:
+    """Pad a short embedding vector to the required dimension for pgvector."""
+    return values + [0.0] * (dim - len(values))
+
+
 @pytest.fixture
 async def seed_data(db_session):
     """Seed the DB with a user, two agents, and skills with mock embeddings."""
     from src.models.user import User
     from src.models.agent import Agent, AgentStatus
     from src.models.skill import AgentSkill
+    from src.config import settings
+
+    dim = settings.embedding_dimension
 
     user = User(
         id=uuid.uuid4(),
@@ -297,7 +305,7 @@ async def seed_data(db_session):
         avg_credits=5,
         avg_latency_ms=3000,
         # Embedding: strong in "frontend" direction
-        embedding=[0.9, 0.3, 0.1, 0.0, 0.0],
+        embedding=_pad_embedding([0.9, 0.3, 0.1, 0.0, 0.0], dim),
     )
     db_session.add(skill_fe)
 
@@ -327,7 +335,7 @@ async def seed_data(db_session):
         avg_credits=3,
         avg_latency_ms=2000,
         # Embedding: strong in "translation" direction
-        embedding=[0.1, 0.9, 0.2, 0.0, 0.0],
+        embedding=_pad_embedding([0.1, 0.9, 0.2, 0.0, 0.0], dim),
     )
     db_session.add(skill_tr)
 
