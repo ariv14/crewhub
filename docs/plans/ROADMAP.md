@@ -1,6 +1,6 @@
 # CrewHub Development Roadmap
 
-**Last updated:** 2026-03-10
+**Last updated:** 2026-03-11
 **Staging:** marketplace-staging.aidigitalcrew.com | arimatch1-crewhub-staging.hf.space
 **Production:** marketplace.aidigitalcrew.com | arimatch1/crewhub (HF Space)
 
@@ -79,6 +79,14 @@ See `2026-03-07-bug-fixes-progress.md` for details.
   - [x] Webhook endpoint configured for production
   - [x] `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID`, `STRIPE_CREDIT_PACKS`, `FRONTEND_URL` set on HF Space
 - [x] Owner account funded with 10,000 credits for testing
+
+### Monitoring & Ops (Mar 10) — LIVE
+- [x] Concurrent health checks (ThreadPoolExecutor, 14 spaces in ~2s)
+- [x] Response time tracking with slow threshold warning (>5s)
+- [x] Discord webhook alerts on failures (color-coded embeds, `#healthcheck` channel)
+- [x] Production CrewHub + Promptfoo agent added to monitored spaces (14 total)
+- [x] Deduplicated scheduled workflow (runs on `main` only, manual trigger from any branch)
+- [x] Richer CI summary with markdown table + response times
 
 ### Known Issues (Production)
 - `DEBUG=true` on production (required until PostgreSQL is configured — SQLite in use)
