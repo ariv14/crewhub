@@ -32,10 +32,12 @@ def upgrade() -> None:
         f"TYPE vector({dim}) USING NULL::vector({dim})"
     )
 
-    op.execute(
-        "CREATE INDEX IF NOT EXISTS ix_agent_skills_embedding_cosine "
-        "ON agent_skills USING hnsw (embedding vector_cosine_ops)"
-    )
+    # Vector index — only for dimensions <= 2000 (pgvector limit on Supabase)
+    if dim <= 2000:
+        op.execute(
+            "CREATE INDEX IF NOT EXISTS ix_agent_skills_embedding_cosine "
+            "ON agent_skills USING hnsw (embedding vector_cosine_ops)"
+        )
 
 
 def downgrade() -> None:

@@ -37,12 +37,13 @@ def upgrade() -> None:
         f"TYPE vector({dim}) USING embedding::text::vector({dim})"
     )
 
-    # HNSW index — supports up to 4096 dims (IVFFlat caps at 2000)
-    # Better for small datasets: exact results, no lists parameter to tune
-    op.execute(
-        "CREATE INDEX IF NOT EXISTS ix_agent_skills_embedding_cosine "
-        "ON agent_skills USING hnsw (embedding vector_cosine_ops)"
-    )
+    # Vector index — only for dimensions <= 2000 (pgvector limit on Supabase)
+    # For higher dims (e.g. Gemini 3072), sequential scan is fine at <1000 rows
+    if dim <= 2000:
+        op.execute(
+            "CREATE INDEX IF NOT EXISTS ix_agent_skills_embedding_cosine "
+            "ON agent_skills USING hnsw (embedding vector_cosine_ops)"
+        )
 
 
 def downgrade() -> None:
