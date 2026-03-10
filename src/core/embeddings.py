@@ -133,8 +133,13 @@ class GeminiProvider(EmbeddingProvider):
         )
 
     async def embed(self, texts: list[str]) -> list[list[float]]:
+        dim = settings.embedding_dimension
         requests = [
-            {"model": f"models/{self.model}", "content": {"parts": [{"text": t}]}}
+            {
+                "model": f"models/{self.model}",
+                "content": {"parts": [{"text": t}]},
+                "outputDimensionality": dim,
+            }
             for t in texts
         ]
         async with httpx.AsyncClient(timeout=60.0) as client:
