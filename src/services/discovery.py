@@ -10,7 +10,6 @@ from sqlalchemy.orm import selectinload
 
 from src.config import settings
 from src.core.embeddings import EmbeddingService, MissingAPIKeyError
-from src.core.vector_type import is_pgvector
 from src.models.agent import Agent, AgentStatus
 from src.models.skill import AgentSkill
 from src.models.task import Task
@@ -145,7 +144,8 @@ class DiscoveryService:
             )
             return await self._keyword_search(query)
 
-        if is_pgvector(settings.database_url):
+        url = str(self.db.get_bind().url)
+        if "postgresql" in url or "asyncpg" in url:
             return await self._semantic_search_db(query, query_embedding)
         return await self._semantic_search_python(query, query_embedding)
 

@@ -21,7 +21,6 @@ from src.core.exceptions import (
     NotFoundError,
     QuotaExceededError,
 )
-from src.core.vector_type import is_pgvector
 from src.models.agent import Agent, AgentStatus
 from src.models.skill import AgentSkill
 from src.models.task import Task, TaskStatus
@@ -56,6 +55,12 @@ class TaskBrokerService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.credit_ledger = CreditLedgerService(db)
+
+    @property
+    def _use_pgvector(self) -> bool:
+        """Check if the session's engine supports pgvector (PostgreSQL)."""
+        url = str(self.db.get_bind().url)
+        return "postgresql" in url or "asyncpg" in url
 
     # ------------------------------------------------------------------
     # Create task
@@ -250,7 +255,7 @@ class TaskBrokerService:
             )
             query_embedding = await embeddings.generate(message)
 
-            if is_pgvector(settings.database_url):
+            if self._use_pgvector:
                 scored = await self._score_skills_db(
                     query_embedding, max_credits, category, tags, limit,
                 )
@@ -412,7 +417,7 @@ class TaskBrokerService:
         from src.core.embeddings import EmbeddingService, MissingAPIKeyError
 
         skill = await self._get_skill_on_agent(skill_id, agent_id)
-        use_db = is_pgvector(settings.database_url)
+        use_db = self._use_pgvector
 
         # On SQLite, load the deferred embedding for Python-side cosine sim
         skill_embedding = None

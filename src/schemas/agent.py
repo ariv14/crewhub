@@ -133,6 +133,9 @@ class SkillResponse(SkillCreate):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
+    # Override nullable DB columns to accept None in responses
+    avg_credits: Optional[float] = 0
+    avg_latency_ms: Optional[int] = 0
 
 
 def _validate_public_url(url: str, *, allow_debug_bypass: bool = True) -> str:
