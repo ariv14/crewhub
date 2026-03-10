@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-03-10
 **Staging:** marketplace-staging.aidigitalcrew.com | arimatch1-crewhub-staging.hf.space
-**Production:** arimatch1/crewhub (HF Space)
+**Production:** marketplace.aidigitalcrew.com | arimatch1/crewhub (HF Space)
 
 ---
 
@@ -49,7 +49,7 @@
 
 See `2026-03-07-bug-fixes-progress.md` for details.
 
-### Marketplace Polish (Mar 9-10) — ON STAGING
+### Marketplace Polish (Mar 9-10) — ON STAGING + PRODUCTION
 - [x] Comprehensive `/docs` page — 6 sections (Getting Started, Users, Developers, API, Architecture, FAQ)
 - [x] Expandable API reference with 30 endpoints across 6 groups (Auth, Agents, Tasks, Discovery, Credits, Crews)
 - [x] Security sanitization — removed all internal URLs, thresholds, infra details from public docs
@@ -61,49 +61,80 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 - [x] Feedback widget → Discord webhook (color-coded embeds: bug/feature/general)
 - [x] Docs link added to top nav
 
+### Production Launch (Mar 10) — LIVE
+- [x] Frontend deployed to Cloudflare Pages (`crewhub-marketplace`, custom domain `marketplace.aidigitalcrew.com`)
+- [x] Deploy workflow updated: `deploy-web.yml` triggers on both `main` and `staging`
+- [x] Firebase Auth configured on production (`ai-digital-crew` project)
+  - [x] GitHub OAuth provider enabled with production callback URL
+  - [x] `marketplace.aidigitalcrew.com` added as authorized domain
+  - [x] Service account key set as `FIREBASE_CREDENTIALS_JSON` on HF Space
+- [x] All 9 agency divisions (56 skills) registered under owner account
+- [x] 10 standalone demo agents carried over from staging
+- [x] Promptfoo agent built and deployed (`arimatch1/crewhub-agent-promptfoo`)
+  - 4 skills: Evaluate Prompt, Red Team Scan, Vulnerability Scan, Compare Models
+  - Powered by xAI Grok-3-mini
+- [x] Stripe payments enabled (test mode)
+  - [x] Credit packs: 500/$5, 2000/$18, 5000/$40, 10000/$70
+  - [x] Premium subscription: $9/mo (unlimited embeddings, 500 credits/month)
+  - [x] Webhook endpoint configured for production
+  - [x] `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID`, `STRIPE_CREDIT_PACKS`, `FRONTEND_URL` set on HF Space
+- [x] Owner account funded with 10,000 credits for testing
+
+### Known Issues (Production)
+- `DEBUG=true` on production (required until PostgreSQL is configured — SQLite in use)
+- Swagger docs exposed at `/docs` (low risk — all endpoints require auth)
+- Data stored in SQLite inside container (lost on restart)
+
 ---
 
-## Tomorrow (Mar 11) — Production Deploy
+## Tomorrow (Mar 11) — Hardening & Testing
 
-### Pre-Deploy Checklist
-- [ ] Verify `DEBUG=false` on production HF Space (`arimatch1/crewhub`)
-- [ ] Set `DISCORD_FEEDBACK_WEBHOOK` secret on production HF Space
-- [ ] Verify Cloudflare Worker routes `api.aidigitalcrew.com` → production Space
-- [ ] Verify DNS CNAME for `api.aidigitalcrew.com` → Cloudflare
-- [ ] Merge `staging` → `main` (`git checkout main && git merge staging && git push origin main`)
-- [ ] Verify frontend deploy (Cloudflare Pages prod) succeeds
-- [ ] Verify backend deploy (HF Spaces prod) succeeds
-- [ ] Smoke test: landing page, docs, agents browse, feedback widget, search box
+### Priority: Production Database
+- [ ] Set up PostgreSQL on Supabase (free tier, always-on, 500 MB)
+- [ ] Set `DATABASE_URL` on production HF Space
+- [ ] Set `DEBUG=false` on production (enables all security checks)
+- [ ] Verify Swagger docs hidden, WEBHOOK_SECRET enforced
+- [ ] Run Alembic migrations against production DB
+- [ ] Re-register all agents (SQLite data lost on switch)
 
-### Post-Deploy Verification
-- [ ] `https://api.aidigitalcrew.com/health` returns healthy
-- [ ] Feedback widget sends to Discord from production
-- [ ] Docs page loads at production URL
-- [ ] Swagger UI is NOT accessible on production (`/docs` returns 404)
+### Priority: Stripe Live Mode
+- [ ] Complete Stripe business verification (Singapore account)
+- [ ] Replace test keys with live keys (`sk_live_...`, `pk_live_...`)
+- [ ] Create live webhook endpoint + signing secret
+- [ ] End-to-end payment test (credit pack + premium subscription)
 
----
+### Priority: Test All Features
+- [ ] Credit pack purchase flow (test card `4242...`)
+- [ ] Premium subscription upgrade + verify unlimited embeddings
+- [ ] Promptfoo agent: test all 4 skills via Try It panel
+- [ ] Agency agents: test at least 3 divisions via Try It
+- [ ] Team mode: multi-agent task
+- [ ] Feedback widget → Discord
+- [ ] Register new agent flow
 
-## In Progress / Remaining
+### In Progress / Remaining
 
-### Completed (this sprint)
+#### Completed (this sprint)
 - [x] Write E2E test for register-agent flow (detect → review → register → success)
 - [x] Fix HF Space storage limit (>1GB, failing `upload_folder` deploys)
 - [x] Agent activity tab / task logs per agent
 - [x] Analytics dashboard for agent owners
 - [x] Webhook logs viewer (with 90-day retention policy)
 - [x] Version bumping UI (patch/minor/major)
+- [x] Stripe payments enabled (test mode) — credit packs + premium subscription
+- [x] Promptfoo agent deployed with 4 skills
+- [x] Production Firebase Auth (GitHub + Google)
+- [x] All agents registered on production under owner account
 
-### Near-Term (after production deploy)
-- [ ] Activate Stripe payments (business verification, live mode keys)
-- [ ] Pricing page — connect to real Stripe checkout
+#### Near-Term
 - [ ] Magic box onboarding for end users (Approach B from simplified-onboarding-design)
 - [ ] Delegation accuracy analytics query (data captured, no reporting endpoint)
+- [ ] Redis-backed embedding rate limiter (current: in-memory, single-process only)
 
-### Backlog
+#### Backlog
 - [ ] x402/OpenClaw payment integration (design: `2026-02-27-x402-openclaw-design.md`)
 - [ ] Task lifecycle UX enhancement (design: `2026-03-05-task-lifecycle-ux-design.md`)
 - [ ] Inline skill editor
-- [ ] Premium tier implementation (monthly credits, priority matching)
 - [ ] Multi-agent workflows / chaining
 
 ---
@@ -129,4 +160,5 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 | 2026-03-07 | Bug fixes progress | All verified |
 | 2026-03-08 | 4 Pillars production-readiness | All complete |
 | 2026-03-09 | Marketplace polish (docs, domain, feedback) | Complete |
-| 2026-03-11 | Production deploy | Planned |
+| 2026-03-10 | Production launch + Stripe + Promptfoo agent | Complete |
+| 2026-03-11 | Production hardening + live payments | Planned |
