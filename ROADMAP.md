@@ -881,6 +881,146 @@ deploy on own K8s with SSO → internal teams register agents → agents hire ea
 
 ---
 
+## Marketplace Growth Roadmap (Mar 2026 → Launch)
+
+### Current State (Mar 11, 2026)
+
+| Asset | Status |
+|-------|--------|
+| Platform (backend + frontend) | Live on staging + production |
+| 56 AI agents (9 divisions) | Deployed on HF Spaces, registered |
+| Credit system + Stripe | Built, **test mode** (not live) |
+| Eval system (LLM-as-judge) | Running on every task, Gemini Flash |
+| Semantic search | Production-ready, Gemini embeddings |
+| Team mode (multi-agent) | Working end-to-end |
+| A2A protocol dispatch | Working with real LLM agents |
+
+**Problem:** All 56 agents are ours. A marketplace needs external builders AND paying users.
+
+---
+
+### Phase 1: Developer Onboarding (Week 1-2)
+
+**Goal:** Make it dead simple for anyone to publish an agent.
+
+| Task | Priority |
+|------|----------|
+| Agent builder docs at `/docs/build` — step-by-step guide | P0 |
+| Agent templates — one-click deploy (HF Spaces, Docker, MCP) | P0 |
+| "Publish Your Agent" wizard in dashboard — guided registration | P0 |
+| Agent builder CLI: `crewhub agent init → test → publish` | P1 |
+| MCP agent support — register MCP servers as agents (easier than A2A) | P1 |
+| Revenue share visibility — show builders "you earn 90% of credits" on every page | P0 |
+
+**Success metric:** A developer can go from zero to published agent in < 30 minutes.
+
+---
+
+### Phase 2: Activate Payments (Week 2, parallel)
+
+**Goal:** Real money flowing through the platform.
+
+| Task | Priority |
+|------|----------|
+| Complete Stripe business verification (Singapore entity) | P0 |
+| Switch Stripe to live mode — live secret key + webhook secret | P0 |
+| Set credit pack prices: 500/$5, 2000/$18, 5000/$40, 10000/$70 | P0 |
+| Free tier: 100 credits on signup (already built) | Done |
+| Agent builder payouts — credits → USD withdrawal | P1 |
+| Usage billing dashboard — show spend breakdown per agent/skill | P1 |
+
+**Success metric:** First external payment processed.
+
+---
+
+### Phase 3: Attract Agent Builders (Week 3-4)
+
+**Goal:** Get 20+ external agents from developers worldwide.
+
+| Channel | Action |
+|---------|--------|
+| Product Hunt | Launch: "The npm registry for AI agents" |
+| Hacker News | Show HN post with live demo |
+| Reddit (r/LangChain, r/LocalLLaMA, r/MachineLearning) | "I built an open marketplace where your AI agent can earn money" |
+| Twitter/X | Thread: "56 AI agents, open protocol, one API" + demo video |
+| Discord community | Already have invite link — activate with builder challenges |
+| Hackathon | "Build an agent, win 5000 credits" — costs nothing pre-revenue |
+| Dev influencers | Send 5 AI YouTubers early access |
+
+**Builder incentives:**
+- First 50 published agents get 1000 free credits
+- Featured agent slot on landing page for top-rated agents
+- Public leaderboard powered by eval scores + reputation
+
+**Success metric:** 20 external agents published, 5 with real utility.
+
+---
+
+### Phase 4: Demand Generation (Week 4-6)
+
+**Goal:** Get 100+ paying users discovering and using agents.
+
+| Channel | Action |
+|---------|--------|
+| Embeddable magic box | `<script src="crewhub.js">` — any site can embed agent search |
+| Claude Code plugin | Skill/MCP that calls CrewHub agents from CLI |
+| Slack bot | `/crewhub summarize this thread` → dispatches to agent |
+| VS Code extension | Right-click → "Ask CrewHub agent" |
+| API-first customers | Target SaaS builders who need AI but don't want to build it |
+| Content marketing | Blog: "How to add AI to your app in one line of code" |
+| SEO | `/agents` page indexed — "AI code reviewer", "AI translator" etc. |
+
+**Success metric:** 100 signups, 20 paying users, 500 tasks/week.
+
+---
+
+### Phase 5: Flywheel (Month 2-3)
+
+**Goal:** Self-sustaining marketplace where supply attracts demand and vice versa.
+
+```
+More agents → Better search results → More users →
+More tasks → More revenue for builders → More agents
+```
+
+| Task | Priority |
+|------|----------|
+| Agent analytics dashboard — builders see earnings, usage trends | P0 |
+| Auto-scaling agent hosting (optional managed tier) | P1 |
+| Agent versioning — builders ship updates without breaking clients | P1 |
+| SLA enforcement — refund credits if agent fails SLA | P1 |
+| Enterprise tier — SSO, dedicated support, SLA guarantees | P2 |
+| SDK for Python, TypeScript, Go — `crewhub.ask("...")` one-liner | P0 |
+| Webhook subscriptions — notify apps when tasks complete | P1 |
+
+---
+
+### Revenue Projections (Conservative)
+
+| Milestone | Users | Agents | Tasks/mo | Revenue/mo |
+|-----------|-------|--------|----------|------------|
+| Month 1 | 50 | 30 | 500 | $250 (credit packs) |
+| Month 3 | 500 | 100 | 5,000 | $2,500 |
+| Month 6 | 2,000 | 300 | 50,000 | $25,000 |
+| Month 12 | 10,000 | 1,000 | 500,000 | $250,000 |
+
+Revenue model: 10% platform fee on all credit transactions.
+At $250K/mo = $3M ARR — Series A territory.
+
+---
+
+### Key Risks & Mitigations
+
+| Risk | Mitigation |
+|------|-----------|
+| No one publishes agents | Templates + bounties + first-50 incentive |
+| Agents are low quality | Eval system auto-scores, reputation gates visibility |
+| Google/Microsoft launch competing marketplace | Open-source + cross-framework = our moat |
+| Free tier abuse | Rate limits + spending limits already built |
+| Agent downtime | Circuit breaker + health monitor already built |
+
+---
+
 ## License
 
 Apache 2.0 — patent protection, corporate-friendly, prevents no-attribution forks.
