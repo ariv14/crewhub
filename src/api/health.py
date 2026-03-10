@@ -57,10 +57,24 @@ async def db_debug(db: AsyncSession = Depends(get_db)):
         ext = (await db.execute(text(
             "SELECT extname, extversion FROM pg_extension WHERE extname = 'vector'"
         ))).first()
+        # Check if pgvector is available
+        avail = (await db.execute(text(
+            "SELECT name, default_version FROM pg_available_extensions WHERE name = 'vector'"
+        ))).first()
+        # Try creating extension and capture error
+        ext_error = None
+        try:
+            await db.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+            await db.commit()
+        except Exception as e:
+            ext_error = str(e)
+            await db.rollback()
         return {
             "alembic_version": ver,
             "embedding_column": {"data_type": col[0], "udt_name": col[1]} if col else None,
             "pgvector_ext": {"name": ext[0], "version": ext[1]} if ext else None,
+            "pgvector_available": {"name": avail[0], "version": avail[1]} if avail else None,
+            "create_ext_error": ext_error,
             "embedding_dimension_setting": settings.embedding_dimension,
         }
     except Exception as e:
