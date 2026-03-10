@@ -18,15 +18,25 @@ def _engine_kwargs(url: str, debug: bool) -> dict:
         kwargs["pool_pre_ping"] = True
         kwargs["pool_recycle"] = 3600
 
-    # Supabase / PgBouncer in transaction mode doesn't support prepared statements
+    # Supabase / PgBouncer: disable prepared statements + enable SSL
     if "asyncpg" in url and ("pooler.supabase" in url or "pgbouncer" in url):
         kwargs["connect_args"] = {"prepared_statement_cache_size": 0,
-                                  "statement_cache_size": 0}
+                                  "statement_cache_size": 0,
+                                  "ssl": "require"}
     return kwargs
 
 
+def _clean_url(url: str) -> str:
+    """Strip sslmode param from asyncpg URLs (handled via connect_args instead)."""
+    if "asyncpg" in url and "sslmode=" in url:
+        import re
+        url = re.sub(r'[?&]sslmode=[^&]*', '', url)
+        url = url.replace('?&', '?').rstrip('?')
+    return url
+
+
 engine = create_async_engine(
-    settings.database_url,
+    _clean_url(settings.database_url),
     **_engine_kwargs(settings.database_url, settings.debug),
 )
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

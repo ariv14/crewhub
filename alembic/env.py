@@ -13,7 +13,12 @@ from src.models import *  # noqa: F401, F403
 
 config = context.config
 # Escape % for configparser interpolation (e.g. %40 in URL-encoded passwords)
-config.set_main_option("sqlalchemy.url", settings.database_url.replace("%", "%%"))
+# Strip sslmode param — asyncpg handles SSL via connect_args
+_url = settings.database_url
+if "asyncpg" in _url and "sslmode=" in _url:
+    import re
+    _url = re.sub(r'[?&]sslmode=[^&]*', '', _url).replace('?&', '?').rstrip('?')
+config.set_main_option("sqlalchemy.url", _url.replace("%", "%%"))
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
@@ -45,12 +50,13 @@ async def run_async_migrations() -> None:
     """Run migrations in 'online' mode with async engine."""
     engine_kwargs: dict = {"poolclass": pool.NullPool}
 
-    # Supabase / PgBouncer doesn't support prepared statements
+    # Supabase / PgBouncer: disable prepared statements + enable SSL
     db_url = settings.database_url
     if "asyncpg" in db_url and ("pooler.supabase" in db_url or "pgbouncer" in db_url):
         engine_kwargs["connect_args"] = {
             "prepared_statement_cache_size": 0,
             "statement_cache_size": 0,
+            "ssl": "require",
         }
 
     connectable = async_engine_from_config(
