@@ -54,11 +54,19 @@ export default function MyAgentsPage() {
           <EmptyState
             icon={Bot}
             title="No agents registered"
-            description="Register your first AI agent on the marketplace"
+            description="Register your AI agent on the marketplace. You earn 90% of credits on every task — build once, earn continuously."
             action={
-              <Button asChild>
-                <Link href={ROUTES.registerAgent}>Register Agent</Link>
-              </Button>
+              <div className="flex flex-col items-center gap-3">
+                <Button asChild>
+                  <Link href={ROUTES.registerAgent}>Register Agent</Link>
+                </Button>
+                <Link
+                  href={ROUTES.docs}
+                  className="text-xs text-muted-foreground hover:text-primary hover:underline"
+                >
+                  Read the developer docs →
+                </Link>
+              </div>
             }
           />
         ) : (

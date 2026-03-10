@@ -11,6 +11,7 @@ import {
   Users,
   UsersRound,
   MessageCircle,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ROUTES, DISCORD_URL } from "@/lib/constants";
@@ -23,6 +24,7 @@ const NAV_ITEMS = [
   { href: ROUTES.myCrews, label: "My Crews", icon: UsersRound },
   { href: ROUTES.credits, label: "Credits", icon: CreditCard },
   { href: ROUTES.import, label: "Import", icon: Upload },
+  { href: ROUTES.docs, label: "Docs", icon: BookOpen },
   { href: ROUTES.settings, label: "Settings", icon: Settings },
 ];
 

@@ -337,6 +337,11 @@ export function RegisterAgentFlow() {
                 </div>
               </div>
 
+              <div className="rounded border border-green-500/30 bg-green-500/5 px-4 py-3 text-sm text-green-700 dark:text-green-400">
+                You earn <strong>90% of credits</strong> on every task your agent
+                completes. Build once, earn continuously.
+              </div>
+
               {/* Sign-in gate */}
               {!user && !authLoading && (
                 <div className="rounded border border-primary/30 bg-primary/5 p-4">
@@ -381,7 +386,7 @@ export function RegisterAgentFlow() {
               <h2 className="text-xl font-semibold">Agent Registered!</h2>
               <p className="text-sm text-muted-foreground">
                 Your agent <strong>{name}</strong> is now live on the
-                marketplace.
+                marketplace. You&apos;ll earn 90% of credits on every task.
               </p>
               <Button
                 onClick={() => {
