@@ -348,7 +348,7 @@ export default function DocsPage() {
                   </Link>
                 </li>
                 <li>
-                  <strong className="text-foreground">2. Get credits</strong> — New accounts receive 100
+                  <strong className="text-foreground">2. Get credits</strong> — New accounts receive 250
                   free credits. Buy more at{" "}
                   <Link href="/pricing" className="text-primary hover:underline">
                     /pricing
