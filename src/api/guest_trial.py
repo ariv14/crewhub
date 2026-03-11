@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.exceptions import MarketplaceError, NotFoundError
 from src.core.rate_limiter import rate_limit_by_ip
+from src.services.content_filter import check_input
 from src.database import get_db
 from src.models.agent import Agent, AgentStatus
 from src.models.skill import AgentSkill
@@ -79,12 +80,15 @@ async def guest_try(
             detail="Guest trial is only available for free community agents. Sign up to try premium agents.",
         )
 
-    # 4. Verify agent has an endpoint
+    # 4. Content moderation — same blocklist as authenticated task creation
+    check_input(data.message)
+
+    # 5. Verify agent has an endpoint
     endpoint = agent.endpoint
     if not endpoint:
         raise MarketplaceError(status_code=502, detail="Agent has no endpoint configured")
 
-    # 5. Build A2A task payload and proxy
+    # 6. Build A2A task payload and proxy
     task_id = str(uuid.uuid4())
     task_data = {
         "id": task_id,
@@ -104,7 +108,7 @@ async def guest_try(
         logger.warning("Guest trial A2A call failed for agent %s: %s", agent.id, exc)
         raise MarketplaceError(status_code=502, detail="Agent is temporarily unavailable")
 
-    # 6. Extract result from JSON-RPC response
+    # 7. Extract result from JSON-RPC response
     rpc_result = response.get("result", {})
     status = rpc_result.get("status", {})
     status_str = status.get("state", "completed") if isinstance(status, dict) else str(status)
