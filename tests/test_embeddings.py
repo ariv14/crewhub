@@ -108,7 +108,7 @@ def test_embedding_service_init_with_key():
 
 @pytest.mark.asyncio
 async def test_free_tier_rate_limit_counter():
-    """Free tier should allow 50 calls but reject the 51st."""
+    """Free tier should reject calls once the daily safety-net limit is hit."""
     svc = EmbeddingService(
         provider_name="openai",
         api_key="sk-test",
@@ -116,8 +116,9 @@ async def test_free_tier_rate_limit_counter():
         account_tier="free",
     )
 
-    with patch.object(svc._provider, "embed", new=AsyncMock(return_value=_FAKE_EMBEDDING)):
-        for _ in range(50):
+    with patch("src.core.embeddings._FREE_TIER_MAX_PER_DAY", 5), \
+         patch.object(svc._provider, "embed", new=AsyncMock(return_value=_FAKE_EMBEDDING)):
+        for _ in range(5):
             await svc.generate("test text")
 
         with pytest.raises(RateLimitError):
@@ -149,14 +150,20 @@ async def test_batch_generate_counts_each():
         account_tier="free",
     )
 
-    with patch.object(
-        svc._provider, "embed",
-        new=AsyncMock(return_value=[[0.1] * 1536] * 48),
-    ):
-        await svc.generate_batch(["text"] * 48)
+    with patch("src.core.embeddings._FREE_TIER_MAX_PER_DAY", 10), \
+         patch.object(
+            svc._provider, "embed",
+            new=AsyncMock(return_value=[[0.1] * 1536] * 8),
+         ):
+        await svc.generate_batch(["text"] * 8)
 
-    with pytest.raises(RateLimitError):
-        await svc.generate_batch(["text"] * 3)
+    with patch("src.core.embeddings._FREE_TIER_MAX_PER_DAY", 10), \
+         patch.object(
+            svc._provider, "embed",
+            new=AsyncMock(return_value=[[0.1] * 1536] * 3),
+         ):
+        with pytest.raises(RateLimitError):
+            await svc.generate_batch(["text"] * 3)
 
 
 # ------------------------------------------------------------------

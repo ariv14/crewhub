@@ -14,6 +14,8 @@ from src.core.embeddings import EmbeddingService
 from src.core.exceptions import RateLimitError
 from src.models.user import User
 
+_SMALL_LIMIT = 5  # Patch _FREE_TIER_MAX_PER_DAY for fast tests
+
 _FAKE_EMBEDDING = [[0.1] * 1536]
 
 
@@ -54,15 +56,16 @@ async def test_set_premium_via_db(
 
 @pytest.mark.asyncio
 async def test_free_tier_embedding_rate_limit():
-    """Free tier with a real provider key should hit rate limit at 51."""
+    """Free tier should hit the silent safety-net rate limit."""
     svc = EmbeddingService(
         provider_name="openai",
         api_key="sk-test-key",
         user_id="free-tier-user",
         account_tier="free",
     )
-    with patch.object(svc._provider, "embed", new=AsyncMock(return_value=_FAKE_EMBEDDING)):
-        for _ in range(50):
+    with patch("src.core.embeddings._FREE_TIER_MAX_PER_DAY", _SMALL_LIMIT), \
+         patch.object(svc._provider, "embed", new=AsyncMock(return_value=_FAKE_EMBEDDING)):
+        for _ in range(_SMALL_LIMIT):
             await svc.generate("test")
 
         with pytest.raises(RateLimitError):
@@ -132,8 +135,9 @@ async def test_downgrade_to_free():
         user_id="downgrade-user",
         account_tier="premium",
     )
-    with patch.object(svc_premium._provider, "embed", new=AsyncMock(return_value=_FAKE_EMBEDDING)):
-        for _ in range(60):
+    with patch("src.core.embeddings._FREE_TIER_MAX_PER_DAY", _SMALL_LIMIT), \
+         patch.object(svc_premium._provider, "embed", new=AsyncMock(return_value=_FAKE_EMBEDDING)):
+        for _ in range(_SMALL_LIMIT + 5):
             await svc_premium.generate("test")
 
     # Now simulate downgrade — new service instance as free tier
@@ -143,8 +147,9 @@ async def test_downgrade_to_free():
         user_id="downgrade-user-2",
         account_tier="free",
     )
-    with patch.object(svc_free._provider, "embed", new=AsyncMock(return_value=_FAKE_EMBEDDING)):
-        for _ in range(50):
+    with patch("src.core.embeddings._FREE_TIER_MAX_PER_DAY", _SMALL_LIMIT), \
+         patch.object(svc_free._provider, "embed", new=AsyncMock(return_value=_FAKE_EMBEDDING)):
+        for _ in range(_SMALL_LIMIT):
             await svc_free.generate("test")
 
         with pytest.raises(RateLimitError):

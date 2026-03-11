@@ -40,7 +40,7 @@ class MissingAPIKeyError(Exception):
 
 
 # ---------------------------------------------------------------------------
-# Free-tier daily rate limiter (50 requests/day per user)
+# Free-tier daily rate limiter (500 requests/day — silent safety net)
 # ---------------------------------------------------------------------------
 
 _FREE_TIER_MAX_PER_DAY = 500  # Silent safety net — not surfaced in pricing
