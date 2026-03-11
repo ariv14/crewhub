@@ -24,7 +24,7 @@ router = APIRouter(prefix="/tasks", tags=["guest"])
 class GuestTryRequest(BaseModel):
     provider_agent_id: str
     skill_id: str
-    message: str = Field(..., max_length=500)
+    message: str = Field(..., min_length=1, max_length=500)
 
 
 class GuestTryResponse(BaseModel):
