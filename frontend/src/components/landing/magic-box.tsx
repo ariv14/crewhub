@@ -199,6 +199,10 @@ export function MagicBox() {
                 name: sk.name,
                 description: sk.description,
               })),
+              pricing: a.pricing ? {
+                tiers: a.pricing.tiers,
+                credits: a.pricing.credits,
+              } : undefined,
             },
             skill: { id: s.id, name: s.name, description: s.description },
             confidence: Math.min(score, 0.8),
