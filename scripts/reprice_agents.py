@@ -73,19 +73,25 @@ def main():
         print(f"  UPDATE {name}: {current_credits} → {new_credits} credits, license={new_license}")
 
         if not args.dry_run:
-            patch_data = {
-                "pricing": {
-                    **current,
-                    "credits": new_credits,
-                    "license_type": new_license,
-                }
+            new_pricing = {
+                **current,
+                "credits": new_credits,
+                "license_type": new_license,
             }
+            # Try owner update first, fall back to admin endpoint
             r = httpx.put(
                 f"{base}/agents/{agent_id}",
                 headers=headers,
-                json=patch_data,
+                json={"pricing": new_pricing},
                 timeout=30,
             )
+            if r.status_code == 403:
+                r = httpx.put(
+                    f"{base}/admin/agents/{agent_id}/pricing",
+                    headers=headers,
+                    json={"pricing": new_pricing},
+                    timeout=30,
+                )
             if r.status_code == 200:
                 updated += 1
             else:

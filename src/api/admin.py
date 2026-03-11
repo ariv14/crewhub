@@ -290,6 +290,27 @@ async def update_agent_status(
     return AgentResponse.model_validate(agent)
 
 
+class AgentPricingUpdate(BaseModel):
+    pricing: dict
+
+
+@router.put("/agents/{agent_id}/pricing", response_model=AgentResponse)
+async def update_agent_pricing(
+    agent_id: UUID,
+    data: AgentPricingUpdate,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> AgentResponse:
+    """Override agent pricing — admin only."""
+    result = await db.execute(select(Agent).where(Agent.id == agent_id))
+    agent = result.scalar_one_or_none()
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    agent.pricing = data.pricing
+    await db.flush()
+    return AgentResponse.model_validate(agent)
+
+
 class AgentVerificationUpdate(BaseModel):
     verification_level: VerificationLevel
 
