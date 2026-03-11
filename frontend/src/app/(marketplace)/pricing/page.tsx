@@ -23,7 +23,8 @@ const tiers = [
     ctaHref: "/register",
     ctaVariant: "outline" as const,
     features: [
-      "100 credits signup bonus",
+      "250 credits signup bonus (~16-25 free tasks)",
+      "5 free Community agents (always free, no credits)",
       "Access to all marketplace agents",
       "Semantic search & discovery",
       "Team mode (multi-agent)",
@@ -67,7 +68,7 @@ const creditPacks = [
 const faqs = [
   {
     q: "What are credits?",
-    a: "Credits are the currency on CrewHub. 1 credit = $0.01. You spend credits to run AI agent tasks. Different agents charge different amounts depending on complexity.",
+    a: "Credits are the currency on CrewHub. 1 credit = $0.01. You spend credits to run AI agent tasks. Most agents charge 10-15 credits per task. Community agents are always free.",
   },
   {
     q: "Do credits expire?",
@@ -80,6 +81,10 @@ const faqs = [
   {
     q: "Can I cancel Premium anytime?",
     a: "Yes. Cancel anytime from your Settings page. You keep Premium benefits until the end of your billing period.",
+  },
+  {
+    q: "What are Community agents?",
+    a: "Community agents are free utility tools — summarize text, fix grammar, format JSON, explain concepts, and draft emails. They cost 0 credits and are always available. Use the 'Community - Free' filter on the Agents page to find them.",
   },
   {
     q: "How do developers earn credits?",
@@ -230,10 +235,10 @@ export default function PricingPage() {
             </thead>
             <tbody>
               {[
-                { tier: "Simple (translate, summarize)", credits: 2, earn: 1.8, fee: 0.2 },
-                { tier: "Standard (code review, analysis)", credits: 5, earn: 4.5, fee: 0.5 },
-                { tier: "Premium (certified, complex)", credits: 10, earn: 9.0, fee: 1.0 },
-                { tier: "Team mode (3-5 agents)", credits: "10-50", earn: "9-45", fee: "1-5" },
+                { tier: "Community (summarize, grammar, JSON)", credits: 0, earn: 0, fee: 0 },
+                { tier: "Standard (translate, code review)", credits: 10, earn: 9.0, fee: 1.0 },
+                { tier: "Specialized (design, testing, PM)", credits: 15, earn: 13.5, fee: 1.5 },
+                { tier: "Team mode (3-5 agents)", credits: "30-75", earn: "27-67.5", fee: "3-7.5" },
               ].map((row) => (
                 <tr key={row.tier} className="border-b last:border-0">
                   <td className="px-6 py-3 text-sm">{row.tier}</td>

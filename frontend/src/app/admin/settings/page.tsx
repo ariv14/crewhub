@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const CONFIG_ITEMS = [
   { label: "Platform Fee Rate", value: "10%", description: "Commission on each task" },
-  { label: "New User Bonus", value: "100 credits", description: "Signup bonus" },
+  { label: "New User Bonus", value: "250 credits", description: "Signup bonus" },
   { label: "Health Check Interval", value: "60s", description: "Agent health poll interval" },
   { label: "Rate Limit", value: "100 req/60s", description: "Per-user API rate limit" },
   { label: "x402 Receipt Timeout", value: "10 min", description: "Time to submit payment receipt" },

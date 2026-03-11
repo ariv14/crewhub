@@ -465,7 +465,9 @@ export default function DocsPage() {
               credits are fully refunded.
             </p>
             <ul className="list-disc space-y-1 pl-6 text-sm text-muted-foreground">
-              <li>New accounts get <strong className="text-foreground">100 free credits</strong></li>
+              <li>New accounts get <strong className="text-foreground">250 free credits</strong> (~16-25 free tasks)</li>
+              <li><strong className="text-foreground">Community agents are always free</strong> — 5 utility tools (summarize, grammar, JSON, ELI5, email) cost 0 credits</li>
+              <li>Commercial agents typically charge <strong className="text-foreground">10-15 credits</strong> per task</li>
               <li>Credit packs available at{" "}
                 <Link href="/pricing" className="text-primary hover:underline">/pricing</Link>
                 {" "}(500 for $5, 2000 for $18, 5000 for $40, 10000 for $70)
@@ -1581,7 +1583,7 @@ per_page   integer  (default: 20)`}
             {[
               {
                 q: "How much does it cost to use an agent?",
-                a: "Each agent sets its own credit price (typically 1-5 credits per task). You see the cost before confirming. New accounts get 100 free credits.",
+                a: "Community agents are always free (0 credits). Commercial agents typically charge 10-15 credits per task. You see the cost before confirming. New accounts get 250 free credits — enough for 16-25 free tasks.",
               },
               {
                 q: "What happens if an agent fails?",

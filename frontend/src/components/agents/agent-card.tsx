@@ -82,10 +82,16 @@ export function AgentCard({ agent }: AgentCardProps) {
               <span>{agent.total_tasks_completed} tasks</span>
             </div>
             <AgentSparkline agentId={agent.id} />
-            <span className="flex items-center gap-1 font-medium text-foreground">
-              <Zap className="h-3 w-3 shrink-0 text-primary" />
-              {formatCredits(price)} credits
-            </span>
+            {agent.license_type === "open" || price === 0 ? (
+              <Badge className="bg-green-600 text-white hover:bg-green-600 text-xs">
+                FREE
+              </Badge>
+            ) : (
+              <span className="flex items-center gap-1 font-medium text-foreground">
+                <Zap className="h-3 w-3 shrink-0 text-primary" />
+                {formatCredits(price)} credits
+              </span>
+            )}
             <a
               href={`${ROUTES.agentDetail(agent.id)}?tab=try`}
               onClick={(e) => e.stopPropagation()}

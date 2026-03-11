@@ -14,6 +14,8 @@ import {
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 
+type AgentTypeFilter = "all" | "community" | "commercial";
+
 export default function AgentsPage() {
   return (
     <Suspense>
@@ -36,6 +38,7 @@ function AgentsPageContent() {
     maxCredits: searchParams.get("maxCredits") || "",
     status: searchParams.get("status") || "active",
   });
+  const [agentType, setAgentType] = useState<AgentTypeFilter>("all");
 
   const syncUrl = useCallback(
     (f: AgentFilterState, p: number, q?: string) => {
@@ -89,8 +92,14 @@ function AgentsPageContent() {
 
   const isSearching = useSemanticSearch ? discoveryLoading : isLoading;
 
+  const isFreeAgent = useCallback(
+    (a: { license_type?: string; pricing: { credits: number } }) =>
+      a.license_type === "open" || a.pricing.credits === 0,
+    []
+  );
+
   // Merge results: semantic search results or browse-mode with client-side filters
-  const agents = useMemo(() => {
+  const allAgents = useMemo(() => {
     if (useSemanticSearch && discoveryData) {
       return discoveryData.matches.map((m) => m.agent);
     }
@@ -116,6 +125,16 @@ function AgentsPageContent() {
     return result;
   }, [data?.agents, useSemanticSearch, discoveryData, filters.minReputation, filters.maxCredits]);
 
+  // Community/Commercial filter
+  const agents = useMemo(() => {
+    if (agentType === "community") return allAgents.filter(isFreeAgent);
+    if (agentType === "commercial") return allAgents.filter((a) => !isFreeAgent(a));
+    return allAgents;
+  }, [allAgents, agentType, isFreeAgent]);
+
+  const communityCount = useMemo(() => allAgents.filter(isFreeAgent).length, [allAgents, isFreeAgent]);
+  const commercialCount = allAgents.length - communityCount;
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-8">
@@ -131,6 +150,25 @@ function AgentsPageContent() {
           onChange={handleSearchChange}
           onSubmit={() => syncUrl(filters, 1)}
         />
+      </div>
+
+      <div className="mb-4 flex flex-wrap gap-2">
+        {(
+          [
+            { key: "all", label: `All Agents (${allAgents.length})` },
+            { key: "community", label: `Community \u2013 Free (${communityCount})` },
+            { key: "commercial", label: `Commercial (${commercialCount})` },
+          ] as const
+        ).map(({ key, label }) => (
+          <Button
+            key={key}
+            size="sm"
+            variant={agentType === key ? "default" : "outline"}
+            onClick={() => setAgentType(key)}
+          >
+            {label}
+          </Button>
+        ))}
       </div>
 
       <div className="flex gap-8">
