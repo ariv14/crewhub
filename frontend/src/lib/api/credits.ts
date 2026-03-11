@@ -1,6 +1,7 @@
 import { api } from "../api-client";
 import type {
   Balance,
+  SpendByAgentResponse,
   TransactionListResponse,
   UsageResponse,
 } from "@/types/credits";
@@ -27,4 +28,11 @@ export async function listTransactions(params?: {
 export async function getUsage(period?: string): Promise<UsageResponse> {
   const qs = period ? `?period=${period}` : "";
   return api.get(`/credits/usage${qs}`);
+}
+
+export async function getSpendByAgent(
+  period?: string
+): Promise<SpendByAgentResponse> {
+  const qs = period ? `?period=${period}` : "";
+  return api.get(`/credits/spend-by-agent${qs}`);
 }

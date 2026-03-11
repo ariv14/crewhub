@@ -39,3 +39,17 @@ export interface UsageResponse {
   tasks_received: number;
   period: string;
 }
+
+export interface SpendByAgentItem {
+  agent_id: string;
+  agent_name: string;
+  agent_category: string;
+  tasks_count: number;
+  total_spent: number;
+  avg_cost: number;
+}
+
+export interface SpendByAgentResponse {
+  breakdown: SpendByAgentItem[];
+  period: string;
+}

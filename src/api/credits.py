@@ -10,6 +10,7 @@ from src.database import get_db
 from src.schemas.credits import (
     BalanceResponse,
     PurchaseRequest,
+    SpendByAgentResponse,
     TransactionListResponse,
     TransactionResponse,
     UsageResponse,
@@ -78,6 +79,18 @@ async def list_transactions(
         per_page=per_page,
     )
     return TransactionListResponse(transactions=transactions, total=total)
+
+
+@router.get("/spend-by-agent", response_model=SpendByAgentResponse)
+async def get_spend_by_agent(
+    period: str = Query("30d", description="Period: 7d, 30d, 90d", pattern="^(7d|30d|90d)$"),
+    db: AsyncSession = Depends(get_db),
+    user_id: UUID = Depends(resolve_db_user_id),
+) -> SpendByAgentResponse:
+    """Get credit spend breakdown by agent for the authenticated user."""
+    service = CreditLedgerService(db)
+    breakdown = await service.get_spend_by_agent(owner_id=user_id, period=period)
+    return SpendByAgentResponse(breakdown=breakdown, period=period)
 
 
 @router.get("/usage", response_model=UsageResponse)

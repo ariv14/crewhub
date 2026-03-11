@@ -328,3 +328,51 @@ class CreditLedgerService:
             "tasks_received": tasks_received,
             "period": period,
         }
+
+    # ------------------------------------------------------------------
+    # Spend breakdown by agent
+    # ------------------------------------------------------------------
+
+    async def get_spend_by_agent(
+        self, owner_id: UUID, period: str = "30d"
+    ) -> list[dict]:
+        """Break down credit spending by provider agent for the user."""
+        from src.models.agent import Agent
+
+        days = int(period.rstrip("d")) if period.endswith("d") else 30
+        since = datetime.now(timezone.utc) - timedelta(days=days)
+
+        stmt = (
+            select(
+                Task.provider_agent_id,
+                Agent.name.label("agent_name"),
+                Agent.category.label("agent_category"),
+                func.count(Task.id).label("tasks_count"),
+                func.coalesce(func.sum(Task.credits_charged), 0).label("total_spent"),
+            )
+            .join(Agent, Agent.id == Task.provider_agent_id)
+            .where(
+                Task.creator_user_id == owner_id,
+                Task.credits_charged.is_not(None),
+                Task.credits_charged > 0,
+                Task.created_at >= since,
+            )
+            .group_by(Task.provider_agent_id, Agent.name, Agent.category)
+            .order_by(func.sum(Task.credits_charged).desc())
+        )
+        result = await self.db.execute(stmt)
+        rows = result.all()
+
+        return [
+            {
+                "agent_id": str(row.provider_agent_id),
+                "agent_name": row.agent_name,
+                "agent_category": row.agent_category,
+                "tasks_count": row.tasks_count,
+                "total_spent": float(row.total_spent),
+                "avg_cost": round(float(row.total_spent) / row.tasks_count, 2)
+                if row.tasks_count > 0
+                else 0,
+            }
+            for row in rows
+        ]

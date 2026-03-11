@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useBalance, useTransactions, useUsage } from "@/lib/hooks/use-credits";
+import { useBalance, useTransactions, useUsage, useSpendByAgent } from "@/lib/hooks/use-credits";
 import { createCreditsCheckout } from "@/lib/api/billing";
 import { BalanceCard } from "@/components/credits/balance-card";
+import { SpendBreakdown } from "@/components/credits/spend-breakdown";
 import { formatCredits, formatRelativeTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +32,7 @@ export default function CreditsPage() {
   const { data: balance, isLoading: balanceLoading } = useBalance();
   const { data: txData } = useTransactions({ per_page: 20 });
   const { data: usage } = useUsage("30d");
+  const { data: spendData } = useSpendByAgent("30d");
   const [purchasing, setPurchasing] = useState<number | null>(null);
 
   async function handlePurchase(credits: number) {
@@ -102,6 +104,14 @@ export default function CreditsPage() {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Spend Breakdown */}
+      {spendData && spendData.breakdown.length > 0 && (
+        <SpendBreakdown
+          breakdown={spendData.breakdown}
+          period={spendData.period}
+        />
       )}
 
       {/* Credit Packs */}

@@ -49,3 +49,17 @@ class UsageResponse(BaseModel):
     tasks_created: int
     tasks_received: int
     period: str
+
+
+class SpendByAgentItem(BaseModel):
+    agent_id: UUID
+    agent_name: str
+    agent_category: str
+    tasks_count: int
+    total_spent: float
+    avg_cost: float
+
+
+class SpendByAgentResponse(BaseModel):
+    breakdown: list[SpendByAgentItem]
+    period: str

@@ -29,6 +29,15 @@ export function useUsage(period?: string) {
   });
 }
 
+export function useSpendByAgent(period?: string) {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["credits", "spend-by-agent", period],
+    queryFn: () => creditsApi.getSpendByAgent(period),
+    enabled: !!user,
+  });
+}
+
 export function usePurchaseCredits() {
   const qc = useQueryClient();
   return useMutation({
