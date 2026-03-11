@@ -6,9 +6,6 @@ import {
   Key,
   Plus,
   Trash2,
-  Zap,
-  Crown,
-  ExternalLink,
   Loader2,
   Eye,
   EyeOff,
@@ -17,12 +14,6 @@ import { useAuth } from "@/lib/auth-context";
 import { createApiKey, updateMe } from "@/lib/api/auth";
 import { listLLMKeys, setLLMKey, deleteLLMKey } from "@/lib/api/llm-keys";
 import type { LLMKeyInfo } from "@/lib/api/llm-keys";
-import {
-  getSubscriptionStatus,
-  createCheckoutSession,
-  createPortalSession,
-} from "@/lib/api/billing";
-import type { SubscriptionStatus } from "@/lib/api/billing";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -87,10 +78,6 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [deletingProvider, setDeletingProvider] = useState<string | null>(null);
 
-  // Billing state
-  const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
-  const [upgrading, setUpgrading] = useState(false);
-
   const loadLLMKeys = useCallback(async () => {
     setLoadingKeys(true);
     try {
@@ -103,19 +90,9 @@ export default function SettingsPage() {
     }
   }, []);
 
-  const loadSubscription = useCallback(async () => {
-    try {
-      const status = await getSubscriptionStatus();
-      setSubscription(status);
-    } catch {
-      // silently fail
-    }
-  }, []);
-
   useEffect(() => {
     loadLLMKeys();
-    loadSubscription();
-  }, [loadLLMKeys, loadSubscription]);
+  }, [loadLLMKeys]);
 
   // API Key handlers
   async function handleGenerateKey() {
@@ -168,28 +145,6 @@ export default function SettingsPage() {
     }
   }
 
-  // Billing handlers
-  async function handleUpgrade() {
-    setUpgrading(true);
-    try {
-      const { checkout_url } = await createCheckoutSession();
-      window.location.href = checkout_url;
-    } catch {
-      toast.error("Failed to start upgrade");
-      setUpgrading(false);
-    }
-  }
-
-  async function handleManageBilling() {
-    try {
-      const { portal_url } = await createPortalSession();
-      window.location.href = portal_url;
-    } catch {
-      toast.error("Failed to open billing portal");
-    }
-  }
-
-  const isPremium = subscription?.account_tier === "premium";
   const configuredKeys = llmKeys.filter((k) => k.is_set);
 
   return (
@@ -306,50 +261,6 @@ export default function SettingsPage() {
 
         {/* ── LLM Keys Tab ── */}
         <TabsContent value="llm-keys" className="mt-6 space-y-4">
-          {/* Tier Banner */}
-          <Card
-            className={
-              isPremium
-                ? "border-amber-500/30 bg-amber-500/5"
-                : "border-blue-500/30 bg-blue-500/5"
-            }
-          >
-            <CardContent className="flex items-center justify-between py-4">
-              <div className="flex items-center gap-3">
-                {isPremium ? (
-                  <Crown className="h-5 w-5 text-amber-500" />
-                ) : (
-                  <Zap className="h-5 w-5 text-blue-500" />
-                )}
-                <div>
-                  <p className="font-medium">
-                    {isPremium ? "Premium Plan" : "Free Plan"}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {isPremium
-                      ? "Unlimited embedding requests"
-                      : "50 embedding requests/day — upgrade for unlimited"}
-                  </p>
-                </div>
-              </div>
-              {isPremium ? (
-                <Button variant="outline" size="sm" onClick={handleManageBilling}>
-                  Manage Billing
-                  <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
-                </Button>
-              ) : (
-                <Button size="sm" onClick={handleUpgrade} disabled={upgrading}>
-                  {upgrading ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Crown className="mr-2 h-4 w-4" />
-                  )}
-                  Upgrade — $9/mo
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-
           {/* Configured Keys */}
           <Card>
             <CardHeader>

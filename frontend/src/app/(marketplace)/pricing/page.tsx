@@ -2,59 +2,14 @@ import Link from "next/link";
 import {
   Check,
   Zap,
-  Crown,
   Coins,
   Sparkles,
   ArrowRight,
   HelpCircle,
+  Gift,
+  Bot,
+  ShoppingCart,
 } from "lucide-react";
-
-const tiers = [
-  {
-    name: "Free",
-    price: "$0",
-    period: "forever",
-    description: "Get started with AI agents — no credit card required.",
-    icon: Zap,
-    color: "text-blue-500",
-    bgColor: "bg-blue-500/10",
-    borderColor: "",
-    cta: "Get Started Free",
-    ctaHref: "/register",
-    ctaVariant: "outline" as const,
-    features: [
-      "250 credits signup bonus (~16-25 free tasks)",
-      "5 free Community agents (always free, no credits)",
-      "Access to all marketplace agents",
-      "Unlimited search & discovery",
-      "Team mode (multi-agent)",
-      "Pay-as-you-go credit packs",
-      "Community support",
-    ],
-  },
-  {
-    name: "Premium",
-    price: "$9",
-    period: "/month",
-    description: "For power users and agent developers who need more.",
-    icon: Crown,
-    color: "text-amber-500",
-    bgColor: "bg-amber-500/10",
-    borderColor: "border-amber-500/30 shadow-lg shadow-amber-500/5",
-    popular: true,
-    cta: "Upgrade to Premium",
-    ctaHref: "/dashboard/settings",
-    ctaVariant: "default" as const,
-    features: [
-      "Everything in Free, plus:",
-      "500 credits/month included",
-      "Priority agent matching",
-      "Advanced analytics dashboard",
-      "Priority support",
-      "Early access to new features",
-    ],
-  },
-];
 
 const creditPacks = [
   { credits: 500, price: "$5.00", perCredit: "$0.0100", savings: null, label: "Starter" },
@@ -73,14 +28,6 @@ const faqs = [
     a: "No. Credits never expire — use them whenever you need.",
   },
   {
-    q: "What's the difference between Free and Premium?",
-    a: "Free gives you pay-as-you-go access to everything. Premium adds 500 monthly credits, priority matching, and advanced analytics — ideal for heavy users and developers.",
-  },
-  {
-    q: "Can I cancel Premium anytime?",
-    a: "Yes. Cancel anytime from your Settings page. You keep Premium benefits until the end of your billing period.",
-  },
-  {
     q: "What are Community agents?",
     a: "Community agents are free utility tools — summarize text, fix grammar, format JSON, explain concepts, and draft emails. They cost 0 credits and are always available. Use the 'Community - Free' filter on the Agents page to find them.",
   },
@@ -90,65 +37,66 @@ const faqs = [
   },
 ];
 
+const steps = [
+  {
+    icon: Gift,
+    title: "Sign Up Free",
+    description: "Get 250 credits on signup — enough for 16-25 tasks. No credit card required.",
+  },
+  {
+    icon: Bot,
+    title: "Use Agents",
+    description: "Most agents charge 10-15 credits per task. Community agents are always free.",
+  },
+  {
+    icon: ShoppingCart,
+    title: "Buy More Credits",
+    description: "Need more? Buy credit packs in bulk and save up to 30%.",
+  },
+];
+
 export default function PricingPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-16">
-      {/* Header */}
+      {/* Hero */}
       <div className="text-center">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-          Simple, Transparent Pricing
+          Simple, Credit-Based Pricing
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-          Start free. Pay only for what you use. No hidden fees.
+          Start free. Pay only for what you use.
         </p>
       </div>
 
-      {/* Tier Cards */}
-      <div className="mx-auto mt-12 grid max-w-3xl gap-6 md:grid-cols-2">
-        {tiers.map((tier) => (
+      {/* How It Works */}
+      <div className="mx-auto mt-14 grid max-w-4xl gap-6 sm:grid-cols-3">
+        {steps.map((step, i) => (
           <div
-            key={tier.name}
-            className={`relative rounded-2xl border bg-card p-8 ${tier.borderColor}`}
+            key={step.title}
+            className="relative rounded-2xl border bg-card p-6 text-center"
           >
-            {"popular" in tier && tier.popular && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <span className="rounded-full bg-amber-500 px-3 py-1 text-xs font-semibold text-white">
-                  Most Popular
-                </span>
-              </div>
-            )}
-            <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${tier.bgColor}`}>
-              <tier.icon className={`h-5 w-5 ${tier.color}`} />
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+              <step.icon className="h-6 w-6 text-primary" />
             </div>
-            <h2 className="mt-4 text-xl font-bold">{tier.name}</h2>
-            <div className="mt-2 flex items-baseline gap-1">
-              <span className="text-3xl font-bold">{tier.price}</span>
-              <span className="text-sm text-muted-foreground">{tier.period}</span>
+            <div className="mt-1 text-xs font-medium text-muted-foreground">
+              Step {i + 1}
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">{tier.description}</p>
-
-            <Link
-              href={tier.ctaHref}
-              className={`mt-6 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
-                tier.ctaVariant === "default"
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                  : "border bg-background hover:bg-accent hover:text-accent-foreground"
-              }`}
-            >
-              {tier.cta}
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-
-            <ul className="mt-6 space-y-2.5">
-              {tier.features.map((feature) => (
-                <li key={feature} className="flex items-start gap-2 text-sm">
-                  <Check className={`mt-0.5 h-4 w-4 shrink-0 ${tier.color}`} />
-                  {feature}
-                </li>
-              ))}
-            </ul>
+            <h3 className="mt-2 text-lg font-bold">{step.title}</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {step.description}
+            </p>
           </div>
         ))}
+      </div>
+
+      <div className="mt-8 text-center">
+        <Link
+          href="/register"
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          Get Started Free
+          <ArrowRight className="h-4 w-4" />
+        </Link>
       </div>
 
       {/* Credit Packs */}
