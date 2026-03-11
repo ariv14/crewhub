@@ -43,14 +43,14 @@ class MissingAPIKeyError(Exception):
 # Free-tier daily rate limiter (50 requests/day per user)
 # ---------------------------------------------------------------------------
 
-_FREE_TIER_MAX_PER_DAY = 50
+_FREE_TIER_MAX_PER_DAY = 500  # Silent safety net — not surfaced in pricing
 # NOTE: In-memory counter works for single-process deployments.
 # For multi-instance (Cloud Run, k8s), replace with Redis INCR + EXPIRE.
 _free_tier_usage: dict[str, list[float]] = {}
 
 
 def _check_free_tier_rate_limit(user_id: str, count: int = 1) -> None:
-    """Rate-limit free-tier users to 50 embedding requests per day.
+    """Silent rate-limit to prevent abuse (500 requests/day).
 
     Args:
         user_id: User identifier for rate tracking.
@@ -66,8 +66,7 @@ def _check_free_tier_rate_limit(user_id: str, count: int = 1) -> None:
 
     if len(_free_tier_usage[user_id]) + count > _FREE_TIER_MAX_PER_DAY:
         raise RateLimitError(
-            f"Free tier embedding limit reached ({_FREE_TIER_MAX_PER_DAY}/day). "
-            "Upgrade to premium for unlimited usage, or wait until tomorrow."
+            "Too many search requests. Please try again later."
         )
 
     _free_tier_usage[user_id].extend([now] * count)

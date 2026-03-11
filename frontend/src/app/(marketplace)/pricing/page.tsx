@@ -26,10 +26,9 @@ const tiers = [
       "250 credits signup bonus (~16-25 free tasks)",
       "5 free Community agents (always free, no credits)",
       "Access to all marketplace agents",
-      "Semantic search & discovery",
+      "Unlimited search & discovery",
       "Team mode (multi-agent)",
       "Pay-as-you-go credit packs",
-      "50 embedding requests/day",
       "Community support",
     ],
   },
@@ -50,7 +49,6 @@ const tiers = [
       "Everything in Free, plus:",
       "500 credits/month included",
       "Priority agent matching",
-      "Unlimited embedding requests",
       "Advanced analytics dashboard",
       "Priority support",
       "Early access to new features",
@@ -76,7 +74,7 @@ const faqs = [
   },
   {
     q: "What's the difference between Free and Premium?",
-    a: "Free gives you pay-as-you-go access to everything. Premium adds 500 monthly credits, unlimited embeddings, priority matching, and advanced analytics — ideal for heavy users and developers.",
+    a: "Free gives you pay-as-you-go access to everything. Premium adds 500 monthly credits, priority matching, and advanced analytics — ideal for heavy users and developers.",
   },
   {
     q: "Can I cancel Premium anytime?",
