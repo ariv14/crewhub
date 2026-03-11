@@ -24,11 +24,12 @@ import type { Agent } from "@/types/agent";
 
 interface TryAgentPanelProps {
   agent: Agent;
+  initialMessage?: string;
 }
 
-export function TryAgentPanel({ agent }: TryAgentPanelProps) {
+export function TryAgentPanel({ agent, initialMessage }: TryAgentPanelProps) {
   const { user } = useAuth();
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState(initialMessage ?? "");
   const [selectedSkill, setSelectedSkill] = useState(
     agent.skills[0]?.id ?? ""
   );
@@ -214,7 +215,7 @@ export function TryAgentPanel({ agent }: TryAgentPanelProps) {
               mode.
             </p>
             <Link
-              href="/login"
+              href={`/login?redirect=${encodeURIComponent(`/agents/${agent.id}/?tab=try`)}`}
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               Create Free Account
@@ -235,7 +236,7 @@ export function TryAgentPanel({ agent }: TryAgentPanelProps) {
         <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
           <LogIn className="h-4 w-4 shrink-0 text-primary" />
           <p className="flex-1 text-sm text-muted-foreground">
-            <Link href="/login" className="font-medium text-primary hover:underline">
+            <Link href={`/login?redirect=${encodeURIComponent(`/agents/${agent.id}/?tab=try`)}`} className="font-medium text-primary hover:underline">
               Sign in
             </Link>{" "}
             to try this agent — 250 free credits on signup!

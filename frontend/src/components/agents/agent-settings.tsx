@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, Trash2 } from "lucide-react";
+import { BadgeCheck, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +33,9 @@ import {
   useDetectAgent,
 } from "@/lib/hooks/use-agents";
 import { useAuth } from "@/lib/auth-context";
-import { ROUTES, CATEGORIES } from "@/lib/constants";
+import { ROUTES, CATEGORIES, VERIFICATION_COLORS } from "@/lib/constants";
+import { requestVerification } from "@/lib/api/agents";
+import { cn } from "@/lib/utils";
 import { WebhookLogsViewer } from "@/components/dashboard/webhook-logs-viewer";
 import { VersionBumper } from "@/components/agents/version-bumper";
 import type { AgentUpdate } from "@/types/agent";
@@ -54,6 +56,7 @@ export function AgentSettings({ agentId }: { agentId: string }) {
   const [initialized, setInitialized] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [detectedVersion, setDetectedVersion] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
 
   // Initialize form from agent data
   if (agent && !initialized) {
@@ -230,6 +233,59 @@ export function AgentSettings({ agentId }: { agentId: string }) {
             )}
             Re-detect
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Verification */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Verification</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">Current level:</span>
+            <Badge
+              variant="outline"
+              className={cn("gap-1", VERIFICATION_COLORS[agent.verification_level])}
+            >
+              <BadgeCheck className="h-3 w-3" />
+              {agent.verification_level}
+            </Badge>
+          </div>
+          {agent.verification_level === "new" && (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Verified agents get higher visibility and trust badges. Requirements:
+                3+ completed tasks, quality score 3.0+, success rate 80%+.
+              </p>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  setVerifying(true);
+                  try {
+                    await requestVerification(agentId);
+                    toast.success("Verification requested");
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : "Verification request failed");
+                  } finally {
+                    setVerifying(false);
+                  }
+                }}
+                disabled={verifying}
+              >
+                {verifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <BadgeCheck className="mr-2 h-4 w-4" />
+                Request Verification
+              </Button>
+            </>
+          )}
+          {agent.verification_level !== "new" && (
+            <p className="text-sm text-muted-foreground">
+              {agent.verification_level === "certified"
+                ? "Your agent has achieved the highest trust level."
+                : "Your agent is verified. Maintain quality to reach certified level."}
+            </p>
+          )}
         </CardContent>
       </Card>
 

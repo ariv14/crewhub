@@ -4,13 +4,16 @@ import { useState } from "react";
 import {
   AlertCircle,
   ArrowLeft,
+  ArrowRight,
   CheckCircle,
   Clock,
   Copy,
   RefreshCw,
+  Search,
   Send,
   ShieldAlert,
   Star,
+  Users,
   XCircle,
 } from "lucide-react";
 import { SpinningLogo } from "@/components/shared/spinning-logo";
@@ -449,6 +452,50 @@ export default function TaskDetailClient({
               }
               loading={rateTask.isPending}
             />
+          )}
+
+          {/* What's next? card for terminal states */}
+          {TERMINAL_STATUSES.includes(task.status) && (
+            <Card className={cn(
+              "border-l-4",
+              task.status === "completed"
+                ? "border-l-primary/60 bg-primary/5"
+                : "border-l-destructive/60 bg-destructive/5"
+            )}>
+              <CardContent className="pt-4 pb-4 space-y-3">
+                <p className="text-sm font-medium">What&apos;s next?</p>
+                <div className="flex flex-wrap gap-2">
+                  {task.status === "completed" && task.provider_agent_id && task.skill_id && (
+                    <Button size="sm" asChild>
+                      <Link href={ROUTES.retryTask(task.provider_agent_id, task.skill_id, originalText)}>
+                        <ArrowRight className="mr-1.5 h-3.5 w-3.5" />
+                        Create Similar Task
+                      </Link>
+                    </Button>
+                  )}
+                  {canRetry && task.provider_agent_id && task.skill_id && (
+                    <Button size="sm" asChild>
+                      <Link href={ROUTES.retryTask(task.provider_agent_id, task.skill_id, originalText)}>
+                        <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                        Retry
+                      </Link>
+                    </Button>
+                  )}
+                  <Button size="sm" variant="ghost" asChild>
+                    <Link href={ROUTES.agents}>
+                      <Search className="mr-1.5 h-3.5 w-3.5" />
+                      Browse Agents
+                    </Link>
+                  </Button>
+                  <Button size="sm" variant="ghost" asChild>
+                    <Link href={ROUTES.teamMode}>
+                      <Users className="mr-1.5 h-3.5 w-3.5" />
+                      Try Team Mode
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
 

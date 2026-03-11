@@ -1,14 +1,18 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { ArrowLeft, CheckCircle2, Copy, Settings, XCircle } from "lucide-react";
 import { SpinningLogo } from "@/components/shared/spinning-logo";
 import Link from "next/link";
 import { useParams, usePathname, useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { useAgent, useAgentCard } from "@/lib/hooks/use-agents";
+import { getRecommendations } from "@/lib/api/discovery";
 import { AgentDetailHeader } from "@/components/agents/agent-detail-header";
 import { AgentActivityTab } from "@/components/agents/agent-activity-tab";
 import { AgentSkillsList } from "@/components/agents/agent-skills-list";
 import { AgentPricingTable } from "@/components/agents/agent-pricing-table";
+import { AgentCard } from "@/components/agents/agent-card";
 import { TryAgentPanel } from "@/components/agents/try-agent-panel";
 import { JsonViewer } from "@/components/shared/json-viewer";
 import { Button } from "@/components/ui/button";
@@ -32,9 +36,22 @@ export default function AgentDetailClient({ id: serverId }: { id: string }) {
   const searchParams = useSearchParams();
   const { data: agent, isLoading, error } = useAgent(id);
   const { data: a2aCard } = useAgentCard(id);
+  const { data: recommendations } = useQuery({
+    queryKey: ["agents", id, "recommendations"],
+    queryFn: () => getRecommendations(id),
+    enabled: !!id,
+    staleTime: 10 * 60 * 1000,
+  });
   const { user } = useAuth();
   const isOwner = !!(user && agent?.owner_id === user.id);
   const defaultTab = searchParams.get("tab") || "overview";
+  const [activeTab, setActiveTab] = useState(defaultTab);
+
+  // Sync tab from URL params (enables deep-linking like ?tab=try)
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab) setActiveTab(tab);
+  }, [searchParams]);
 
   if (isLoading) {
     return (
@@ -79,21 +96,20 @@ export default function AgentDetailClient({ id: serverId }: { id: string }) {
         </Button>
       )}
 
-      <AgentDetailHeader agent={agent} />
+      <AgentDetailHeader agent={agent} isAuthenticated={!!user} />
 
-      <Tabs defaultValue={defaultTab} className="mt-8">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8">
         <TabsList className="flex w-full overflow-x-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="try">Try It</TabsTrigger>
           <TabsTrigger value="skills">
             Skills ({agent.skills.length})
           </TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
-          <TabsTrigger value="pricing">Pricing</TabsTrigger>
-          <TabsTrigger value="try">Try It</TabsTrigger>
-          <TabsTrigger value="a2a-card">A2A Card</TabsTrigger>
-          <TabsTrigger value="protocols">Protocols</TabsTrigger>
+          <TabsTrigger value="developer">Developer</TabsTrigger>
         </TabsList>
 
+        {/* Overview — includes description, SLA, payment methods, and pricing */}
         <TabsContent value="overview" className="mt-6 space-y-6">
           <div>
             <h2 className="mb-3 text-lg font-semibold">Description</h2>
@@ -137,6 +153,20 @@ export default function AgentDetailClient({ id: serverId }: { id: string }) {
               ))}
             </div>
           </div>
+
+          <div>
+            <h2 className="mb-3 text-lg font-semibold">Pricing</h2>
+            <AgentPricingTable pricing={agent.pricing} />
+          </div>
+        </TabsContent>
+
+        {/* Try It — positioned 2nd so it's always visible on mobile */}
+        <TabsContent value="try" className="mt-6">
+          <TryAgentPanel
+            key={agent.id}
+            agent={agent}
+            initialMessage={searchParams.get("message") ?? undefined}
+          />
         </TabsContent>
 
         <TabsContent value="skills" className="mt-6">
@@ -147,23 +177,14 @@ export default function AgentDetailClient({ id: serverId }: { id: string }) {
           <AgentActivityTab agent={agent} isOwner={isOwner} />
         </TabsContent>
 
-        <TabsContent value="pricing" className="mt-6">
-          <AgentPricingTable pricing={agent.pricing} />
-        </TabsContent>
-
-        <TabsContent value="try" className="mt-6">
-          <TryAgentPanel agent={agent} />
-        </TabsContent>
-
-        <TabsContent value="a2a-card" className="mt-6">
-          {a2aCard ? (
-            <JsonViewer data={a2aCard} title="A2A Agent Card" />
-          ) : (
-            <p className="text-sm text-muted-foreground">Loading A2A card...</p>
+        {/* Developer — merged A2A Card + Protocol Support */}
+        <TabsContent value="developer" className="mt-6 space-y-6">
+          {a2aCard && (
+            <div>
+              <JsonViewer data={a2aCard} title="A2A Agent Card" />
+            </div>
           )}
-        </TabsContent>
 
-        <TabsContent value="protocols" className="mt-6">
           <div className="space-y-6">
             <h2 className="text-lg font-semibold">Protocol Support</h2>
 
@@ -263,6 +284,23 @@ export default function AgentDetailClient({ id: serverId }: { id: string }) {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Similar Agents */}
+      {recommendations && recommendations.matches.length > 0 && (
+        <div className="mt-10">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">You might also like</h2>
+            <Link href="/agents" className="text-sm text-muted-foreground hover:text-primary">
+              View all →
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {recommendations.matches.slice(0, 4).map((match) => (
+              <AgentCard key={match.agent.id} agent={match.agent} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

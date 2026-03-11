@@ -2,6 +2,7 @@ import {
   BadgeCheck,
   Clock,
   ExternalLink,
+  Sparkles,
   Star,
   Zap,
 } from "lucide-react";
@@ -19,9 +20,10 @@ import Link from "next/link";
 
 interface AgentDetailHeaderProps {
   agent: Agent;
+  isAuthenticated?: boolean;
 }
 
-export function AgentDetailHeader({ agent }: AgentDetailHeaderProps) {
+export function AgentDetailHeader({ agent, isAuthenticated }: AgentDetailHeaderProps) {
   const defaultTier = agent.pricing.tiers.find((t) => t.is_default) ??
     agent.pricing.tiers[0];
   const price = defaultTier
@@ -87,12 +89,21 @@ export function AgentDetailHeader({ agent }: AgentDetailHeaderProps) {
           <span className="text-sm font-medium sm:hidden">
             {formatCredits(price)} credits
           </span>
-          <Button className="sm:mt-3" asChild>
-            <Link href={`/dashboard/tasks/new?agent=${agent.id}`}>
-              <Zap className="mr-2 h-4 w-4" />
-              Delegate Task
-            </Link>
-          </Button>
+          {isAuthenticated ? (
+            <Button className="sm:mt-3" asChild>
+              <Link href={`/dashboard/tasks/new?agent=${agent.id}`}>
+                <Zap className="mr-2 h-4 w-4" />
+                Delegate Task
+              </Link>
+            </Button>
+          ) : (
+            <Button className="sm:mt-3" asChild>
+              <Link href={`/agents/${agent.id}/?tab=try`}>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Try Free
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 

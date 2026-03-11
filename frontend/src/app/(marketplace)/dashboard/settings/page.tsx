@@ -11,7 +11,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
-import { createApiKey, updateMe } from "@/lib/api/auth";
+import { createApiKey, revokeApiKey, updateMe } from "@/lib/api/auth";
 import { listLLMKeys, setLLMKey, deleteLLMKey } from "@/lib/api/llm-keys";
 import type { LLMKeyInfo } from "@/lib/api/llm-keys";
 import { Button } from "@/components/ui/button";
@@ -68,6 +68,8 @@ export default function SettingsPage() {
   const [apiKeyName, setApiKeyName] = useState("");
   const [generatedKey, setGeneratedKey] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [revoking, setRevoking] = useState(false);
+  const [showRevokeConfirm, setShowRevokeConfirm] = useState(false);
 
   // LLM Keys tab state
   const [llmKeys, setLlmKeys] = useState<LLMKeyInfo[]>([]);
@@ -113,6 +115,20 @@ export default function SettingsPage() {
   async function copyKey() {
     await navigator.clipboard.writeText(generatedKey);
     toast.success("Copied to clipboard");
+  }
+
+  async function handleRevokeKey() {
+    setRevoking(true);
+    try {
+      await revokeApiKey();
+      setGeneratedKey("");
+      setShowRevokeConfirm(false);
+      toast.success("API key revoked");
+    } catch {
+      toast.error("Failed to revoke API key");
+    } finally {
+      setRevoking(false);
+    }
   }
 
   // LLM Key handlers
@@ -254,6 +270,48 @@ export default function SettingsPage() {
                     </Button>
                   </div>
                 </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Revoke API Key</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-3 text-sm text-muted-foreground">
+                Revoke your current API key. Any integrations using this key will stop working.
+              </p>
+              {showRevokeConfirm ? (
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-destructive">Are you sure?</p>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleRevokeKey}
+                    disabled={revoking}
+                  >
+                    {revoking && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+                    Yes, Revoke
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowRevokeConfirm(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowRevokeConfirm(true)}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="mr-2 h-3.5 w-3.5" />
+                  Revoke Key
+                </Button>
               )}
             </CardContent>
           </Card>

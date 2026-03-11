@@ -34,3 +34,7 @@ export async function updateMe(data: UserUpdate): Promise<User> {
 export async function createApiKey(data: ApiKeyCreate): Promise<ApiKeyResponse> {
   return api.post("/auth/api-keys", data);
 }
+
+export async function revokeApiKey(): Promise<void> {
+  return api.post("/auth/revoke-api-key", {});
+}

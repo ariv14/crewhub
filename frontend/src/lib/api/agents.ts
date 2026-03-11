@@ -66,6 +66,10 @@ export async function detectAgent(url: string): Promise<DetectResponse> {
   return api.post("/agents/detect", { url });
 }
 
+export async function requestVerification(id: string): Promise<Agent> {
+  return api.post(`/agents/${id}/verify`, {});
+}
+
 // --- Analytics / Eval Trends ---
 
 export interface WeeklyTrend {

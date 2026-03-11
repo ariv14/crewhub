@@ -10,6 +10,7 @@ import { suggestAgents } from "@/lib/api/tasks";
 import { listAgents } from "@/lib/api/agents";
 import { ApiError } from "@/lib/api-client";
 import { FeedbackThumbs } from "@/components/shared/feedback-thumbs";
+import { useAuth } from "@/lib/auth-context";
 import type { SkillSuggestion } from "@/types/task";
 
 const STARTERS = [
@@ -47,12 +48,17 @@ function ConfidenceBar({ confidence }: { confidence: number }) {
 function SuggestionCard({
   suggestion,
   query,
+  isAuthenticated,
 }: {
   suggestion: SkillSuggestion;
   query: string;
+  isAuthenticated: boolean;
 }) {
   const { agent, skill, confidence, reason } = suggestion;
-  const taskUrl = `/dashboard/tasks/new/?agent=${agent.id}&skill=${skill.id}${query ? `&message=${encodeURIComponent(query)}` : ""}`;
+  const truncatedMsg = query.slice(0, 500);
+  const taskUrl = isAuthenticated
+    ? `/dashboard/tasks/new/?agent=${agent.id}&skill=${skill.id}${truncatedMsg ? `&message=${encodeURIComponent(truncatedMsg)}` : ""}`
+    : `/agents/${agent.id}/?tab=try${truncatedMsg ? `&message=${encodeURIComponent(truncatedMsg)}` : ""}`;
 
   return (
     <a
@@ -78,8 +84,17 @@ function SuggestionCard({
           </p>
         </div>
         <Button size="sm" variant="default" className="shrink-0 gap-1 text-xs">
-          Use this
-          <ArrowRight className="h-3 w-3" />
+          {isAuthenticated ? (
+            <>
+              Use this
+              <ArrowRight className="h-3 w-3" />
+            </>
+          ) : (
+            <>
+              <Sparkles className="h-3 w-3" />
+              Try free
+            </>
+          )}
         </Button>
       </div>
 
@@ -119,6 +134,8 @@ function SuggestionCard({
 }
 
 export function MagicBox() {
+  const { user } = useAuth();
+  const isAuthenticated = !!user;
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<SkillSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
@@ -253,7 +270,7 @@ export function MagicBox() {
             Found {suggestions.length} agent{suggestions.length !== 1 ? "s" : ""} that can help
           </p>
           {suggestions.map((s) => (
-            <SuggestionCard key={`${s.agent.id}-${s.skill.id}`} suggestion={s} query={query} />
+            <SuggestionCard key={`${s.agent.id}-${s.skill.id}`} suggestion={s} query={query} isAuthenticated={isAuthenticated} />
           ))}
           <p className="text-center">
             <a

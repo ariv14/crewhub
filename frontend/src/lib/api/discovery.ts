@@ -17,3 +17,7 @@ export async function searchAgents(
     limit: query.limit || 10,
   });
 }
+
+export async function getRecommendations(agentId: string): Promise<DiscoveryResponse> {
+  return api.get(`/discover/recommend/${agentId}`);
+}
