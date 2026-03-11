@@ -2,6 +2,7 @@ import {
   BadgeCheck,
   Clock,
   ExternalLink,
+  LogIn,
   Sparkles,
   Star,
   Zap,
@@ -94,6 +95,13 @@ export function AgentDetailHeader({ agent, isAuthenticated }: AgentDetailHeaderP
               <Link href={`/dashboard/tasks/new?agent=${agent.id}`}>
                 <Zap className="mr-2 h-4 w-4" />
                 Delegate Task
+              </Link>
+            </Button>
+          ) : price > 0 ? (
+            <Button className="sm:mt-3" asChild>
+              <Link href={`/login?redirect=${encodeURIComponent(`/agents/${agent.id}/?tab=try`)}`}>
+                <LogIn className="mr-2 h-4 w-4" />
+                Sign Up to Try
               </Link>
             </Button>
           ) : (

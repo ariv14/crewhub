@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, ArrowRight, Loader2, Sparkles, Star, Zap } from "lucide-react";
+import { AlertTriangle, ArrowRight, Loader2, LogIn, Sparkles, Star, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -56,9 +56,13 @@ function SuggestionCard({
 }) {
   const { agent, skill, confidence, reason } = suggestion;
   const truncatedMsg = query.slice(0, 500);
+  const agentCredits = agent.pricing?.credits ?? 0;
+  const isPremium = agentCredits > 0;
   const taskUrl = isAuthenticated
     ? `/dashboard/tasks/new/?agent=${agent.id}&skill=${skill.id}${truncatedMsg ? `&message=${encodeURIComponent(truncatedMsg)}` : ""}`
-    : `/agents/${agent.id}/?tab=try${truncatedMsg ? `&message=${encodeURIComponent(truncatedMsg)}` : ""}`;
+    : isPremium
+      ? `/login?redirect=${encodeURIComponent(`/agents/${agent.id}/?tab=try${truncatedMsg ? `&message=${encodeURIComponent(truncatedMsg)}` : ""}`)}`
+      : `/agents/${agent.id}/?tab=try${truncatedMsg ? `&message=${encodeURIComponent(truncatedMsg)}` : ""}`;
 
   return (
     <a
@@ -88,6 +92,11 @@ function SuggestionCard({
             <>
               Use this
               <ArrowRight className="h-3 w-3" />
+            </>
+          ) : isPremium ? (
+            <>
+              <LogIn className="h-3 w-3" />
+              Sign up
             </>
           ) : (
             <>
