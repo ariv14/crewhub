@@ -10,6 +10,7 @@ import {
   Bot,
   ShoppingCart,
 } from "lucide-react";
+import { PricingCTA } from "@/components/pricing/pricing-cta";
 
 const creditPacks = [
   { credits: 500, price: "$5.00", perCredit: "$0.0100", savings: null, label: "Starter" },
@@ -90,13 +91,7 @@ export default function PricingPage() {
       </div>
 
       <div className="mt-8 text-center">
-        <Link
-          href="/register"
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          Get Started Free
-          <ArrowRight className="h-4 w-4" />
-        </Link>
+        <PricingCTA />
       </div>
 
       {/* Credit Packs */}
