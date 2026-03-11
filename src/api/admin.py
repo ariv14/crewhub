@@ -307,7 +307,8 @@ async def update_agent_pricing(
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
     agent.pricing = data.pricing
-    await db.flush()
+    await db.commit()
+    await db.refresh(agent)
     return AgentResponse.model_validate(agent)
 
 
