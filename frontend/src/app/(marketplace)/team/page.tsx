@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Users,
   Zap,
@@ -35,6 +35,7 @@ import {
 import { useCreateTask, useTask } from "@/lib/hooks/use-tasks";
 import { useCreateCrew } from "@/lib/hooks/use-crews";
 import { suggestAgents } from "@/lib/api/tasks";
+import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { ROUTES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -389,8 +390,14 @@ export default function TeamPage() {
   const createTask = useCreateTask();
   const createCrew = useCreateCrew();
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [crewName, setCrewName] = useState("");
   const [crewDesc, setCrewDesc] = useState("");
+
+  // Clear auth prompt if user signs in
+  useEffect(() => {
+    if (user) setShowAuthPrompt(false);
+  }, [user]);
 
   function deduplicateSuggestions(raw: SkillSuggestion[]): SkillSuggestion[] {
     const seen = new Set<string>();
@@ -406,6 +413,11 @@ export default function TeamPage() {
 
   async function handleAssembleTeam() {
     if (goal.trim().length < 10) return;
+    if (!user) {
+      setError(null);
+      setShowAuthPrompt(true);
+      return;
+    }
     setSearching(true);
     setError(null);
     try {
@@ -600,7 +612,22 @@ export default function TeamPage() {
             </div>
           </div>
 
-          {!user && (
+          {showAuthPrompt && !user && (
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-center space-y-2">
+              <p className="text-sm font-medium">Sign in to assemble your team</p>
+              <p className="text-xs text-muted-foreground">
+                Get 250 free credits on signup — enough for 16-25 agent tasks.
+              </p>
+              <Link
+                href={`/login?redirect=${encodeURIComponent("/team")}`}
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Sign In to Continue
+              </Link>
+            </div>
+          )}
+
+          {!user && !showAuthPrompt && (
             <p className="text-center text-sm text-muted-foreground">
               <a href="/login" className="text-primary hover:underline">
                 Sign in

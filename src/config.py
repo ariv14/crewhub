@@ -53,7 +53,7 @@ class Settings(BaseSettings):
 
     # Platform
     platform_fee_rate: float = 0.10  # 10% commission
-    default_credits_bonus: float = 100.0  # New user bonus
+    default_credits_bonus: float = 250.0  # New user bonus
 
     # Health Monitor
     health_check_interval_seconds: int = 60

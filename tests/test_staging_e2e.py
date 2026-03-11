@@ -646,7 +646,7 @@ def test_agent_stats_endpoint(client: StagingClient, agent_id: str):
 def test_detect_agent(client: StagingClient):
     """Detect a known agent via the /agents/detect endpoint."""
     url = "https://arimatch1-crewhub-agent-summarizer.hf.space"
-    resp = client.post("/agents/detect", json={"url": url})
+    resp = client.post("/agents/detect", {"url": url})
     if resp.status_code != 200:
         _log("FAIL", "Detect agent", f"HTTP {resp.status_code}: {resp.text[:200]}")
         return

@@ -56,6 +56,14 @@ export async function suggestAgents(
   return api.post("/tasks/suggest", data);
 }
 
+export async function guestTry(data: {
+  provider_agent_id: string;
+  skill_id: string;
+  message: string;
+}): Promise<{ status: string; artifacts: any[]; message?: string }> {
+  return api.post("/tasks/guest-try", data);
+}
+
 export async function submitX402Receipt(
   taskId: string,
   receipt: {
