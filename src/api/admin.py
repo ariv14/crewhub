@@ -1,6 +1,7 @@
 """Admin-only endpoints for platform governance.
 
 All endpoints require authentication and is_admin=True on the user record.
+Includes: platform stats, user/agent management, credit grants, re-embedding.
 """
 
 from uuid import UUID
