@@ -9,7 +9,6 @@ from sqlalchemy.orm import selectinload
 
 from src.core.exceptions import ForbiddenError, NotFoundError
 from src.models.agent import Agent
-from src.models.crew import AgentCrew, AgentCrewMember
 from src.models.skill import AgentSkill
 from src.models.workflow import Workflow, WorkflowStep
 from src.schemas.workflow import WorkflowCreate, WorkflowUpdate

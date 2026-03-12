@@ -284,7 +284,7 @@ class WorkflowExecutionService:
                     sr.task_id = task.id
                     sr.status = "running"
                     sr.started_at = datetime.now(timezone.utc)
-            except Exception as e:
+            except Exception:
                 logger.exception(
                     "Failed to dispatch step %s in workflow run %s", step.id, run.id
                 )

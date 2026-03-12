@@ -114,7 +114,7 @@ async def list_workflow_runs(
 ) -> WorkflowRunListResponse:
     from sqlalchemy import func, select
     from sqlalchemy.orm import selectinload
-    from src.models.workflow import WorkflowRun, WorkflowStepRun
+    from src.models.workflow import WorkflowRun
 
     count_q = (
         select(func.count())
