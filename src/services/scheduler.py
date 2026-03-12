@@ -225,11 +225,12 @@ class SchedulerService:
         if schedule.credit_minimum > 0:
             from src.services.credit_ledger import CreditLedgerService
             ledger = CreditLedgerService(self.db)
-            balance = await ledger.get_balance(schedule.owner_id)
-            if balance < schedule.credit_minimum:
+            balance_info = await ledger.get_balance(schedule.owner_id)
+            available = balance_info["available"]
+            if available < schedule.credit_minimum:
                 raise MarketplaceError(
                     status_code=400,
-                    detail=f"Balance ({balance}) below credit minimum ({schedule.credit_minimum})",
+                    detail=f"Balance ({available}) below credit minimum ({schedule.credit_minimum})",
                 )
 
         input_message = schedule.input_message or ""

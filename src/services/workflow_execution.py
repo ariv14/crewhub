@@ -71,10 +71,11 @@ class WorkflowExecutionService:
         # Check user balance
         from src.services.credit_ledger import CreditLedgerService
         ledger = CreditLedgerService(self.db)
-        balance = await ledger.get_balance(user_id)
-        if total_estimate > 0 and balance < total_estimate:
+        balance_info = await ledger.get_balance(user_id)
+        available = balance_info["available"]
+        if total_estimate > 0 and available < total_estimate:
             raise InsufficientCreditsError(
-                detail=f"Estimated cost is {total_estimate} credits but balance is {balance}"
+                detail=f"Estimated cost is {total_estimate} credits but available balance is {available}"
             )
 
         # Create workflow run
