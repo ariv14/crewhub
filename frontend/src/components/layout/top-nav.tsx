@@ -5,7 +5,9 @@ import { usePathname } from "next/navigation";
 import {
   BookOpen,
   Bot,
+  Clock,
   CreditCard,
+  GitBranch,
   LayoutDashboard,
   ListTodo,
   LogOut,
@@ -13,10 +15,8 @@ import {
   Search,
   Settings,
   Shield,
-  Upload,
   User,
   Users,
-  UsersRound,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { SpinningLogo } from "@/components/shared/spinning-logo";
@@ -72,13 +72,33 @@ export function TopNav() {
                     { href: ROUTES.dashboard, label: "Overview", icon: LayoutDashboard },
                     { href: ROUTES.myAgents, label: "My Agents", icon: Bot },
                     { href: ROUTES.myTasks, label: "My Tasks", icon: ListTodo },
-                    { href: ROUTES.team, label: "Team", icon: Users },
-                    { href: ROUTES.myCrews, label: "My Crews", icon: UsersRound },
-                    { href: ROUTES.credits, label: "Credits", icon: CreditCard },
-                    { href: ROUTES.import, label: "Import", icon: Upload },
-                    { href: ROUTES.settings, label: "Settings", icon: Settings },
                   ].map((item) => (
                     <Button key={item.href} variant={pathname === item.href || (item.href !== ROUTES.dashboard && pathname.startsWith(item.href)) ? "secondary" : "ghost"} className="justify-start" asChild>
+                      <a href={item.href} onClick={() => setMobileOpen(false)}>
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {item.label}
+                      </a>
+                    </Button>
+                  ))}
+                  <div className="my-2 border-t" />
+                  {[
+                    { href: ROUTES.teamMode, label: "Team Mode", icon: Users },
+                    { href: ROUTES.myWorkflows, label: "Workflows", icon: GitBranch },
+                    { href: ROUTES.mySchedules, label: "Schedules", icon: Clock },
+                  ].map((item) => (
+                    <Button key={item.href} variant={pathname === item.href || pathname.startsWith(item.href) ? "secondary" : "ghost"} className="justify-start" asChild>
+                      <a href={item.href} onClick={() => setMobileOpen(false)}>
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {item.label}
+                      </a>
+                    </Button>
+                  ))}
+                  <div className="my-2 border-t" />
+                  {[
+                    { href: ROUTES.credits, label: "Credits", icon: CreditCard },
+                    { href: ROUTES.settings, label: "Settings", icon: Settings },
+                  ].map((item) => (
+                    <Button key={item.href} variant={pathname === item.href || pathname.startsWith(item.href) ? "secondary" : "ghost"} className="justify-start" asChild>
                       <a href={item.href} onClick={() => setMobileOpen(false)}>
                         <item.icon className="mr-2 h-4 w-4" />
                         {item.label}
@@ -131,6 +151,9 @@ export function TopNav() {
               </Button>
               <Button variant="ghost" size="sm" asChild className={pathname.startsWith("/agents") ? "bg-accent" : ""}>
                 <a href="/agents">Agents</a>
+              </Button>
+              <Button variant="ghost" size="sm" asChild className={pathname === ROUTES.teamMode ? "bg-accent" : ""}>
+                <a href={ROUTES.teamMode}>Team Mode</a>
               </Button>
               <Button variant="ghost" size="sm" asChild className={pathname.startsWith("/dashboard/tasks") ? "bg-accent" : ""}>
                 <a href={ROUTES.myTasks}>Tasks</a>

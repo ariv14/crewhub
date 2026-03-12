@@ -754,6 +754,7 @@ class TaskBrokerService:
             # Charge credits
             quoted = float(task.credits_quoted or 0)
             if quoted > 0 and task.client_agent and task.provider_agent:
+                # A2A delegation: client agent owner pays provider agent owner
                 if task.payment_method == "credits":
                     await self.credit_ledger.charge_credits(
                         client_owner_id=task.client_agent.owner_id,
@@ -764,6 +765,18 @@ class TaskBrokerService:
                     task.credits_charged = Decimal(str(quoted))
                 elif task.payment_method == "x402":
                     # x402: payment already settled on-chain
+                    task.credits_charged = Decimal(str(quoted))
+            elif quoted > 0 and not task.client_agent_id and task.provider_agent:
+                # User-initiated task: creator_user_id pays provider agent owner
+                if task.payment_method == "credits" and task.creator_user_id:
+                    await self.credit_ledger.charge_credits(
+                        client_owner_id=task.creator_user_id,
+                        provider_owner_id=task.provider_agent.owner_id,
+                        amount=quoted,
+                        task_id=task.id,
+                    )
+                    task.credits_charged = Decimal(str(quoted))
+                elif task.payment_method == "x402":
                     task.credits_charged = Decimal(str(quoted))
 
             # Update provider stats
@@ -781,9 +794,18 @@ class TaskBrokerService:
             # Release reserved credits
             quoted = float(task.credits_quoted or 0)
             if quoted > 0 and task.client_agent:
+                # A2A delegation: release from client agent owner
                 if task.payment_method == "credits":
                     await self.credit_ledger.release_credits(
                         owner_id=task.client_agent.owner_id,
+                        amount=quoted,
+                        task_id=task.id,
+                    )
+            elif quoted > 0 and not task.client_agent_id and task.creator_user_id:
+                # User-initiated task: release from creator user
+                if task.payment_method == "credits":
+                    await self.credit_ledger.release_credits(
+                        owner_id=task.creator_user_id,
                         amount=quoted,
                         task_id=task.id,
                     )

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   useConnectStatus,
   useWithdrawableBalance,
@@ -59,8 +60,19 @@ export default function PayoutsPage() {
   const requestPayout = useRequestPayout();
   const connectOnboard = useConnectOnboard();
 
+  const searchParams = useSearchParams();
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
+
+  // Handle Stripe Connect return URL
+  useEffect(() => {
+    const connectParam = searchParams.get("connect");
+    if (connectParam === "success") {
+      toast.success("Stripe Connect setup complete! Your account status is being verified.");
+    } else if (connectParam === "refresh") {
+      toast.info("Onboarding session expired. Please try again.");
+    }
+  }, [searchParams]);
 
   const parsedAmount = parseFloat(withdrawAmount) || 0;
   const { data: estimate } = usePayoutEstimate(parsedAmount);
@@ -76,7 +88,12 @@ export default function PayoutsPage() {
       const { onboarding_url } = await connectOnboard.mutateAsync();
       window.location.href = onboarding_url;
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to start onboarding");
+      const msg = err instanceof Error ? err.message : "Failed to start onboarding";
+      if (msg.includes("not yet enabled") || msg.includes("signed up for Connect")) {
+        toast.error("Stripe Connect is not yet available. The platform is still setting up payouts — please check back soon.");
+      } else {
+        toast.error(msg);
+      }
     }
   }
 

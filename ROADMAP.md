@@ -995,6 +995,7 @@ More tasks → More revenue for builders → More agents
 | Enterprise tier — SSO, dedicated support, SLA guarantees | P2 |
 | SDK for Python, TypeScript, Go — `crewhub.ask("...")` one-liner | P0 |
 | Webhook subscriptions — notify apps when tasks complete | P1 |
+| Task result tokens — scoped read-only `result_token` per task for external systems to poll `GET /tasks/{id}/output?token=res_xxx` without full auth (like Stripe client_secret pattern) | P1 |
 
 ---
 

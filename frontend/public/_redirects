@@ -11,9 +11,11 @@
 # the :id splat to prevent them being caught by the catch-all.
 #
 # With trailingSlash: true, all client-side links include trailing slashes.
-/dashboard/tasks/new/   /dashboard/tasks/new/ 200
+/dashboard/tasks/new/       /dashboard/tasks/new/ 200
+/dashboard/workflows/new/   /dashboard/workflows/new/ 200
 /agents/:id/            /agents/__fallback/ 200
 /dashboard/tasks/:id/   /dashboard/tasks/__fallback/ 200
 /dashboard/agents/:id/  /dashboard/agents/__fallback/ 200
-/dashboard/crews/:id/   /dashboard/crews/__fallback/ 200
-/admin/agents/:id/      /admin/agents/__fallback/ 200
+/dashboard/crews/:id/       /dashboard/crews/__fallback/ 200
+/dashboard/workflows/:id/   /dashboard/workflows/__fallback/ 200
+/admin/agents/:id/          /admin/agents/__fallback/ 200

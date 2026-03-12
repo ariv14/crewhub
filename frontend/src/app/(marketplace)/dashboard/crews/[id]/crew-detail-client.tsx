@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Copy,
   Check,
+  GitBranch,
   Globe,
   Loader2,
   Lock,
@@ -29,6 +30,7 @@ import {
   useRunCrew,
   useCloneCrew,
 } from "@/lib/hooks/use-crews";
+import { useConvertCrewToWorkflow } from "@/lib/hooks/use-workflows";
 import { useTask } from "@/lib/hooks/use-tasks";
 import { ROUTES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -305,6 +307,7 @@ export default function CrewDetailClient({ id: serverId }: { id: string }) {
   const deleteCrew = useDeleteCrew();
   const runCrew = useRunCrew();
   const cloneCrew = useCloneCrew();
+  const convertMutation = useConvertCrewToWorkflow();
 
   // Edit state
   const [editing, setEditing] = useState(false);
@@ -392,6 +395,15 @@ export default function CrewDetailClient({ id: serverId }: { id: string }) {
       });
     } finally {
       setRunning(false);
+    }
+  }
+
+  async function handleConvertToWorkflow() {
+    try {
+      const workflow = await convertMutation.mutateAsync(realId);
+      window.location.href = ROUTES.workflowDetail(workflow.id);
+    } catch {
+      // React Query will surface the error state on the mutation
     }
   }
 
@@ -483,6 +495,20 @@ export default function CrewDetailClient({ id: serverId }: { id: string }) {
               <Button variant="outline" size="sm" onClick={startEditing} className="gap-1">
                 <Pencil className="h-3.5 w-3.5" />
                 Edit
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleConvertToWorkflow}
+                disabled={convertMutation.isPending}
+                className="gap-1"
+              >
+                {convertMutation.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <GitBranch className="h-3.5 w-3.5" />
+                )}
+                Convert to Workflow
               </Button>
               <Button
                 variant="outline"

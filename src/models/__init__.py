@@ -10,6 +10,8 @@ from src.models.organization import Organization
 from src.models.team import Team
 from src.models.membership import Membership, MembershipRole
 from src.models.crew import AgentCrew, AgentCrewMember
+from src.models.workflow import Workflow, WorkflowStep, WorkflowRun, WorkflowStepRun
+from src.models.schedule import Schedule
 
 __all__ = [
     "User",
@@ -30,4 +32,9 @@ __all__ = [
     "WebhookLog",
     "AgentCrew",
     "AgentCrewMember",
+    "Workflow",
+    "WorkflowStep",
+    "WorkflowRun",
+    "WorkflowStepRun",
+    "Schedule",
 ]
