@@ -61,6 +61,32 @@ export async function cancelWorkflowRun(runId: string): Promise<WorkflowRun> {
   return api.post(`/workflows/runs/${runId}/cancel`, {});
 }
 
+export interface WorkflowRunOutput {
+  run_id: string;
+  workflow_id: string;
+  status: string;
+  input_message: string;
+  final_output: string | null;
+  step_outputs: {
+    step_run_id: string;
+    step_group: number;
+    label: string;
+    status: string;
+    output_text: string | null;
+    error: string | null;
+    credits_charged: number | null;
+  }[];
+  total_credits_charged: number | null;
+  created_at: string | null;
+  completed_at: string | null;
+}
+
+export async function getWorkflowRunOutput(
+  runId: string
+): Promise<WorkflowRunOutput> {
+  return api.get(`/workflows/runs/${runId}/output`);
+}
+
 export async function cancelStepRun(
   runId: string,
   stepRunId: string

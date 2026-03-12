@@ -21,6 +21,11 @@ import {
   AlertTriangle,
   StopCircle,
   Timer,
+  ChevronDown,
+  ChevronRight,
+  ClipboardCopy,
+  Check,
+  FileText,
 } from "lucide-react";
 import {
   useWorkflow,
@@ -284,7 +289,7 @@ function StepCard({
 }
 
 // ---------------------------------------------------------------------------
-// Run history card — with per-step errors and cancel buttons
+// Run history card — with per-step outputs, errors, and cancel buttons
 // ---------------------------------------------------------------------------
 function RunCard({
   run,
@@ -295,6 +300,10 @@ function RunCard({
   onCancelStep?: (stepRunId: string) => void;
   isCancellingStep?: boolean;
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
+  const [copied, setCopied] = useState<string | null>(null);
+
   const statusColors: Record<string, string> = {
     running: "bg-purple-500/15 text-purple-400",
     completed: "bg-green-500/15 text-green-400",
@@ -316,6 +325,33 @@ function RunCard({
     return `Step ${sr.step_group + 1}`;
   }
 
+  function toggleStep(id: string) {
+    setExpandedSteps((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function copyText(text: string, id: string) {
+    await navigator.clipboard.writeText(text);
+    setCopied(id);
+    setTimeout(() => setCopied(null), 2000);
+  }
+
+  // Combine all completed step outputs for "Copy all" button
+  const allOutputs = run.step_runs
+    .filter((sr) => sr.status === "completed" && sr.output_text)
+    .sort((a, b) => a.step_group - b.step_group)
+    .map((sr) => {
+      const label = getStepLabel(sr);
+      return `## ${label}\n\n${sr.output_text}`;
+    })
+    .join("\n\n---\n\n");
+
+  const hasAnyOutput = run.step_runs.some((sr) => sr.output_text);
+
   return (
     <div className="rounded-lg border p-3">
       <div className="flex items-center justify-between">
@@ -324,12 +360,41 @@ function RunCard({
           <span className="text-xs text-muted-foreground">
             {formatRelativeTime(run.created_at)}
           </span>
+          {hasAnyOutput && (
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-muted"
+            >
+              {expanded ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
+              Outputs
+            </button>
+          )}
         </div>
-        {run.total_credits_charged != null && (
-          <span className="text-xs text-muted-foreground">
-            {Number(run.total_credits_charged)} credits
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {allOutputs && (
+            <button
+              onClick={() => copyText(allOutputs, "all")}
+              className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-muted"
+              title="Copy all outputs"
+            >
+              {copied === "all" ? (
+                <Check className="h-3 w-3 text-green-400" />
+              ) : (
+                <ClipboardCopy className="h-3 w-3" />
+              )}
+              Copy all
+            </button>
+          )}
+          {run.total_credits_charged != null && (
+            <span className="text-xs text-muted-foreground">
+              {Number(run.total_credits_charged)} credits
+            </span>
+          )}
+        </div>
       </div>
       <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
         {run.input_message}
@@ -341,7 +406,7 @@ function RunCard({
         </div>
       )}
 
-      {/* Per-step progress with errors and cancel */}
+      {/* Per-step progress with errors, cancel, and expandable output */}
       <div className="mt-2 space-y-1">
         {run.step_runs.map((sr) => {
           const colors: Record<string, string> = {
@@ -352,10 +417,24 @@ function RunCard({
           };
           const label = getStepLabel(sr);
           const canCancel = run.status === "running" && (sr.status === "running" || sr.status === "pending");
+          const isStepExpanded = expanded || expandedSteps.has(sr.id);
+          const hasOutput = !!sr.output_text;
 
           return (
             <div key={sr.id}>
               <div className="flex items-center gap-2">
+                {hasOutput && (
+                  <button
+                    onClick={() => toggleStep(sr.id)}
+                    className="shrink-0 text-muted-foreground hover:text-foreground"
+                  >
+                    {isStepExpanded ? (
+                      <ChevronDown className="h-3 w-3" />
+                    ) : (
+                      <ChevronRight className="h-3 w-3" />
+                    )}
+                  </button>
+                )}
                 <div
                   className={`h-1.5 flex-1 rounded-full ${colors[sr.status] || "bg-zinc-500/30"}`}
                   title={`${label}: ${sr.status}`}
@@ -366,6 +445,19 @@ function RunCard({
                 <span className="shrink-0 text-[10px] text-muted-foreground w-14">
                   {sr.status}
                 </span>
+                {hasOutput && (
+                  <button
+                    onClick={() => copyText(sr.output_text!, sr.id)}
+                    className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground"
+                    title="Copy step output"
+                  >
+                    {copied === sr.id ? (
+                      <Check className="h-3 w-3 text-green-400" />
+                    ) : (
+                      <ClipboardCopy className="h-3 w-3" />
+                    )}
+                  </button>
+                )}
                 {canCancel && onCancelStep && (
                   <button
                     onClick={() => onCancelStep(sr.id)}
@@ -381,6 +473,19 @@ function RunCard({
                 <div className="ml-0 mt-0.5 flex items-start gap-1 rounded bg-red-500/5 px-1.5 py-1 text-[10px] text-red-400">
                   <AlertTriangle className="mt-0.5 h-2.5 w-2.5 shrink-0" />
                   <span className="break-words">{sr.error}</span>
+                </div>
+              )}
+              {isStepExpanded && sr.output_text && (
+                <div className="ml-4 mt-1 rounded-md border bg-muted/30 p-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+                      <FileText className="h-2.5 w-2.5" />
+                      Output from {label}
+                    </span>
+                  </div>
+                  <pre className="whitespace-pre-wrap text-xs text-foreground/90 max-h-60 overflow-y-auto">
+                    {sr.output_text}
+                  </pre>
                 </div>
               )}
             </div>

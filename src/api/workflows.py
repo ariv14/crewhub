@@ -137,6 +137,73 @@ async def list_workflow_runs(
 
 # --- Run-level endpoints ---
 
+@router.get("/runs/{run_id}/output")
+async def get_workflow_run_output(
+    run_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Get workflow run output in a clean format for external consumption."""
+    from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
+    from src.models.workflow import WorkflowRun
+
+    result = await db.execute(
+        select(WorkflowRun)
+        .where(WorkflowRun.id == run_id)
+        .options(selectinload(WorkflowRun.step_runs))
+    )
+    run = result.scalar_one_or_none()
+    if not run:
+        from src.core.exceptions import NotFoundError
+        raise NotFoundError("Workflow run not found")
+
+    snapshot = run.workflow_snapshot or {}
+    snapshot_steps = snapshot.get("steps", [])
+
+    def step_label(step_id):
+        if step_id:
+            sid = str(step_id)
+            for s in snapshot_steps:
+                if s.get("id") == sid:
+                    agent = s.get("agent_name", "")
+                    skill = s.get("skill_name", "")
+                    return f"{agent} · {skill}" if agent and skill else agent or "Unknown"
+        return "Unknown"
+
+    # Build per-step outputs sorted by group then position
+    step_outputs = []
+    sorted_srs = sorted(run.step_runs, key=lambda sr: (sr.step_group, getattr(sr, 'id', '')))
+    for sr in sorted_srs:
+        step_outputs.append({
+            "step_run_id": str(sr.id),
+            "step_group": sr.step_group,
+            "label": step_label(sr.step_id),
+            "status": sr.status,
+            "output_text": sr.output_text,
+            "error": sr.error,
+            "credits_charged": float(sr.credits_charged) if sr.credits_charged else None,
+        })
+
+    # Build combined final output (only completed steps)
+    completed_outputs = [
+        sr.output_text for sr in sorted_srs
+        if sr.status == "completed" and sr.output_text
+    ]
+    final_output = "\n\n---\n\n".join(completed_outputs) if completed_outputs else None
+
+    return {
+        "run_id": str(run.id),
+        "workflow_id": str(run.workflow_id),
+        "status": run.status,
+        "input_message": run.input_message,
+        "final_output": final_output,
+        "step_outputs": step_outputs,
+        "total_credits_charged": float(run.total_credits_charged) if run.total_credits_charged else None,
+        "created_at": run.created_at.isoformat() if run.created_at else None,
+        "completed_at": run.completed_at.isoformat() if run.completed_at else None,
+    }
+
+
 @router.get("/runs/{run_id}", response_model=WorkflowRunResponse)
 async def get_workflow_run(
     run_id: UUID,

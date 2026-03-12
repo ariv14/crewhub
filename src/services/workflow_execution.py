@@ -513,8 +513,14 @@ class WorkflowExecutionService:
         target_sr.completed_at = now
 
         await self.db.commit()
-        await self.db.refresh(run)
-        return run
+
+        # Re-query with eager-loaded step_runs (refresh doesn't load relations in async)
+        result2 = await self.db.execute(
+            select(WorkflowRun)
+            .where(WorkflowRun.id == run_id)
+            .options(selectinload(WorkflowRun.step_runs))
+        )
+        return result2.scalar_one()
 
     # ------------------------------------------------------------------
     # Startup recovery
