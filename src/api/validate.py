@@ -1,6 +1,7 @@
 """A2A compliance validation endpoint — checks agent protocol compliance."""
 
 import logging
+import uuid
 
 import httpx
 from fastapi import APIRouter
@@ -267,7 +268,7 @@ async def validate_agent(data: ValidateRequest) -> ValidateResponse:
             "id": "validation-test",
             "method": "tasks/send",
             "params": {
-                "id": "validate-test-task",
+                "id": f"validate-{uuid.uuid4().hex[:12]}",
                 "message": {
                     "role": "user",
                     "parts": [{"type": "text", "content": "Hello, this is a validation test."}],

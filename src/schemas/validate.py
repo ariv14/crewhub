@@ -1,5 +1,7 @@
 """Schemas for the A2A compliance validation endpoint."""
 
+from typing import Literal
+
 from pydantic import BaseModel, Field, field_validator
 
 from src.schemas.agent import _validate_public_url
@@ -18,7 +20,7 @@ class ValidationCheck(BaseModel):
     name: str
     passed: bool
     message: str
-    severity: str = "error"  # "error" | "warning" | "info"
+    severity: Literal["error", "warning", "info"] = "error"
 
 
 class ValidateResponse(BaseModel):
