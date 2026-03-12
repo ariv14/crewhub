@@ -224,9 +224,6 @@ class PayoutService:
             raise ValueError("Payout amount too small after fees")
 
         # Atomic balance deduction with row lock
-        from src.services.credit_ledger import CreditLedgerService
-        ledger = CreditLedgerService(self.db)
-
         dec_amount = Decimal(str(amount_credits))
 
         stmt = (

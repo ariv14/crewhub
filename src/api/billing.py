@@ -323,7 +323,6 @@ async def _handle_account_updated(db: AsyncSession, account_data: dict) -> None:
         logger.debug("No user found for Connect account %s", connect_account_id)
         return
 
-    charges_enabled = account_data.get("charges_enabled", False)
     payouts_enabled = account_data.get("payouts_enabled", False)
     details_submitted = account_data.get("details_submitted", False)
 
