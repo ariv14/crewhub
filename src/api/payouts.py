@@ -43,9 +43,17 @@ async def connect_onboard(
     service = PayoutService(db)
     try:
         url = await service.create_connect_account(user_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        error_msg = str(e)
         logger.error("Connect onboarding failed for user %s: %s", user_id, e)
-        raise HTTPException(status_code=500, detail=str(e))
+        if "signed up for Connect" in error_msg:
+            raise HTTPException(
+                status_code=503,
+                detail="Stripe Connect is not yet enabled for this platform. Please contact support.",
+            )
+        raise HTTPException(status_code=500, detail="Failed to connect with Stripe. Please try again later.")
     return OnboardingResponse(onboarding_url=url)
 
 
@@ -61,7 +69,7 @@ async def connect_status(
         status = await service.check_connect_status(user_id)
     except Exception as e:
         logger.error("Connect status check failed for user %s: %s", user_id, e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to check Stripe Connect status.")
     return ConnectStatusResponse(**status)
 
 
