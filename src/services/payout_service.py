@@ -106,6 +106,12 @@ class PayoutService:
     async def get_withdrawable_balance(self, user_id: UUID) -> dict:
         """Calculate withdrawable and pending-clearance credits.
 
+        Only agent earnings (TASK_PAYMENT transactions) are withdrawable.
+        BONUS (signup, admin grants) and PURCHASE (Stripe buys) are excluded
+        because the queries below filter on TransactionType.TASK_PAYMENT joined
+        on Task.completed_at — credits without a backing completed task can
+        never appear in the withdrawal balance.
+
         Withdrawable = earned credits from tasks completed > 7 days ago
                        minus credits already paid out.
         Pending = earned credits from tasks completed < 7 days ago.

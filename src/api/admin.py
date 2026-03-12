@@ -6,7 +6,7 @@ All endpoints require authentication and is_admin=True on the user record.
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -331,6 +331,49 @@ async def update_agent_verification(
     agent.verification_level = data.verification_level.value
     await db.flush()
     return AgentResponse.model_validate(agent)
+
+
+# ---------------------------------------------------------------------------
+# Credit grants (admin only)
+# ---------------------------------------------------------------------------
+
+
+class AdminCreditGrant(BaseModel):
+    user_id: UUID
+    amount: float = Field(gt=0, le=100000)
+    reason: str = Field(min_length=3, max_length=200)
+
+
+@router.post("/credits/grant")
+async def grant_credits(
+    data: AdminCreditGrant,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Grant bonus credits to a user (admin only).
+
+    Credits are added as BONUS type — spendable but never withdrawable
+    via Stripe Connect payouts.
+    """
+    from src.services.credit_ledger import CreditLedgerService
+
+    # Verify target user exists
+    target = await db.get(User, data.user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="Target user not found")
+
+    ledger = CreditLedgerService(db)
+    txn = await ledger.grant_bonus(
+        owner_id=data.user_id,
+        amount=data.amount,
+        description=f"Admin grant: {data.reason}",
+    )
+    return {
+        "transaction_id": str(txn.id),
+        "amount": data.amount,
+        "user_id": str(data.user_id),
+        "reason": data.reason,
+    }
 
 
 # ---------------------------------------------------------------------------

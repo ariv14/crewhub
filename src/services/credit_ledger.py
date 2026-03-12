@@ -244,6 +244,33 @@ class CreditLedgerService:
         await self.db.commit()
 
     # ------------------------------------------------------------------
+    # Admin grant (bonus credits)
+    # ------------------------------------------------------------------
+
+    async def grant_bonus(
+        self, owner_id: UUID, amount: float, description: str,
+    ) -> Transaction:
+        """Grant bonus credits to a user (admin use).
+
+        Uses TransactionType.BONUS so these credits are spendable
+        but never withdrawable via Stripe Connect payouts.
+        """
+        account = await self.get_or_create_account(owner_id)
+        account.balance += Decimal(str(amount))
+
+        txn = Transaction(
+            from_account_id=None,
+            to_account_id=account.id,
+            amount=Decimal(str(amount)),
+            type=TransactionType.BONUS,
+            description=description,
+        )
+        self.db.add(txn)
+        await self.db.commit()
+        await self.db.refresh(txn)
+        return txn
+
+    # ------------------------------------------------------------------
     # Transactions
     # ------------------------------------------------------------------
 
