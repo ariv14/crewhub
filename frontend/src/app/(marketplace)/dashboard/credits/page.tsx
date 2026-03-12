@@ -19,7 +19,9 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Coins, Zap, Sparkles, Crown, TrendingUp, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { Coins, Zap, Sparkles, Crown, TrendingUp, ArrowDownLeft, ArrowUpRight, Wallet } from "lucide-react";
+import Link from "next/link";
+import { ROUTES } from "@/lib/constants";
 
 const CREDIT_PACKS = [
   { credits: 500, priceCents: 500, label: "Starter", savings: null, icon: Coins },
@@ -74,6 +76,13 @@ export default function CreditsPage() {
                 <p className="text-xl font-bold text-green-600">
                   +{formatCredits(usage.total_earned)}
                 </p>
+                <Link
+                  href={ROUTES.payouts}
+                  className="mt-1 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                >
+                  <Wallet className="h-3 w-3" />
+                  Withdraw
+                </Link>
               </div>
             </CardContent>
           </Card>

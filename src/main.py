@@ -278,6 +278,7 @@ from src.api.analytics import router as analytics_router  # noqa: E402
 from src.api.crews import router as crews_router  # noqa: E402
 from src.api.feedback import router as feedback_router  # noqa: E402
 from src.api.guest_trial import router as guest_trial_router  # noqa: E402
+from src.api.payouts import router as payouts_router  # noqa: E402
 
 app.include_router(auth_router, prefix=settings.api_v1_prefix)
 app.include_router(agents_router, prefix=settings.api_v1_prefix)
@@ -305,6 +306,7 @@ app.include_router(analytics_router, prefix=settings.api_v1_prefix)
 app.include_router(crews_router, prefix=settings.api_v1_prefix)
 app.include_router(feedback_router, prefix=settings.api_v1_prefix)
 app.include_router(guest_trial_router, prefix=settings.api_v1_prefix)
+app.include_router(payouts_router, prefix=settings.api_v1_prefix)
 # Also mount ANP well-known endpoint at root (no prefix)
 app.include_router(anp_router)
 
