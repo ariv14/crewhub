@@ -48,6 +48,12 @@ export function TopNav() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Synchronous hint: if a token exists in localStorage, user was previously
+  // authenticated. Show auth-gated nav items during loading to prevent flash.
+  // Guests (no token) never see them — no flash in either direction.
+  const hasStoredToken = typeof window !== "undefined" && !!localStorage.getItem("auth_token");
+  const showAuthNav = !!user || (authLoading && hasStoredToken);
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm">
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4">
@@ -66,7 +72,7 @@ export function TopNav() {
               </SheetTitle>
             </SheetHeader>
             <nav className="mt-6 flex flex-col gap-1">
-              {user && (
+              {showAuthNav && (
                 <>
                   {[
                     { href: ROUTES.dashboard, label: "Overview", icon: LayoutDashboard },
@@ -144,7 +150,7 @@ export function TopNav() {
         </a>
 
         <nav className="hidden items-center gap-1 md:flex">
-          {user && (
+          {showAuthNav && (
             <>
               <Button variant="ghost" size="sm" asChild className={pathname === "/dashboard" ? "bg-accent" : ""}>
                 <a href={ROUTES.dashboard}>Dashboard</a>
