@@ -117,7 +117,7 @@ async def test_webhook_credit_purchase(
         "metadata": {
             "crewhub_user_id": user_id,
             "type": "credits",
-            "credits": "500",
+            "credits_amount": "500",
         },
     })
 

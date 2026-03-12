@@ -3,6 +3,8 @@
 These tests exercise realistic user journeys across multiple API endpoints.
 """
 
+from unittest.mock import patch
+
 import pytest
 from httpx import AsyncClient
 
