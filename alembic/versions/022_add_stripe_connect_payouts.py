@@ -14,9 +14,6 @@ depends_on = None
 
 
 def upgrade() -> None:
-    conn = op.get_bind()
-    is_pg = conn.dialect.name == "postgresql"
-
     # --- Users: Stripe Connect columns ---
     op.add_column("users", sa.Column(
         "stripe_connect_account_id", sa.String(255), nullable=True, unique=True,
@@ -45,9 +42,9 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
     )
 
-    # --- Extend TransactionType enum (PostgreSQL only) ---
-    if is_pg:
-        op.execute("ALTER TYPE transactiontype ADD VALUE IF NOT EXISTS 'payout'")
+    # Note: TransactionType is stored as String(20) in the DB, not a native
+    # PostgreSQL enum, so no ALTER TYPE needed. New values like 'payout'
+    # are automatically supported by inserting the string directly.
 
 
 def downgrade() -> None:
