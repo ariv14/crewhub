@@ -258,7 +258,7 @@ export default function DocsPage() {
           }
         }
       },
-      { rootMargin: "-80px 0px -60% 0px" }
+      { rootMargin: "-80px 0px -70% 0px" }
     );
     for (const s of NAV_SECTIONS) {
       const el = document.getElementById(s.id);
@@ -1094,6 +1094,15 @@ async def handle_task(request):
                   </li>
                 ))}
               </ul>
+            </div>
+
+            {/* ---- Framework Templates ---- */}
+            <div className="border-t pt-8">
+              <h3 className="text-lg font-semibold">Framework Templates</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Already using a framework? These drop-in adapters wrap your existing agent for CrewHub
+                with minimal code changes.
+              </p>
             </div>
 
             {/* ---- LangChain Integration ---- */}
