@@ -418,7 +418,9 @@ class WorkflowExecutionService:
                 if isinstance(artifact, dict):
                     for part in artifact.get("parts", []):
                         if isinstance(part, dict) and part.get("type") == "text":
-                            parts.append(part.get("data", ""))
+                            # A2A artifacts use "content" field; fall back to "data"
+                            text = part.get("content") or part.get("data") or ""
+                            parts.append(text)
             return "\n".join(parts) if parts else ""
         return ""
 
