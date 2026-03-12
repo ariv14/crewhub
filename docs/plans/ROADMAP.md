@@ -1,6 +1,6 @@
 # CrewHub Development Roadmap
 
-**Last updated:** 2026-03-11
+**Last updated:** 2026-03-12
 **Staging:** marketplace-staging.aidigitalcrew.com | arimatch1-crewhub-staging.hf.space
 **Production:** marketplace.aidigitalcrew.com | arimatch1/crewhub (HF Space)
 
@@ -73,11 +73,10 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 - [x] Promptfoo agent built and deployed (`arimatch1/crewhub-agent-promptfoo`)
   - 4 skills: Evaluate Prompt, Red Team Scan, Vulnerability Scan, Compare Models
   - Powered by xAI Grok-3-mini
-- [x] Stripe payments enabled (test mode)
+- [x] Stripe payments enabled (live mode)
   - [x] Credit packs: 500/$5, 2000/$18, 5000/$40, 10000/$70
-  - [x] Premium subscription: $9/mo (unlimited embeddings, 500 credits/month)
   - [x] Webhook endpoint configured for production
-  - [x] `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID`, `STRIPE_CREDIT_PACKS`, `FRONTEND_URL` set on HF Space
+  - [x] `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CREDIT_PACKS`, `FRONTEND_URL` set on HF Space
 - [x] Owner account funded with 10,000 credits for testing
 
 ### Monitoring & Ops (Mar 10) — LIVE
@@ -88,58 +87,49 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 - [x] Deduplicated scheduled workflow (runs on `main` only, manual trigger from any branch)
 - [x] Richer CI summary with markdown table + response times
 
-### Known Issues (Production)
-- `DEBUG=true` on production (required until PostgreSQL is configured — SQLite in use)
-- Swagger docs exposed at `/docs` (low risk — all endpoints require auth)
-- Data stored in SQLite inside container (lost on restart)
+### Production Hardening (Mar 11-12) — LIVE
+- [x] PostgreSQL on Supabase (staging + production, persistent data)
+- [x] `DEBUG=false` on production — Swagger hidden, all security checks enforced
+- [x] 21 agents registered, data persistent across restarts
+- [x] Stripe LIVE mode enabled on production — real payments active
+- [x] Docs page: LangChain, CrewAI, Python SDK sections + deploy buttons
+- [x] A2A compliance validator endpoint (`/validate/*`)
+
+### Developer Payouts (Mar 12) — MERGED TO MAIN
+- [x] Stripe Connect Express integration (onboard, balance, withdraw, history)
+  - `POST /payouts/connect/onboard` — create Express account + onboarding URL
+  - `GET /payouts/connect/status` — check Connect account status
+  - `GET /payouts/balance` — withdrawable + pending clearance balance
+  - `POST /payouts/request` — request payout (min 2500 credits / $25)
+  - `GET /payouts/history` — paginated payout history
+- [x] Payout safety: only `TASK_PAYMENT` earnings are withdrawable (7-day hold)
+  - Signup bonus (`BONUS`) — spendable, NOT withdrawable
+  - Admin grants (`BONUS`) — spendable, NOT withdrawable
+  - Stripe purchases (`PURCHASE`) — spendable, NOT withdrawable
+  - Task earnings (`TASK_PAYMENT`) — withdrawable after 7-day clearance
+- [x] Admin credit grant endpoint (`POST /admin/credits/grant`)
+- [x] Premium subscription removal — billing simplified to credits-only
+- [x] Migration 022: `payout_requests` table + user Connect columns
+- [x] Frontend: payouts page, API client, hooks, sidebar link
+- [x] Webhook cleanup: removed non-existent `transfer.paid`/`transfer.failed` handlers
+- [x] Fix: Firebase auth race condition (duplicate user INSERT → IntegrityError)
+
+### Stripe Dashboard Manual Steps (Pending)
+- [ ] **Staging**: Enable Stripe Connect (test mode), add `account.updated` webhook event
+- [ ] **Staging**: Remove 4 stale subscription webhook events
+- [ ] **Production**: Remove 4 stale subscription webhook events (customer.subscription.*, invoice.payment_failed)
+- [ ] **Production**: Enable Stripe Connect when ready for real developer payouts
 
 ---
 
-## Tomorrow (Mar 11) — Hardening & Testing
+## Current Sprint
 
-### Priority: Production Database
-- [ ] Set up PostgreSQL on Supabase (free tier, always-on, 500 MB)
-- [ ] Set `DATABASE_URL` on production HF Space
-- [ ] Set `DEBUG=false` on production (enables all security checks)
-- [ ] Verify Swagger docs hidden, WEBHOOK_SECRET enforced
-- [ ] Run Alembic migrations against production DB
-- [ ] Re-register all agents (SQLite data lost on switch)
-
-### Priority: Stripe Live Mode
-- [ ] Complete Stripe business verification (Singapore account)
-- [ ] Replace test keys with live keys (`sk_live_...`, `pk_live_...`)
-- [ ] Create live webhook endpoint + signing secret
-- [ ] End-to-end payment test (credit pack + premium subscription)
-
-### Priority: Test All Features
-- [ ] Credit pack purchase flow (test card `4242...`)
-- [ ] Premium subscription upgrade + verify unlimited embeddings
-- [ ] Promptfoo agent: test all 4 skills via Try It panel
-- [ ] Agency agents: test at least 3 divisions via Try It
-- [ ] Team mode: multi-agent task
-- [ ] Feedback widget → Discord
-- [ ] Register new agent flow
-
-### In Progress / Remaining
-
-#### Completed (this sprint)
-- [x] Write E2E test for register-agent flow (detect → review → register → success)
-- [x] Fix HF Space storage limit (>1GB, failing `upload_folder` deploys)
-- [x] Agent activity tab / task logs per agent
-- [x] Analytics dashboard for agent owners
-- [x] Webhook logs viewer (with 90-day retention policy)
-- [x] Version bumping UI (patch/minor/major)
-- [x] Stripe payments enabled (test mode) — credit packs + premium subscription
-- [x] Promptfoo agent deployed with 4 skills
-- [x] Production Firebase Auth (GitHub + Google)
-- [x] All agents registered on production under owner account
-
-#### Near-Term
+### Near-Term
 - [ ] Magic box onboarding for end users (Approach B from simplified-onboarding-design)
 - [ ] Delegation accuracy analytics query (data captured, no reporting endpoint)
 - [ ] Redis-backed embedding rate limiter (current: in-memory, single-process only)
 
-#### Backlog
+### Backlog
 - [ ] x402/OpenClaw payment integration (design: `2026-02-27-x402-openclaw-design.md`)
 - [ ] Task lifecycle UX enhancement (design: `2026-03-05-task-lifecycle-ux-design.md`)
 - [ ] Inline skill editor
@@ -169,4 +159,5 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 | 2026-03-08 | 4 Pillars production-readiness | All complete |
 | 2026-03-09 | Marketplace polish (docs, domain, feedback) | Complete |
 | 2026-03-10 | Production launch + Stripe + Promptfoo agent | Complete |
-| 2026-03-11 | Production hardening + live payments | Planned |
+| 2026-03-11 | Production hardening + live payments | Complete |
+| 2026-03-12 | Developer payouts + payout safety | Complete |

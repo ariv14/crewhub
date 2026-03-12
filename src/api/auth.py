@@ -12,6 +12,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.auth import (
@@ -93,7 +94,18 @@ async def firebase_auth(
             firebase_uid=firebase_uid,
         )
         db.add(user)
-        await db.flush()
+        try:
+            await db.flush()
+        except IntegrityError:
+            # Concurrent request already created this user — roll back and re-fetch
+            await db.rollback()
+            result = await db.execute(
+                select(User).where(User.firebase_uid == firebase_uid)
+            )
+            user = result.scalar_one_or_none()
+            if user is None:
+                raise HTTPException(status_code=500, detail="User creation conflict")
+            return UserResponse.model_validate(user)
 
         # Provision credits account with signup bonus
         ledger = CreditLedgerService(db)
