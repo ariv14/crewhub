@@ -157,8 +157,8 @@ async def lifespan(app: FastAPI):
         from src.database import async_session
         from src.services.workflow_execution import WorkflowExecutionService
         async with async_session() as db:
-            engine = WorkflowExecutionService(db)
-            await engine.recover_stale_runs()
+            wf_engine = WorkflowExecutionService(db)
+            await wf_engine.recover_stale_runs()
     except Exception:
         logger.warning("Workflow recovery failed — skipping", exc_info=True)
 
