@@ -29,6 +29,7 @@ export const ROUTES = {
   myCrews: "/dashboard/crews",
   crewDetail: (id: string) => `/dashboard/crews/${id}/`,
   credits: "/dashboard/credits",
+  payouts: "/dashboard/payouts",
   settings: "/dashboard/settings",
   import: "/dashboard/import",
 

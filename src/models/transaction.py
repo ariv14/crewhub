@@ -17,6 +17,7 @@ class TransactionType(str, enum.Enum):
     BONUS = "bonus"
     PLATFORM_FEE = "platform_fee"
     X402_PAYMENT = "x402_payment"
+    PAYOUT = "payout"
 
 
 class Transaction(Base):

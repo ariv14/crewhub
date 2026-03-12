@@ -1,10 +1,9 @@
-"""Stripe billing endpoints for self-serve premium tier upgrade.
+"""Stripe billing endpoints for credit purchases.
 
 Flow:
-  1. POST /billing/checkout → creates Stripe Checkout session, returns URL
+  1. POST /billing/credits-checkout → creates Stripe Checkout session for credit packs
   2. Stripe redirects user back after payment
-  3. POST /billing/webhook → Stripe webhook updates account_tier
-  4. POST /billing/portal → creates Stripe Billing Portal session for management
+  3. POST /billing/webhook → Stripe webhook fulfils credit purchase
 """
 
 import logging
@@ -54,66 +53,9 @@ async def _get_user(
 
 
 # ---------------------------------------------------------------------------
-# Create checkout session
-# ---------------------------------------------------------------------------
-
 
 class CheckoutResponse(BaseModel):
     checkout_url: str
-
-
-@router.post("/checkout", response_model=CheckoutResponse)
-async def create_checkout_session(
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
-) -> CheckoutResponse:
-    """Create a Stripe Checkout session for premium subscription ($9/mo)."""
-    stripe = _get_stripe()
-    user = await _get_user(db, current_user, for_update=True)
-
-    if user.account_tier == "premium":
-        raise HTTPException(status_code=400, detail="Already on premium tier")
-
-    # Reuse existing Stripe customer or create new one
-    customer_id = user.stripe_customer_id
-    if not customer_id:
-        customer = stripe.Customer.create(
-            email=user.email,
-            name=user.name,
-            metadata={"crewhub_user_id": str(user.id)},
-        )
-        customer_id = customer.id
-        user.stripe_customer_id = customer_id
-        await db.commit()
-
-    # Build checkout session
-    checkout_params = {
-        "customer": customer_id,
-        "mode": "subscription",
-        "success_url": f"{settings.frontend_url}/dashboard/settings?upgrade=success",
-        "cancel_url": f"{settings.frontend_url}/dashboard/settings?upgrade=cancelled",
-        "metadata": {"crewhub_user_id": str(user.id)},
-    }
-
-    # Use existing Stripe Price ID or create line item with price_data
-    if settings.stripe_price_id:
-        checkout_params["line_items"] = [{"price": settings.stripe_price_id, "quantity": 1}]
-    else:
-        checkout_params["line_items"] = [{
-            "price_data": {
-                "currency": "usd",
-                "unit_amount": settings.premium_monthly_price,
-                "recurring": {"interval": "month"},
-                "product_data": {
-                    "name": "CrewHub Premium",
-                    "description": "Unlimited API calls, no rate limits",
-                },
-            },
-            "quantity": 1,
-        }]
-
-    session = stripe.checkout.Session.create(**checkout_params)
-    return CheckoutResponse(checkout_url=session.url)
 
 
 # ---------------------------------------------------------------------------
@@ -237,54 +179,24 @@ async def create_credits_checkout(
 
 
 # ---------------------------------------------------------------------------
-# Billing portal (manage/cancel subscription)
+# Billing status
 # ---------------------------------------------------------------------------
 
 
-class PortalResponse(BaseModel):
-    portal_url: str
-
-
-@router.post("/portal", response_model=PortalResponse)
-async def create_portal_session(
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
-) -> PortalResponse:
-    """Create a Stripe Billing Portal session for subscription management."""
-    stripe = _get_stripe()
-    user = await _get_user(db, current_user)
-
-    if not user.stripe_customer_id:
-        raise HTTPException(status_code=400, detail="No billing account found")
-
-    session = stripe.billing_portal.Session.create(
-        customer=user.stripe_customer_id,
-        return_url=f"{settings.frontend_url}/dashboard/settings",
-    )
-    return PortalResponse(portal_url=session.url)
-
-
-# ---------------------------------------------------------------------------
-# Subscription status
-# ---------------------------------------------------------------------------
-
-
-class SubscriptionStatus(BaseModel):
+class BillingStatus(BaseModel):
     account_tier: str
-    has_subscription: bool
     stripe_customer_id: str | None = None
 
 
-@router.get("/status", response_model=SubscriptionStatus)
-async def get_subscription_status(
+@router.get("/status", response_model=BillingStatus)
+async def get_billing_status(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
-) -> SubscriptionStatus:
-    """Get current user's subscription status."""
+) -> BillingStatus:
+    """Get current user's billing status."""
     user = await _get_user(db, current_user)
-    return SubscriptionStatus(
+    return BillingStatus(
         account_tier=user.account_tier,
-        has_subscription=bool(user.stripe_subscription_id),
         stripe_customer_id=user.stripe_customer_id,
     )
 
@@ -299,13 +211,11 @@ async def stripe_webhook(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
-    """Handle Stripe webhook events for subscription lifecycle.
+    """Handle Stripe webhook events.
 
     Events handled:
-      - checkout.session.completed → activate premium
-      - customer.subscription.deleted → revert to free
-      - customer.subscription.updated → handle plan changes
-      - invoice.payment_failed → revert to free (grace period could be added)
+      - checkout.session.completed → fulfil credit purchase
+      - account.updated → sync Connect onboarding status
     """
     stripe = _get_stripe()
     payload = await request.body()
@@ -326,12 +236,8 @@ async def stripe_webhook(
 
     if event_type == "checkout.session.completed":
         await _handle_checkout_completed(db, data)
-    elif event_type == "customer.subscription.deleted":
-        await _handle_subscription_cancelled(db, data)
-    elif event_type == "customer.subscription.updated":
-        await _handle_subscription_updated(db, data)
-    elif event_type == "invoice.payment_failed":
-        await _handle_payment_failed(db, data)
+    elif event_type == "account.updated":
+        await _handle_account_updated(db, data)
     else:
         logger.debug("Unhandled Stripe event: %s", event_type)
 
@@ -339,7 +245,7 @@ async def stripe_webhook(
 
 
 async def _handle_checkout_completed(db: AsyncSession, session: dict) -> None:
-    """Handle successful checkout — premium subscription or credit purchase."""
+    """Handle successful checkout — credit purchase fulfilment."""
     metadata = session.get("metadata") or {}
     customer_id = session.get("customer")
 
@@ -362,97 +268,57 @@ async def _handle_checkout_completed(db: AsyncSession, session: dict) -> None:
         logger.error("Could not find user for Stripe customer %s", customer_id)
         return
 
-    # Credit purchase (one-time payment)
-    if metadata.get("type") == "credits":
-        credits_amount = int(metadata.get("credits_amount", 0))
-        session_id = session.get("id", "")
-        if credits_amount > 0:
-            # Idempotency: check if this checkout session was already processed
-            from src.models.transaction import Transaction
-            existing = await db.execute(
-                select(Transaction).where(
-                    Transaction.description.contains(session_id)
-                )
-            )
-            if existing.scalar_one_or_none():
-                logger.info("Duplicate webhook for session %s, skipping", session_id)
-                return
-
-            from src.services.credit_ledger import CreditLedgerService
-            ledger = CreditLedgerService(db)
-            await ledger.purchase_credits(
-                owner_id=user.id,
-                amount=credits_amount,
-                description=f"Credit purchase of {credits_amount} (session: {session_id})",
-            )
-            logger.info("User %s purchased %d credits via Stripe (session: %s)", user.id, credits_amount, session_id)
+    if metadata.get("type") != "credits":
+        logger.warning("Unknown checkout type: %s", metadata.get("type"))
         return
 
-    # Subscription upgrade
-    subscription_id = session.get("subscription")
-    user.account_tier = "premium"
-    user.stripe_customer_id = customer_id
-    if subscription_id:
-        user.stripe_subscription_id = subscription_id
-    await db.commit()
-    logger.info("User %s upgraded to premium", user.id)
+    credits_amount = int(metadata.get("credits_amount", 0))
+    session_id = session.get("id", "")
+    if credits_amount <= 0:
+        return
+
+    # Idempotency: check if this checkout session was already processed
+    from src.models.transaction import Transaction
+    existing = await db.execute(
+        select(Transaction).where(
+            Transaction.description.contains(session_id)
+        )
+    )
+    if existing.scalar_one_or_none():
+        logger.info("Duplicate webhook for session %s, skipping", session_id)
+        return
+
+    from src.services.credit_ledger import CreditLedgerService
+    ledger = CreditLedgerService(db)
+    await ledger.purchase_credits(
+        owner_id=user.id,
+        amount=credits_amount,
+        description=f"Credit purchase of {credits_amount} (session: {session_id})",
+    )
+    logger.info("User %s purchased %d credits via Stripe (session: %s)", user.id, credits_amount, session_id)
 
 
-async def _handle_subscription_cancelled(db: AsyncSession, subscription: dict) -> None:
-    """Revert to free tier when subscription is cancelled."""
-    customer_id = subscription.get("customer")
-    if not customer_id:
+async def _handle_account_updated(db: AsyncSession, account_data: dict) -> None:
+    """Handle account.updated — sync Connect onboarding status."""
+    connect_account_id = account_data.get("id")
+    if not connect_account_id:
         return
 
     result = await db.execute(
-        select(User).where(User.stripe_customer_id == customer_id)
+        select(User).where(User.stripe_connect_account_id == connect_account_id)
     )
     user = result.scalar_one_or_none()
     if not user:
+        logger.debug("No user found for Connect account %s", connect_account_id)
         return
 
-    user.account_tier = "free"
-    user.stripe_subscription_id = None
+    payouts_enabled = account_data.get("payouts_enabled", False)
+    details_submitted = account_data.get("details_submitted", False)
+
+    user.stripe_connect_onboarded = details_submitted
+    user.stripe_connect_payouts_enabled = payouts_enabled
     await db.commit()
-    logger.info("User %s downgraded to free (subscription cancelled)", user.id)
-
-
-async def _handle_subscription_updated(db: AsyncSession, subscription: dict) -> None:
-    """Handle subscription status changes (e.g., past_due, active)."""
-    customer_id = subscription.get("customer")
-    status = subscription.get("status")
-    if not customer_id:
-        return
-
-    result = await db.execute(
-        select(User).where(User.stripe_customer_id == customer_id)
+    logger.info(
+        "Connect account %s updated: onboarded=%s payouts_enabled=%s",
+        connect_account_id, details_submitted, payouts_enabled,
     )
-    user = result.scalar_one_or_none()
-    if not user:
-        return
-
-    if status in ("active", "trialing"):
-        user.account_tier = "premium"
-    elif status in ("past_due", "unpaid", "canceled", "incomplete_expired"):
-        user.account_tier = "free"
-        user.stripe_subscription_id = None
-
-    await db.commit()
-    logger.info("User %s subscription updated: status=%s tier=%s", user.id, status, user.account_tier)
-
-
-async def _handle_payment_failed(db: AsyncSession, invoice: dict) -> None:
-    """Handle failed payment — could add grace period logic here."""
-    customer_id = invoice.get("customer")
-    if not customer_id:
-        return
-
-    result = await db.execute(
-        select(User).where(User.stripe_customer_id == customer_id)
-    )
-    user = result.scalar_one_or_none()
-    if not user:
-        return
-
-    logger.warning("Payment failed for user %s (customer %s)", user.id, customer_id)
-    # NOTE: Don't immediately downgrade — Stripe retries. Downgrade on subscription.deleted.

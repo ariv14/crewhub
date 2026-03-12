@@ -38,11 +38,9 @@ class Settings(BaseSettings):
     # Embedding dimension (must match the chosen model)
     embedding_dimension: int = 1536
 
-    # Stripe (self-serve premium tier subscription)
+    # Stripe
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
-    stripe_price_id: str = ""  # Stripe Price ID for $9/mo premium plan
-    premium_monthly_price: int = 900  # cents ($9.00)
 
     # Stripe credit pack Price IDs (one-time products)
     # Format: "credits:price_id,credits:price_id,..."
@@ -50,6 +48,11 @@ class Settings(BaseSettings):
 
     # Frontend URL for Stripe redirect callbacks
     frontend_url: str = "http://localhost:3000"
+
+    # Payouts (Stripe Connect)
+    payout_minimum_credits: float = 2500.0   # $25 minimum withdrawal
+    payout_clearance_days: int = 7           # days after task completion before credits are withdrawable
+    credit_to_usd_rate: float = 0.01         # 1 credit = $0.01 USD
 
     # Platform
     platform_fee_rate: float = 0.10  # 10% commission

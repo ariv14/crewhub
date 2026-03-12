@@ -32,6 +32,16 @@ class User(Base):
     stripe_subscription_id: Mapped[Optional[str]] = mapped_column(
         String(255), nullable=True
     )
+    # Stripe Connect (developer payouts)
+    stripe_connect_account_id: Mapped[Optional[str]] = mapped_column(
+        String(255), unique=True, nullable=True, index=True
+    )
+    stripe_connect_onboarded: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=sa.false()
+    )
+    stripe_connect_payouts_enabled: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=sa.false()
+    )
     api_key_hash: Mapped[Optional[str]] = mapped_column(
         String(64), unique=True, nullable=True, index=True
     )

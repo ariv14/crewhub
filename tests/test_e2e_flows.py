@@ -3,16 +3,11 @@
 These tests exercise realistic user journeys across multiple API endpoints.
 """
 
-import json
-from unittest.mock import patch, MagicMock
-from uuid import UUID
+from unittest.mock import patch
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import update
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.models.user import User
 from tests.conftest import _make_agent_payload, _unique_email
 
 
@@ -42,36 +37,6 @@ async def _register_and_login(client: AsyncClient, name: str = "E2E User"):
     me = await client.get("/api/v1/auth/me", headers=headers)
     user_id = me.json()["id"]
     return headers, user_id, email, password
-
-
-def _make_webhook_event(event_type: str, data_object: dict) -> dict:
-    return {
-        "id": "evt_e2e_test",
-        "type": event_type,
-        "data": {"object": data_object},
-    }
-
-
-def _patch_webhook(event_payload: dict):
-    from src.config import settings as _settings
-
-    mock_stripe = MagicMock()
-    mock_stripe.Webhook.construct_event.return_value = event_payload
-    mock_stripe.SignatureVerificationError = Exception
-
-    class _Ctx:
-        def __enter__(self_):
-            self_._original = _settings.stripe_webhook_secret
-            _settings.stripe_webhook_secret = "whsec_test_fake"
-            self_._patcher = patch("src.api.billing._get_stripe", return_value=mock_stripe)
-            self_._patcher.__enter__()
-            return self_
-
-        def __exit__(self_, *args):
-            self_._patcher.__exit__(*args)
-            _settings.stripe_webhook_secret = self_._original
-
-    return _Ctx()
 
 
 # ------------------------------------------------------------------
@@ -116,45 +81,20 @@ async def test_full_byok_flow(client: AsyncClient):
 
 
 # ------------------------------------------------------------------
-# 2. Free → premium upgrade flow
+# 2. Billing status for new user (subscriptions removed)
 # ------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_free_to_premium_upgrade_flow(
-    client: AsyncClient, db_session: AsyncSession
+async def test_new_user_billing_status(
+    client: AsyncClient,
 ):
-    """Register (free) → verify status → simulate webhook upgrade → verify premium."""
+    """New user should have account_tier='free'."""
     headers, user_id, _, _ = await _register_and_login(client)
 
-    # Check free status
     status = await client.get("/api/v1/billing/status", headers=headers)
+    assert status.status_code == 200
     assert status.json()["account_tier"] == "free"
-
-    # Set customer id (required for webhook lookup)
-    stmt = update(User).where(User.id == UUID(user_id)).values(
-        stripe_customer_id="cus_e2e_upgrade"
-    )
-    await db_session.execute(stmt)
-    await db_session.commit()
-
-    # Simulate webhook
-    event = _make_webhook_event("checkout.session.completed", {
-        "customer": "cus_e2e_upgrade",
-        "subscription": "sub_e2e_123",
-        "metadata": {"crewhub_user_id": user_id},
-    })
-    with _patch_webhook(event):
-        resp = await client.post(
-            "/api/v1/billing/webhook",
-            content=json.dumps(event),
-            headers={"stripe-signature": "t=1,v1=fake", "content-type": "application/json"},
-        )
-    assert resp.status_code == 200
-
-    # Verify premium
-    status2 = await client.get("/api/v1/billing/status", headers=headers)
-    assert status2.json()["account_tier"] == "premium"
 
 
 # ------------------------------------------------------------------
@@ -318,42 +258,17 @@ async def test_graceful_degradation_e2e(client: AsyncClient):
 
 
 # ------------------------------------------------------------------
-# 7. Billing status reflects webhook
+# 7. Billing status shows free tier (subscriptions removed)
 # ------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_billing_status_reflects_webhook(
-    client: AsyncClient, db_session: AsyncSession
+async def test_billing_status_stays_free(
+    client: AsyncClient,
 ):
-    """Register → check free → send checkout webhook → check premium."""
+    """After subscription removal, all users should remain free tier."""
     headers, user_id, _, _ = await _register_and_login(client)
 
-    # Confirm free
     s1 = await client.get("/api/v1/billing/status", headers=headers)
+    assert s1.status_code == 200
     assert s1.json()["account_tier"] == "free"
-
-    # Setup customer
-    stmt = update(User).where(User.id == UUID(user_id)).values(
-        stripe_customer_id="cus_e2e_reflect"
-    )
-    await db_session.execute(stmt)
-    await db_session.commit()
-
-    # Send webhook
-    event = _make_webhook_event("checkout.session.completed", {
-        "customer": "cus_e2e_reflect",
-        "subscription": "sub_e2e_reflect",
-        "metadata": {"crewhub_user_id": user_id},
-    })
-    with _patch_webhook(event):
-        await client.post(
-            "/api/v1/billing/webhook",
-            content=json.dumps(event),
-            headers={"stripe-signature": "t=1,v1=fake", "content-type": "application/json"},
-        )
-
-    # Confirm premium
-    s2 = await client.get("/api/v1/billing/status", headers=headers)
-    assert s2.json()["account_tier"] == "premium"
-    assert s2.json()["has_subscription"] is True
