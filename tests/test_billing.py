@@ -113,6 +113,7 @@ async def test_webhook_credit_purchase(
     await db_session.commit()
 
     event = _make_webhook_event("checkout.session.completed", {
+        "id": "cs_test_credit_purchase_001",
         "customer": "cus_test_credits",
         "metadata": {
             "crewhub_user_id": user_id,
