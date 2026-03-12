@@ -42,6 +42,40 @@ async def _health_monitor_loop(interval: int = 300) -> None:
             logger.exception("Health monitor loop error")
 
 
+async def _workflow_pump_loop(interval: int = 3) -> None:
+    """Single loop that advances ALL running workflows."""
+    from src.database import async_session
+    from src.services.workflow_execution import WorkflowExecutionService
+
+    while True:
+        try:
+            await asyncio.sleep(interval)
+            async with async_session() as db:
+                engine = WorkflowExecutionService(db)
+                await engine.pump_running_workflows()
+        except asyncio.CancelledError:
+            break
+        except Exception:
+            logger.exception("Workflow pump loop error")
+
+
+async def _scheduler_loop(interval: int = 30) -> None:
+    """Check for due schedules every 30 seconds."""
+    from src.database import async_session
+    from src.services.scheduler import SchedulerService
+
+    while True:
+        try:
+            await asyncio.sleep(interval)
+            async with async_session() as db:
+                service = SchedulerService(db)
+                await service.process_due_schedules()
+        except asyncio.CancelledError:
+            break
+        except Exception:
+            logger.exception("Scheduler loop error")
+
+
 async def _webhook_log_cleanup_loop(retention_days: int = 90, interval: int = 86_400):
     """Delete webhook logs older than retention_days. Runs once per interval."""
     from src.database import AsyncSessionLocal
@@ -118,6 +152,16 @@ async def lifespan(app: FastAPI):
 
     settings.warn_insecure_defaults()
 
+    # Recover stale workflow runs from previous crash
+    try:
+        from src.database import async_session
+        from src.services.workflow_execution import WorkflowExecutionService
+        async with async_session() as db:
+            engine = WorkflowExecutionService(db)
+            await engine.recover_stale_runs()
+    except Exception:
+        logger.warning("Workflow recovery failed — skipping", exc_info=True)
+
     # Start background health monitor (every 5 minutes)
     health_task = asyncio.create_task(_health_monitor_loop(interval=300))
 
@@ -126,13 +170,21 @@ async def lifespan(app: FastAPI):
         retention_days=90, interval=86_400,
     ))
 
+    # Start workflow pump loop (every 3 seconds)
+    workflow_pump_task = asyncio.create_task(_workflow_pump_loop(interval=3))
+
+    # Start scheduler loop (every 30 seconds)
+    scheduler_task = asyncio.create_task(_scheduler_loop(interval=30))
+
     logger.info("CrewHub startup complete")
     yield
 
     # Shutdown
     health_task.cancel()
     cleanup_task.cancel()
-    for task in (health_task, cleanup_task):
+    workflow_pump_task.cancel()
+    scheduler_task.cancel()
+    for task in (health_task, cleanup_task, workflow_pump_task, scheduler_task):
         try:
             await task
         except asyncio.CancelledError:
@@ -279,6 +331,8 @@ from src.api.crews import router as crews_router  # noqa: E402
 from src.api.feedback import router as feedback_router  # noqa: E402
 from src.api.guest_trial import router as guest_trial_router  # noqa: E402
 from src.api.payouts import router as payouts_router  # noqa: E402
+from src.api.workflows import router as workflows_router  # noqa: E402
+from src.api.schedules import router as schedules_router  # noqa: E402
 
 app.include_router(auth_router, prefix=settings.api_v1_prefix)
 app.include_router(agents_router, prefix=settings.api_v1_prefix)
@@ -307,6 +361,8 @@ app.include_router(crews_router, prefix=settings.api_v1_prefix)
 app.include_router(feedback_router, prefix=settings.api_v1_prefix)
 app.include_router(guest_trial_router, prefix=settings.api_v1_prefix)
 app.include_router(payouts_router, prefix=settings.api_v1_prefix)
+app.include_router(workflows_router, prefix=settings.api_v1_prefix)
+app.include_router(schedules_router, prefix=settings.api_v1_prefix)
 # Also mount ANP well-known endpoint at root (no prefix)
 app.include_router(anp_router)
 

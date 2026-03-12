@@ -11,6 +11,8 @@ import {
   Upload,
   Users,
   UsersRound,
+  GitBranch,
+  Clock,
   MessageCircle,
   BookOpen,
 } from "lucide-react";
@@ -23,6 +25,8 @@ const NAV_ITEMS = [
   { href: ROUTES.myTasks, label: "My Tasks", icon: ListTodo },
   { href: ROUTES.team, label: "Team", icon: Users },
   { href: ROUTES.myCrews, label: "My Crews", icon: UsersRound },
+  { href: ROUTES.myWorkflows, label: "Workflows", icon: GitBranch },
+  { href: ROUTES.mySchedules, label: "Schedules", icon: Clock },
   { href: ROUTES.credits, label: "Credits", icon: CreditCard },
   { href: ROUTES.payouts, label: "Payouts", icon: Wallet },
   { href: ROUTES.import, label: "Import", icon: Upload },
