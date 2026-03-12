@@ -279,9 +279,11 @@ class PayoutService:
                 },
             )
             payout.stripe_transfer_id = transfer.id
+            payout.status = PayoutStatus.COMPLETED
+            payout.completed_at = datetime.now(timezone.utc)
             await self.db.commit()
             logger.info(
-                "Payout %s created: %d credits → $%.2f (transfer %s)",
+                "Payout %s completed: %d credits → $%.2f (transfer %s)",
                 payout.id, amount_credits, net_usd_cents / 100, transfer.id,
             )
             return payout
@@ -319,59 +321,7 @@ class PayoutService:
 
         return payouts, total
 
-    # ------------------------------------------------------------------
-    # Webhook handler
-    # ------------------------------------------------------------------
-
-    async def handle_transfer_event(self, event_type: str, transfer: dict) -> None:
-        """Handle transfer.paid / transfer.failed webhook events."""
-        transfer_id = transfer.get("id")
-        if not transfer_id:
-            return
-
-        result = await self.db.execute(
-            select(PayoutRequest).where(
-                PayoutRequest.stripe_transfer_id == transfer_id
-            )
-        )
-        payout = result.scalar_one_or_none()
-        if not payout:
-            logger.debug("No payout found for transfer %s", transfer_id)
-            return
-
-        if event_type == "transfer.paid":
-            payout.status = PayoutStatus.COMPLETED
-            payout.completed_at = datetime.now(timezone.utc)
-            await self.db.commit()
-            logger.info("Payout %s completed (transfer %s)", payout.id, transfer_id)
-
-        elif event_type == "transfer.failed":
-            failure_reason = transfer.get("failure_message") or "Transfer failed"
-            payout.status = PayoutStatus.FAILED
-            payout.failure_reason = failure_reason[:500]
-
-            # Refund credits back to user
-            stmt = (
-                select(Account)
-                .where(Account.owner_id == payout.user_id)
-                .with_for_update()
-            )
-            result = await self.db.execute(stmt)
-            account = result.scalars().first()
-            if account:
-                account.balance += Decimal(str(payout.amount_credits))
-                # Record refund transaction
-                refund_txn = Transaction(
-                    from_account_id=None,
-                    to_account_id=account.id,
-                    amount=Decimal(str(payout.amount_credits)),
-                    type=TransactionType.REFUND,
-                    description=f"Payout refund — transfer {transfer_id} failed",
-                )
-                self.db.add(refund_txn)
-
-            await self.db.commit()
-            logger.warning(
-                "Payout %s failed (transfer %s): %s — credits refunded",
-                payout.id, transfer_id, failure_reason,
-            )
+    # Note: stripe.Transfer.create() is synchronous — success/failure is
+    # handled directly in request_payout(). No webhook needed for transfers.
+    # The only Connect webhook we use is account.updated (in billing.py)
+    # to sync onboarding status when a developer completes KYC.

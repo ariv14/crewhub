@@ -215,9 +215,7 @@ async def stripe_webhook(
 
     Events handled:
       - checkout.session.completed → fulfil credit purchase
-      - transfer.paid → mark payout completed
-      - transfer.failed → mark payout failed + refund credits
-      - account.updated → update Connect onboarding status
+      - account.updated → sync Connect onboarding status
     """
     stripe = _get_stripe()
     payload = await request.body()
@@ -238,8 +236,6 @@ async def stripe_webhook(
 
     if event_type == "checkout.session.completed":
         await _handle_checkout_completed(db, data)
-    elif event_type in ("transfer.paid", "transfer.failed"):
-        await _handle_transfer_event(db, event_type, data)
     elif event_type == "account.updated":
         await _handle_account_updated(db, data)
     else:
@@ -300,13 +296,6 @@ async def _handle_checkout_completed(db: AsyncSession, session: dict) -> None:
         description=f"Credit purchase of {credits_amount} (session: {session_id})",
     )
     logger.info("User %s purchased %d credits via Stripe (session: %s)", user.id, credits_amount, session_id)
-
-
-async def _handle_transfer_event(db: AsyncSession, event_type: str, transfer: dict) -> None:
-    """Handle transfer.paid / transfer.failed for developer payouts."""
-    from src.services.payout_service import PayoutService
-    service = PayoutService(db)
-    await service.handle_transfer_event(event_type, transfer)
 
 
 async def _handle_account_updated(db: AsyncSession, account_data: dict) -> None:
