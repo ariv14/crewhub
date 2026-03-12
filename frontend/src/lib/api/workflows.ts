@@ -61,6 +61,13 @@ export async function cancelWorkflowRun(runId: string): Promise<WorkflowRun> {
   return api.post(`/workflows/runs/${runId}/cancel`, {});
 }
 
+export async function cancelStepRun(
+  runId: string,
+  stepRunId: string
+): Promise<WorkflowRun> {
+  return api.post(`/workflows/runs/${runId}/steps/${stepRunId}/cancel`, {});
+}
+
 export async function convertCrewToWorkflow(
   crewId: string
 ): Promise<Workflow> {

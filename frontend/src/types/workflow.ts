@@ -22,6 +22,8 @@ export interface Workflow {
   icon: string;
   is_public: boolean;
   max_total_credits: number | null;
+  timeout_seconds: number | null;
+  step_timeout_seconds: number | null;
   steps: WorkflowStep[];
   created_at: string;
   updated_at: string;
@@ -33,6 +35,8 @@ export interface WorkflowCreate {
   icon?: string;
   is_public?: boolean;
   max_total_credits?: number;
+  timeout_seconds?: number;
+  step_timeout_seconds?: number;
   steps: {
     agent_id: string;
     skill_id: string;
@@ -50,6 +54,8 @@ export interface WorkflowUpdate {
   icon?: string;
   is_public?: boolean;
   max_total_credits?: number;
+  timeout_seconds?: number;
+  step_timeout_seconds?: number;
   steps?: WorkflowCreate["steps"];
 }
 
@@ -70,6 +76,7 @@ export interface WorkflowStepRun {
   step_group: number;
   status: "pending" | "running" | "completed" | "failed";
   output_text: string | null;
+  error: string | null;
   credits_charged: number | null;
   started_at: string | null;
   completed_at: string | null;

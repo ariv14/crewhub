@@ -168,6 +168,20 @@ async def cancel_workflow_run(
     return await engine.cancel_run(run_id, user_id)
 
 
+@router.post(
+    "/runs/{run_id}/steps/{step_run_id}/cancel",
+    response_model=WorkflowRunResponse,
+)
+async def cancel_step_run(
+    run_id: UUID,
+    step_run_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    user_id: UUID = Depends(resolve_db_user_id),
+) -> WorkflowRunResponse:
+    engine = WorkflowExecutionService(db)
+    return await engine.cancel_step_run(run_id, step_run_id, user_id)
+
+
 # --- Convert from crew ---
 
 @router.post("/from-crew/{crew_id}", response_model=WorkflowResponse, status_code=201)

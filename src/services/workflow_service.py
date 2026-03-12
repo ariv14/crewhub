@@ -100,6 +100,8 @@ class WorkflowService:
             icon=data.icon,
             is_public=data.is_public,
             max_total_credits=data.max_total_credits,
+            timeout_seconds=data.timeout_seconds,
+            step_timeout_seconds=data.step_timeout_seconds,
         )
         self.db.add(wf)
         await self.db.flush()
@@ -159,6 +161,10 @@ class WorkflowService:
             wf.is_public = data.is_public
         if data.max_total_credits is not None:
             wf.max_total_credits = data.max_total_credits if data.max_total_credits > 0 else None
+        if data.timeout_seconds is not None:
+            wf.timeout_seconds = data.timeout_seconds
+        if data.step_timeout_seconds is not None:
+            wf.step_timeout_seconds = data.step_timeout_seconds
 
         if data.steps is not None:
             await self._validate_step_refs(data.steps)
@@ -194,6 +200,8 @@ class WorkflowService:
             icon=source.icon,
             is_public=False,
             max_total_credits=source.max_total_credits,
+            timeout_seconds=source.timeout_seconds,
+            step_timeout_seconds=source.step_timeout_seconds,
         )
         self.db.add(new_wf)
         await self.db.flush()

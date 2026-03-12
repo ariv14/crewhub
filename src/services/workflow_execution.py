@@ -16,8 +16,9 @@ from src.schemas.task import TaskCreate as TaskCreateSchema, TaskMessage, Messag
 
 logger = logging.getLogger(__name__)
 
-# Maximum time (seconds) a workflow run can be in "running" state
-WORKFLOW_TIMEOUT_SECONDS = 600
+# Fallback timeouts when workflow has no user-configured values
+DEFAULT_WORKFLOW_TIMEOUT = 1800  # 30 minutes
+DEFAULT_STEP_TIMEOUT = 120  # 2 minutes
 
 
 class WorkflowExecutionService:
@@ -39,9 +40,11 @@ class WorkflowExecutionService:
         if not wf.steps:
             raise MarketplaceError(status_code=400, detail="Workflow has no steps")
 
-        # Build snapshot of workflow definition
+        # Build snapshot of workflow definition (includes timeout config)
         snapshot = {
             "name": wf.name,
+            "timeout_seconds": wf.timeout_seconds or DEFAULT_WORKFLOW_TIMEOUT,
+            "step_timeout_seconds": wf.step_timeout_seconds or DEFAULT_STEP_TIMEOUT,
             "steps": [
                 {
                     "id": str(s.id),
@@ -141,12 +144,31 @@ class WorkflowExecutionService:
         await self.db.commit()
 
     async def _pump_single_run(self, run: WorkflowRun, now: datetime) -> None:
-        # Check timeout
-        elapsed = (now - run.created_at.replace(tzinfo=timezone.utc if run.created_at.tzinfo is None else run.created_at.tzinfo)).total_seconds()
-        if elapsed > WORKFLOW_TIMEOUT_SECONDS:
+        # Read timeout from snapshot (user-configured), fallback to defaults
+        snapshot = run.workflow_snapshot or {}
+        wf_timeout = snapshot.get("timeout_seconds", DEFAULT_WORKFLOW_TIMEOUT)
+        step_timeout = snapshot.get("step_timeout_seconds", DEFAULT_STEP_TIMEOUT)
+
+        # Check workflow-level timeout
+        created = run.created_at.replace(
+            tzinfo=timezone.utc if run.created_at.tzinfo is None else run.created_at.tzinfo
+        )
+        elapsed = (now - created).total_seconds()
+        if elapsed > wf_timeout:
             run.status = "failed"
-            run.error = f"Workflow timed out after {WORKFLOW_TIMEOUT_SECONDS}s"
+            run.error = (
+                f"Workflow timed out after {int(elapsed)}s "
+                f"(limit: {wf_timeout}s). "
+                f"You can increase the timeout in workflow settings."
+            )
             run.completed_at = now
+            # Mark any running steps as timed out too
+            for sr in run.step_runs:
+                if sr.status == "running":
+                    sr.status = "failed"
+                    sr.error = "Workflow-level timeout reached"
+                    sr.completed_at = now
+            self._tally_credits(run)
             return
 
         current_group = run.current_step_group
@@ -158,20 +180,33 @@ class WorkflowExecutionService:
             run.completed_at = now
             return
 
+        # Check per-step timeouts for running steps
+        self._check_step_timeouts(group_step_runs, step_timeout, now, snapshot)
+
         # Check if all step runs in current group are terminal
         all_terminal = all(sr.status in ("completed", "failed") for sr in group_step_runs)
         if not all_terminal:
             # Check tasks for status updates
-            await self._sync_step_run_statuses(group_step_runs)
+            await self._sync_step_run_statuses(group_step_runs, snapshot)
+            # Re-check step timeouts after syncing
+            self._check_step_timeouts(group_step_runs, step_timeout, now, snapshot)
             all_terminal = all(sr.status in ("completed", "failed") for sr in group_step_runs)
             if not all_terminal:
                 return
 
-        # Check for failures
-        any_failed = any(sr.status == "failed" for sr in group_step_runs)
-        if any_failed:
+        # Check for failures — collect error details
+        failed_steps = [sr for sr in group_step_runs if sr.status == "failed"]
+        if failed_steps:
+            error_details = []
+            for sr in failed_steps:
+                step_info = self._step_info_from_snapshot(snapshot, sr.step_id)
+                label = step_info.get("agent_name", "Unknown") if step_info else "Unknown"
+                if sr.error:
+                    error_details.append(f"{label}: {sr.error}")
+                else:
+                    error_details.append(f"{label}: failed (no details)")
             run.status = "failed"
-            run.error = f"Step group {current_group} had failures"
+            run.error = f"Step {current_group + 1} failed — " + "; ".join(error_details)
             run.completed_at = now
             self._tally_credits(run)
             return
@@ -211,7 +246,48 @@ class WorkflowExecutionService:
                 input_text=run.input_message, prev_output=prev_output,
             )
 
-    async def _sync_step_run_statuses(self, step_runs: list[WorkflowStepRun]) -> None:
+    def _check_step_timeouts(
+        self,
+        step_runs: list[WorkflowStepRun],
+        step_timeout: int,
+        now: datetime,
+        snapshot: dict,
+    ) -> None:
+        for sr in step_runs:
+            if sr.status != "running" or not sr.started_at:
+                continue
+            started = sr.started_at.replace(
+                tzinfo=timezone.utc if sr.started_at.tzinfo is None else sr.started_at.tzinfo
+            )
+            elapsed = (now - started).total_seconds()
+            if elapsed > step_timeout:
+                step_info = self._step_info_from_snapshot(snapshot, sr.step_id)
+                agent_name = step_info.get("agent_name", "Unknown") if step_info else "Unknown"
+                skill_name = step_info.get("skill_name", "Unknown") if step_info else "Unknown"
+                sr.status = "failed"
+                sr.error = (
+                    f"Step timed out after {int(elapsed)}s (limit: {step_timeout}s). "
+                    f"Agent '{agent_name}' with skill '{skill_name}' did not respond in time. "
+                    f"The agent may be offline or overloaded."
+                )
+                sr.completed_at = now
+                logger.warning(
+                    "Step run %s timed out after %ds (agent: %s, skill: %s)",
+                    sr.id, int(elapsed), agent_name, skill_name,
+                )
+
+    def _step_info_from_snapshot(self, snapshot: dict, step_id: UUID | None) -> dict | None:
+        if not step_id or not snapshot.get("steps"):
+            return None
+        step_id_str = str(step_id)
+        for s in snapshot["steps"]:
+            if s.get("id") == step_id_str:
+                return s
+        return None
+
+    async def _sync_step_run_statuses(
+        self, step_runs: list[WorkflowStepRun], snapshot: dict
+    ) -> None:
         for sr in step_runs:
             if sr.status in ("completed", "failed") or not sr.task_id:
                 continue
@@ -232,6 +308,12 @@ class WorkflowExecutionService:
             elif task_status in ("failed", "canceled"):
                 sr.status = "failed"
                 sr.completed_at = datetime.now(timezone.utc)
+                step_info = self._step_info_from_snapshot(snapshot, sr.step_id)
+                agent_name = step_info.get("agent_name", "Unknown") if step_info else "Unknown"
+                sr.error = (
+                    f"Task {task_status} — agent '{agent_name}' "
+                    f"could not complete the request."
+                )
 
     # ------------------------------------------------------------------
     # Dispatch helpers
@@ -285,13 +367,17 @@ class WorkflowExecutionService:
                     sr.task_id = task.id
                     sr.status = "running"
                     sr.started_at = datetime.now(timezone.utc)
-            except Exception:
+            except Exception as exc:
                 logger.exception(
                     "Failed to dispatch step %s in workflow run %s", step.id, run.id
                 )
                 sr = sr_by_step.get(step.id)
                 if sr:
                     sr.status = "failed"
+                    sr.error = (
+                        f"Failed to dispatch task to agent "
+                        f"'{step.agent.name if step.agent else 'Unknown'}': {exc}"
+                    )
                     sr.completed_at = datetime.now(timezone.utc)
 
         await self.db.commit()
@@ -354,7 +440,7 @@ class WorkflowExecutionService:
         run.total_credits_charged = total
 
     # ------------------------------------------------------------------
-    # Cancel
+    # Cancel run
     # ------------------------------------------------------------------
 
     async def cancel_run(self, run_id: UUID, user_id: UUID) -> WorkflowRun:
@@ -371,10 +457,63 @@ class WorkflowExecutionService:
         if run.status != "running":
             raise MarketplaceError(status_code=400, detail="Run is not in running state")
 
+        now = datetime.now(timezone.utc)
         run.status = "canceled"
-        run.completed_at = datetime.now(timezone.utc)
+        run.completed_at = now
+        for sr in run.step_runs:
+            if sr.status in ("pending", "running"):
+                sr.status = "failed"
+                sr.error = "Canceled by user"
+                sr.completed_at = now
         self._tally_credits(run)
         await self.db.commit()
+        return run
+
+    # ------------------------------------------------------------------
+    # Cancel individual step run
+    # ------------------------------------------------------------------
+
+    async def cancel_step_run(
+        self, run_id: UUID, step_run_id: UUID, user_id: UUID
+    ) -> WorkflowRun:
+        result = await self.db.execute(
+            select(WorkflowRun)
+            .where(WorkflowRun.id == run_id)
+            .options(selectinload(WorkflowRun.step_runs))
+        )
+        run = result.scalar_one_or_none()
+        if not run:
+            raise MarketplaceError(status_code=404, detail="Workflow run not found")
+        if run.user_id != user_id:
+            raise MarketplaceError(status_code=403, detail="Not your workflow run")
+        if run.status != "running":
+            raise MarketplaceError(status_code=400, detail="Run is not in running state")
+
+        target_sr = None
+        for sr in run.step_runs:
+            if sr.id == step_run_id:
+                target_sr = sr
+                break
+
+        if not target_sr:
+            raise MarketplaceError(status_code=404, detail="Step run not found")
+        if target_sr.status not in ("pending", "running"):
+            raise MarketplaceError(
+                status_code=400,
+                detail=f"Step is already {target_sr.status}, cannot cancel"
+            )
+
+        now = datetime.now(timezone.utc)
+        snapshot = run.workflow_snapshot or {}
+        step_info = self._step_info_from_snapshot(snapshot, target_sr.step_id)
+        agent_name = step_info.get("agent_name", "Unknown") if step_info else "Unknown"
+
+        target_sr.status = "failed"
+        target_sr.error = f"Canceled by user (agent: {agent_name})"
+        target_sr.completed_at = now
+
+        await self.db.commit()
+        await self.db.refresh(run)
         return run
 
     # ------------------------------------------------------------------
@@ -398,6 +537,7 @@ class WorkflowExecutionService:
             for sr in run.step_runs:
                 if sr.status == "running":
                     sr.status = "failed"
+                    sr.error = "Process restarted during execution"
                     sr.completed_at = now
             count += 1
 

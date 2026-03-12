@@ -46,6 +46,8 @@ class WorkflowCreate(BaseModel):
     icon: str = Field("🔗", max_length=10)
     is_public: bool = False
     max_total_credits: Optional[int] = Field(None, ge=1)
+    timeout_seconds: Optional[int] = Field(1800, ge=60, le=7200)
+    step_timeout_seconds: Optional[int] = Field(120, ge=30, le=3600)
     steps: list[WorkflowStepCreate] = Field(default=[], max_length=50)
 
 
@@ -55,6 +57,8 @@ class WorkflowUpdate(BaseModel):
     icon: Optional[str] = Field(None, max_length=10)
     is_public: Optional[bool] = None
     max_total_credits: Optional[int] = Field(None, ge=0)
+    timeout_seconds: Optional[int] = Field(None, ge=60, le=7200)
+    step_timeout_seconds: Optional[int] = Field(None, ge=30, le=3600)
     steps: Optional[list[WorkflowStepCreate]] = None
 
 
@@ -68,6 +72,8 @@ class WorkflowResponse(BaseModel):
     icon: str
     is_public: bool
     max_total_credits: Optional[int]
+    timeout_seconds: Optional[int]
+    step_timeout_seconds: Optional[int]
     steps: list[WorkflowStepResponse]
     created_at: datetime
     updated_at: datetime
@@ -94,6 +100,7 @@ class WorkflowStepRunResponse(BaseModel):
     step_group: int
     status: str
     output_text: Optional[str]
+    error: Optional[str]
     credits_charged: Optional[Decimal]
     started_at: Optional[datetime]
     completed_at: Optional[datetime]

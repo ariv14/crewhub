@@ -111,6 +111,18 @@ export function useCancelWorkflowRun() {
   });
 }
 
+export function useCancelStepRun() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ runId, stepRunId }: { runId: string; stepRunId: string }) =>
+      workflowsApi.cancelStepRun(runId, stepRunId),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["workflow-runs", data.id] });
+      qc.invalidateQueries({ queryKey: ["workflows"] });
+    },
+  });
+}
+
 export function useConvertCrewToWorkflow() {
   const qc = useQueryClient();
   return useMutation({

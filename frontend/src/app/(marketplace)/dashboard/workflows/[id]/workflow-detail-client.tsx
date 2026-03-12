@@ -18,6 +18,9 @@ import {
   GitBranch,
   Users2,
   Search,
+  AlertTriangle,
+  StopCircle,
+  Timer,
 } from "lucide-react";
 import {
   useWorkflow,
@@ -25,6 +28,7 @@ import {
   useCloneWorkflow,
   useRunWorkflow,
   useWorkflowRuns,
+  useCancelStepRun,
 } from "@/lib/hooks/use-workflows";
 import { useAgents } from "@/lib/hooks/use-agents";
 import { ROUTES } from "@/lib/constants";
@@ -35,7 +39,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import type { WorkflowStep, WorkflowRun } from "@/types/workflow";
+import type { WorkflowStep, WorkflowRun, WorkflowStepRun } from "@/types/workflow";
 import type { Agent, Skill } from "@/types/agent";
 
 // ---------------------------------------------------------------------------
@@ -280,15 +284,37 @@ function StepCard({
 }
 
 // ---------------------------------------------------------------------------
-// Run history card
+// Run history card — with per-step errors and cancel buttons
 // ---------------------------------------------------------------------------
-function RunCard({ run }: { run: WorkflowRun }) {
+function RunCard({
+  run,
+  onCancelStep,
+  isCancellingStep,
+}: {
+  run: WorkflowRun;
+  onCancelStep?: (stepRunId: string) => void;
+  isCancellingStep?: boolean;
+}) {
   const statusColors: Record<string, string> = {
     running: "bg-purple-500/15 text-purple-400",
     completed: "bg-green-500/15 text-green-400",
     failed: "bg-red-500/15 text-red-400",
     canceled: "bg-zinc-500/15 text-zinc-400",
   };
+
+  const snapshot = run.workflow_snapshot as Record<string, unknown> | null;
+  const snapshotSteps = (snapshot?.steps as Array<Record<string, unknown>>) || [];
+
+  function getStepLabel(sr: WorkflowStepRun): string {
+    if (!sr.step_id) return `Step ${sr.step_group + 1}`;
+    const info = snapshotSteps.find((s) => s.id === sr.step_id);
+    if (info) {
+      const agent = (info.agent_name as string) || "";
+      const skill = (info.skill_name as string) || "";
+      return agent ? `${agent}${skill ? ` · ${skill}` : ""}` : `Step ${sr.step_group + 1}`;
+    }
+    return `Step ${sr.step_group + 1}`;
+  }
 
   return (
     <div className="rounded-lg border p-3">
@@ -308,8 +334,15 @@ function RunCard({ run }: { run: WorkflowRun }) {
       <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
         {run.input_message}
       </p>
-      {run.error && <p className="mt-1 text-xs text-red-400">{run.error}</p>}
-      <div className="mt-2 flex gap-1">
+      {run.error && (
+        <div className="mt-2 flex items-start gap-1.5 rounded-md bg-red-500/10 px-2 py-1.5 text-xs text-red-400">
+          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+          <span>{run.error}</span>
+        </div>
+      )}
+
+      {/* Per-step progress with errors and cancel */}
+      <div className="mt-2 space-y-1">
         {run.step_runs.map((sr) => {
           const colors: Record<string, string> = {
             pending: "bg-zinc-500/30",
@@ -317,12 +350,40 @@ function RunCard({ run }: { run: WorkflowRun }) {
             completed: "bg-green-500",
             failed: "bg-red-500",
           };
+          const label = getStepLabel(sr);
+          const canCancel = run.status === "running" && (sr.status === "running" || sr.status === "pending");
+
           return (
-            <div
-              key={sr.id}
-              className={`h-1.5 flex-1 rounded-full ${colors[sr.status] || "bg-zinc-500/30"}`}
-              title={`Step ${sr.step_group + 1}: ${sr.status}`}
-            />
+            <div key={sr.id}>
+              <div className="flex items-center gap-2">
+                <div
+                  className={`h-1.5 flex-1 rounded-full ${colors[sr.status] || "bg-zinc-500/30"}`}
+                  title={`${label}: ${sr.status}`}
+                />
+                <span className="shrink-0 text-[10px] text-muted-foreground w-24 truncate" title={label}>
+                  {label}
+                </span>
+                <span className="shrink-0 text-[10px] text-muted-foreground w-14">
+                  {sr.status}
+                </span>
+                {canCancel && onCancelStep && (
+                  <button
+                    onClick={() => onCancelStep(sr.id)}
+                    disabled={isCancellingStep}
+                    className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-red-400 disabled:opacity-50"
+                    title="Cancel this step"
+                  >
+                    <StopCircle className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+              {sr.error && (
+                <div className="ml-0 mt-0.5 flex items-start gap-1 rounded bg-red-500/5 px-1.5 py-1 text-[10px] text-red-400">
+                  <AlertTriangle className="mt-0.5 h-2.5 w-2.5 shrink-0" />
+                  <span className="break-words">{sr.error}</span>
+                </div>
+              )}
+            </div>
           );
         })}
       </div>
@@ -362,6 +423,13 @@ function groupEditSteps(steps: EditStep[]) {
     .sort((a, b) => a - b);
 }
 
+function formatTimeout(seconds: number | null | undefined): string {
+  if (!seconds) return "—";
+  if (seconds >= 3600) return `${Math.round(seconds / 3600)}h`;
+  if (seconds >= 60) return `${Math.round(seconds / 60)}m`;
+  return `${seconds}s`;
+}
+
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
@@ -382,11 +450,14 @@ export function WorkflowDetailClient({ serverId }: { serverId: string }) {
   const updateWorkflow = useUpdateWorkflow(realId);
   const cloneWorkflow = useCloneWorkflow();
   const runWorkflow = useRunWorkflow();
+  const cancelStep = useCancelStepRun();
 
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
   const [editSteps, setEditSteps] = useState<EditStep[]>([]);
+  const [editTimeout, setEditTimeout] = useState(1800);
+  const [editStepTimeout, setEditStepTimeout] = useState(120);
   const [runMessage, setRunMessage] = useState("");
   const [showRunPanel, setShowRunPanel] = useState(false);
 
@@ -413,6 +484,8 @@ export function WorkflowDetailClient({ serverId }: { serverId: string }) {
     setEditName(workflow!.name);
     setEditDesc(workflow!.description || "");
     setEditSteps(workflowStepsToEditSteps(workflow!.steps));
+    setEditTimeout(workflow!.timeout_seconds ?? 1800);
+    setEditStepTimeout(workflow!.step_timeout_seconds ?? 120);
     setEditing(true);
   }
 
@@ -420,7 +493,9 @@ export function WorkflowDetailClient({ serverId }: { serverId: string }) {
     await updateWorkflow.mutateAsync({
       name: editName,
       description: editDesc,
-      steps: editSteps.map((s, i) => ({
+      timeout_seconds: editTimeout,
+      step_timeout_seconds: editStepTimeout,
+      steps: editSteps.map((s) => ({
         agent_id: s.agent_id,
         skill_id: s.skill_id,
         step_group: s.step_group,
@@ -487,6 +562,19 @@ export function WorkflowDetailClient({ serverId }: { serverId: string }) {
   function handleChangeInputMode(tempId: string, mode: string) {
     setEditSteps((prev) =>
       prev.map((s) => (s.tempId === tempId ? { ...s, input_mode: mode } : s))
+    );
+  }
+
+  function handleCancelStep(runId: string, stepRunId: string) {
+    cancelStep.mutate(
+      { runId, stepRunId },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({
+            queryKey: ["workflows", realId, "runs"],
+          });
+        },
+      }
     );
   }
 
@@ -586,10 +674,74 @@ export function WorkflowDetailClient({ serverId }: { serverId: string }) {
         </div>
       </div>
 
-      {/* Cost limit info */}
-      {workflow.max_total_credits && (
-        <div className="mt-3 text-sm text-muted-foreground">
-          Cost limit: {workflow.max_total_credits} credits per run
+      {/* Settings info (view mode) */}
+      {!editing && (
+        <div className="mt-3 flex flex-wrap gap-4 text-sm text-muted-foreground">
+          {workflow.max_total_credits && (
+            <span>Cost limit: {workflow.max_total_credits} credits</span>
+          )}
+          <span className="flex items-center gap-1">
+            <Timer className="h-3.5 w-3.5" />
+            Workflow timeout: {formatTimeout(workflow.timeout_seconds)}
+          </span>
+          <span className="flex items-center gap-1">
+            <Timer className="h-3.5 w-3.5" />
+            Step timeout: {formatTimeout(workflow.step_timeout_seconds)}
+          </span>
+        </div>
+      )}
+
+      {/* Timeout settings (edit mode) */}
+      {editing && (
+        <div className="mt-4 rounded-xl border bg-card p-4">
+          <h3 className="text-sm font-semibold flex items-center gap-1.5 mb-3">
+            <Timer className="h-4 w-4" />
+            Timeout Settings
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-xs text-muted-foreground">
+                Workflow timeout (seconds)
+              </Label>
+              <div className="mt-1 flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={60}
+                  max={7200}
+                  value={editTimeout}
+                  onChange={(e) => setEditTimeout(Number(e.target.value))}
+                  className="w-28"
+                />
+                <span className="text-xs text-muted-foreground">
+                  = {formatTimeout(editTimeout)}
+                </span>
+              </div>
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                Max time for the entire workflow (60s – 7200s)
+              </p>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">
+                Per-step timeout (seconds)
+              </Label>
+              <div className="mt-1 flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={30}
+                  max={3600}
+                  value={editStepTimeout}
+                  onChange={(e) => setEditStepTimeout(Number(e.target.value))}
+                  className="w-28"
+                />
+                <span className="text-xs text-muted-foreground">
+                  = {formatTimeout(editStepTimeout)}
+                </span>
+              </div>
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                Max time each agent has to respond (30s – 3600s)
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -724,7 +876,12 @@ export function WorkflowDetailClient({ serverId }: { serverId: string }) {
           ) : (
             <div className="mt-3 space-y-2">
               {runs.map((run) => (
-                <RunCard key={run.id} run={run} />
+                <RunCard
+                  key={run.id}
+                  run={run}
+                  onCancelStep={(stepRunId) => handleCancelStep(run.id, stepRunId)}
+                  isCancellingStep={cancelStep.isPending}
+                />
               ))}
             </div>
           )}

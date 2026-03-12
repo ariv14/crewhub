@@ -22,6 +22,8 @@ class Workflow(Base):
     icon: Mapped[str] = mapped_column(String(10), nullable=False, default="🔗")
     is_public: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     max_total_credits: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    timeout_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True, default=1800)
+    step_timeout_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True, default=120)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -118,6 +120,7 @@ class WorkflowStepRun(Base):
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
     output_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     credits_charged: Mapped[Decimal | None] = mapped_column(Numeric(12, 4), nullable=True)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
