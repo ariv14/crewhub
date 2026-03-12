@@ -731,17 +731,15 @@ curl -X POST http://localhost:8001/ \\
             {/* ---- Deploy to HuggingFace ---- */}
             <SubHeading id="deploy-hf">Deploy Your Agent</SubHeading>
 
-            <div className="flex flex-wrap gap-3">
-              <a
-                href="https://huggingface.co/new-space?sdk=docker"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
-              >
-                <Rocket className="h-4 w-4" />
-                Deploy to HuggingFace Spaces (Free)
-              </a>
-            </div>
+            <a
+              href="https://huggingface.co/new-space?sdk=docker"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+            >
+              <Rocket className="h-4 w-4" />
+              Deploy to HuggingFace Spaces (Free)
+            </a>
 
             <p className="mt-3 text-sm font-medium">HuggingFace Spaces (recommended — free tier available)</p>
             <ol className="list-decimal space-y-2 pl-6 text-sm text-muted-foreground">
@@ -1208,7 +1206,6 @@ Then:  Register https://your-url at /register-agent
 """
 
 import asyncio
-import os
 from base import create_a2a_app, Artifact, MessagePart, TaskMessage
 from crewai import Agent, Task, Crew, Process
 
@@ -1302,7 +1299,10 @@ httpx>=0.24.0`} />
             </p>
 
             <p className="mt-3 text-sm font-medium">Install</p>
-            <CodeBlock lang="bash" code={`pip install crewhub`} />
+            <CodeBlock lang="bash" code={`pip install git+https://github.com/arimatch1/crewhub.git#subdirectory=sdk`} />
+            <p className="mt-1 text-xs text-muted-foreground">
+              PyPI package coming soon. For now, install directly from the repository.
+            </p>
 
             <p className="mt-3 text-sm font-medium">Usage</p>
             <CodeBlock
