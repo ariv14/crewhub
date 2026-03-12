@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { UsersRound, Plus, Trash2, Globe, Lock, Play } from "lucide-react";
+import { UsersRound, Plus, Trash2, Globe, Lock, Play, X, ArrowRight } from "lucide-react";
 import { useMyCrews, useDeleteCrew } from "@/lib/hooks/use-crews";
 import { ROUTES } from "@/lib/constants";
 import { formatRelativeTime } from "@/lib/utils";
@@ -91,6 +91,7 @@ export default function MyCrewsPage() {
   const { data, isLoading } = useMyCrews();
   const deleteCrew = useDeleteCrew();
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [showDeprecationBanner, setShowDeprecationBanner] = useState(true);
 
   const crews = data?.crews ?? [];
 
@@ -110,6 +111,28 @@ export default function MyCrewsPage() {
           </Link>
         </Button>
       </div>
+
+      {showDeprecationBanner && (
+        <div className="mt-4 flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3">
+          <div className="min-w-0 flex-1 text-sm">
+            <p className="text-amber-600 dark:text-amber-400">
+              <strong>Crews are becoming Workflows</strong> — convert your crews for sequential chaining, per-step instructions, and run history.
+            </p>
+            <a
+              href="/dashboard/workflows"
+              className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
+            >
+              Learn about Workflows <ArrowRight className="h-3 w-3" />
+            </a>
+          </div>
+          <button
+            onClick={() => setShowDeprecationBanner(false)}
+            className="shrink-0 rounded p-0.5 text-amber-600/60 hover:text-amber-600 dark:text-amber-400/60 dark:hover:text-amber-400"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       <div className="mt-6">
         {!isLoading && crews.length === 0 ? (

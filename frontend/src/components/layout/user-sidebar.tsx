@@ -8,9 +8,7 @@ import {
   CreditCard,
   Wallet,
   Settings,
-  Upload,
   Users,
-  UsersRound,
   GitBranch,
   Clock,
   MessageCircle,
@@ -19,19 +17,37 @@ import {
 import { cn } from "@/lib/utils";
 import { ROUTES, DISCORD_URL } from "@/lib/constants";
 
-const NAV_ITEMS = [
-  { href: ROUTES.dashboard, label: "Overview", icon: LayoutDashboard },
-  { href: ROUTES.myAgents, label: "My Agents", icon: Bot },
-  { href: ROUTES.myTasks, label: "My Tasks", icon: ListTodo },
-  { href: ROUTES.team, label: "Team", icon: Users },
-  { href: ROUTES.myCrews, label: "My Crews", icon: UsersRound },
-  { href: ROUTES.myWorkflows, label: "Workflows", icon: GitBranch },
-  { href: ROUTES.mySchedules, label: "Schedules", icon: Clock },
-  { href: ROUTES.credits, label: "Credits", icon: CreditCard },
-  { href: ROUTES.payouts, label: "Payouts", icon: Wallet },
-  { href: ROUTES.import, label: "Import", icon: Upload },
-  { href: ROUTES.docs, label: "Docs", icon: BookOpen },
-  { href: ROUTES.settings, label: "Settings", icon: Settings },
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+};
+
+const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
+  {
+    label: "Core",
+    items: [
+      { href: ROUTES.dashboard, label: "Overview", icon: LayoutDashboard },
+      { href: ROUTES.myAgents, label: "My Agents", icon: Bot },
+      { href: ROUTES.myTasks, label: "My Tasks", icon: ListTodo },
+    ],
+  },
+  {
+    label: "Orchestration",
+    items: [
+      { href: ROUTES.teamMode, label: "Team Mode", icon: Users },
+      { href: ROUTES.myWorkflows, label: "Workflows", icon: GitBranch },
+      { href: ROUTES.mySchedules, label: "Schedules", icon: Clock },
+    ],
+  },
+  {
+    label: "Account",
+    items: [
+      { href: ROUTES.credits, label: "Credits", icon: CreditCard },
+      { href: ROUTES.payouts, label: "Payouts", icon: Wallet },
+      { href: ROUTES.settings, label: "Settings", icon: Settings },
+    ],
+  },
 ];
 
 export function UserSidebar() {
@@ -39,30 +55,46 @@ export function UserSidebar() {
 
   return (
     <aside className="hidden w-56 shrink-0 border-r lg:flex lg:flex-col">
-      <nav className="flex flex-col gap-1 p-4">
-        {NAV_ITEMS.map((item) => {
-          const active =
-            pathname === item.href ||
-            (item.href !== ROUTES.dashboard &&
-              pathname.startsWith(item.href));
-          return (
-            <a
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                active
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-              )}
-            >
-              <item.icon className="h-4 w-4" />
-              {item.label}
-            </a>
-          );
-        })}
+      <nav className="flex flex-col p-4">
+        {NAV_SECTIONS.map((section, idx) => (
+          <div key={section.label} className={idx > 0 ? "mt-4" : ""}>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold px-3 mb-1 block">
+              {section.label}
+            </span>
+            <div className="flex flex-col gap-1">
+              {section.items.map((item) => {
+                const active =
+                  pathname === item.href ||
+                  (item.href !== ROUTES.dashboard &&
+                    pathname.startsWith(item.href));
+                return (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      active
+                        ? "bg-accent text-accent-foreground"
+                        : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                    )}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
       <div className="mt-auto border-t p-4">
+        <a
+          href={ROUTES.docs}
+          className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+        >
+          <BookOpen className="h-4 w-4" />
+          Docs
+        </a>
         <a
           href={DISCORD_URL}
           target="_blank"

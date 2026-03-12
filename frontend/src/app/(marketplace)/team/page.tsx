@@ -16,6 +16,7 @@ import {
   Circle,
   Coins,
   Save,
+  GitBranch,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -34,6 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { useCreateTask, useTask } from "@/lib/hooks/use-tasks";
 import { useCreateCrew } from "@/lib/hooks/use-crews";
+import { useCreateWorkflow } from "@/lib/hooks/use-workflows";
 import { suggestAgents } from "@/lib/api/tasks";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
@@ -389,10 +391,12 @@ export default function TeamPage() {
 
   const createTask = useCreateTask();
   const createCrew = useCreateCrew();
+  const createWorkflow = useCreateWorkflow();
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [crewName, setCrewName] = useState("");
   const [crewDesc, setCrewDesc] = useState("");
+  const [savingWorkflow, setSavingWorkflow] = useState(false);
 
   // Clear auth prompt if user signs in
   useEffect(() => {
@@ -496,6 +500,33 @@ export default function TeamPage() {
       next.set(agentId, task);
       return next;
     });
+  }
+
+  async function handleSaveAsWorkflow() {
+    if (!crewName.trim() || suggestions.length === 0) return;
+    setSavingWorkflow(true);
+    try {
+      const workflow = await createWorkflow.mutateAsync({
+        name: crewName.trim(),
+        description: crewDesc.trim() || undefined,
+        is_public: false,
+        steps: suggestions.map((s, i) => ({
+          agent_id: s.agent.id,
+          skill_id: s.skill.id,
+          step_group: 0,
+          position: i,
+        })),
+      });
+      setShowSaveDialog(false);
+      setCrewName("");
+      setCrewDesc("");
+      window.location.href = ROUTES.workflowDetail(workflow.id);
+    } catch {
+      setError("Failed to save workflow. Please try again.");
+      setShowSaveDialog(false);
+    } finally {
+      setSavingWorkflow(false);
+    }
   }
 
   async function handleSaveAsCrew() {
@@ -749,8 +780,8 @@ export default function TeamPage() {
                   onClick={() => setShowSaveDialog(true)}
                   className="gap-1"
                 >
-                  <Save className="h-3 w-3" />
-                  Save as Crew
+                  <GitBranch className="h-3 w-3" />
+                  Save as Workflow
                 </Button>
               )}
               <Button
@@ -781,18 +812,18 @@ export default function TeamPage() {
         </div>
       )}
 
-      {/* Save as Crew dialog */}
+      {/* Save as Workflow dialog */}
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Save as Crew</DialogTitle>
+            <DialogTitle>Save as Workflow</DialogTitle>
             <DialogDescription>
-              Save this team for easy re-use. You can run it again from My Crews.
+              Save this team as a workflow. You can add sequential chaining, per-step instructions, and view run history.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <Input
-              placeholder="Crew name"
+              placeholder="Workflow name"
               value={crewName}
               onChange={(e) => setCrewName(e.target.value)}
               autoFocus
@@ -804,25 +835,35 @@ export default function TeamPage() {
               className="min-h-[60px] resize-none"
             />
             <p className="text-xs text-muted-foreground">
-              {suggestions.length} member{suggestions.length !== 1 ? "s" : ""} will be saved
+              {suggestions.length} step{suggestions.length !== 1 ? "s" : ""} will be created (all run in parallel)
             </p>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
-              Cancel
-            </Button>
-            <Button
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <div className="flex w-full justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveAsWorkflow}
+                disabled={!crewName.trim() || savingWorkflow}
+                className="gap-1"
+              >
+                {savingWorkflow ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <GitBranch className="h-3.5 w-3.5" />
+                )}
+                Save Workflow
+              </Button>
+            </div>
+            <button
+              type="button"
               onClick={handleSaveAsCrew}
               disabled={!crewName.trim() || createCrew.isPending}
-              className="gap-1"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors self-end"
             >
-              {createCrew.isPending ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Save className="h-3.5 w-3.5" />
-              )}
-              Save Crew
-            </Button>
+              {createCrew.isPending ? "Saving..." : "Or save as Crew instead"}
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
