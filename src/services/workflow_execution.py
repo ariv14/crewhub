@@ -55,6 +55,7 @@ class WorkflowExecutionService:
                     "input_mode": s.input_mode,
                     "input_template": s.input_template,
                     "label": s.label,
+                    "instructions": s.instructions,
                     "agent_name": s.agent.name if s.agent else None,
                     "skill_name": s.skill.name if s.skill else None,
                 }
@@ -346,10 +347,11 @@ class WorkflowExecutionService:
             resolved_input = self._resolve_input(
                 step, input_text, prev_output, all_outputs
             )
+            final_input = self._apply_instructions(resolved_input, step.instructions)
 
             message = TaskMessage(
                 role="user",
-                parts=[MessagePart(type="text", content=resolved_input)],
+                parts=[MessagePart(type="text", content=final_input)],
             )
             task_data = TaskCreateSchema(
                 provider_agent_id=step.agent_id,
@@ -381,6 +383,15 @@ class WorkflowExecutionService:
                     sr.completed_at = datetime.now(timezone.utc)
 
         await self.db.commit()
+
+    def _apply_instructions(self, base_text: str, instructions: str | None) -> str:
+        """Prepend per-step instructions to the resolved input text."""
+        if not instructions or not instructions.strip():
+            return base_text
+        return (
+            f"## Instructions\n{instructions.strip()}\n\n"
+            f"## Task\n{base_text}"
+        )
 
     def _resolve_input(
         self,

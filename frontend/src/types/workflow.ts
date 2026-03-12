@@ -9,6 +9,7 @@ export interface WorkflowStep {
   position: number;
   input_mode: "chain" | "original" | "custom";
   input_template: string | null;
+  instructions: string | null;
   label: string | null;
   agent: Agent;
   skill: Skill;
@@ -44,6 +45,7 @@ export interface WorkflowCreate {
     position: number;
     input_mode?: string;
     input_template?: string;
+    instructions?: string;
     label?: string;
   }[];
 }

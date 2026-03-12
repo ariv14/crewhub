@@ -82,6 +82,7 @@ class WorkflowService:
                 input_mode=s.input_mode,
                 input_template=s.input_template,
                 label=s.label,
+                instructions=s.instructions,
             )
             for s in steps
         ]
@@ -216,6 +217,7 @@ class WorkflowService:
                 input_mode=s.input_mode,
                 input_template=s.input_template,
                 label=s.label,
+                instructions=s.instructions,
             ))
 
         await self.db.commit()

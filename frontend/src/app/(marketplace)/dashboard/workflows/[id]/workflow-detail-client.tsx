@@ -58,6 +58,7 @@ interface EditStep {
   position: number;
   input_mode: string;
   input_template?: string;
+  instructions?: string;
   // Populated for display
   agent_name: string;
   skill_name: string;
@@ -213,6 +214,7 @@ function StepCard({
   onRemoveStep,
   onAddAgentToStep,
   onChangeInputMode,
+  onChangeInstructions,
 }: {
   groupNum: number;
   steps: EditStep[];
@@ -220,6 +222,7 @@ function StepCard({
   onRemoveStep?: (tempId: string) => void;
   onAddAgentToStep?: (groupNum: number) => void;
   onChangeInputMode?: (tempId: string, mode: string) => void;
+  onChangeInstructions?: (tempId: string, val: string) => void;
 }) {
   const isParallel = steps.length > 1;
 
@@ -248,38 +251,60 @@ function StepCard({
         )}
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-3 space-y-2">
         {steps.map((step) => (
-          <div
-            key={step.tempId}
-            className="flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-2 text-sm"
-          >
-            <span className="font-medium">{step.agent_name}</span>
-            <span className="text-muted-foreground">·</span>
-            <span className="text-muted-foreground">{step.skill_name}</span>
-            {editing && groupNum > 0 && onChangeInputMode && (
-              <select
-                value={step.input_mode}
-                onChange={(e) => onChangeInputMode(step.tempId, e.target.value)}
-                className="ml-1 rounded border bg-background px-1 py-0.5 text-[10px]"
-              >
-                <option value="chain">chain</option>
-                <option value="original">original</option>
-                <option value="custom">custom</option>
-              </select>
+          <div key={step.tempId} className="rounded-lg border bg-muted/50 px-3 py-2">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="font-medium">{step.agent_name}</span>
+              <span className="text-muted-foreground">·</span>
+              <span className="text-muted-foreground">{step.skill_name}</span>
+              {editing && groupNum > 0 && onChangeInputMode && (
+                <select
+                  value={step.input_mode}
+                  onChange={(e) => onChangeInputMode(step.tempId, e.target.value)}
+                  className="ml-1 rounded border bg-background px-1 py-0.5 text-[10px]"
+                >
+                  <option value="chain">chain</option>
+                  <option value="original">original</option>
+                  <option value="custom">custom</option>
+                </select>
+              )}
+              {!editing && step.input_mode !== "chain" && (
+                <Badge variant="outline" className="ml-1 text-[10px]">
+                  {step.input_mode === "original" ? "original input" : "custom"}
+                </Badge>
+              )}
+              {editing && onRemoveStep && (
+                <button
+                  onClick={() => onRemoveStep(step.tempId)}
+                  className="ml-auto text-muted-foreground hover:text-destructive"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+            {editing && onChangeInstructions && (
+              <div className="mt-2">
+                <Textarea
+                  placeholder='Instructions for this agent (optional) — e.g. "Summarize in 3 bullet points" or "Translate to Spanish"'
+                  value={step.instructions || ""}
+                  onChange={(e) => onChangeInstructions(step.tempId, e.target.value)}
+                  rows={2}
+                  maxLength={1000}
+                  className="text-xs"
+                />
+                <div className="mt-0.5 text-right text-[10px] text-muted-foreground">
+                  {(step.instructions || "").length} / 1000
+                </div>
+              </div>
             )}
-            {!editing && step.input_mode !== "chain" && (
-              <Badge variant="outline" className="ml-1 text-[10px]">
-                {step.input_mode === "original" ? "original input" : "custom"}
-              </Badge>
-            )}
-            {editing && onRemoveStep && (
-              <button
-                onClick={() => onRemoveStep(step.tempId)}
-                className="ml-1 text-muted-foreground hover:text-destructive"
+            {!editing && step.instructions && (
+              <p
+                className="mt-1 text-[10px] text-muted-foreground italic truncate"
+                title={step.instructions}
               >
-                <X className="h-3 w-3" />
-              </button>
+                {step.instructions}
+              </p>
             )}
           </div>
         ))}
@@ -513,6 +538,7 @@ function workflowStepsToEditSteps(steps: WorkflowStep[]): EditStep[] {
     position: s.position,
     input_mode: s.input_mode || "chain",
     input_template: s.input_template || undefined,
+    instructions: s.instructions || undefined,
     agent_name: s.agent?.name || "Unknown",
     skill_name: s.skill?.name || "Unknown",
   }));
@@ -607,6 +633,7 @@ export function WorkflowDetailClient({ serverId }: { serverId: string }) {
         position: s.position,
         input_mode: s.input_mode,
         input_template: s.input_template,
+        instructions: s.instructions,
       })),
     });
     await queryClient.refetchQueries({ queryKey: ["workflows", realId] });
@@ -667,6 +694,14 @@ export function WorkflowDetailClient({ serverId }: { serverId: string }) {
   function handleChangeInputMode(tempId: string, mode: string) {
     setEditSteps((prev) =>
       prev.map((s) => (s.tempId === tempId ? { ...s, input_mode: mode } : s))
+    );
+  }
+
+  function handleChangeInstructions(tempId: string, val: string) {
+    setEditSteps((prev) =>
+      prev.map((s) =>
+        s.tempId === tempId ? { ...s, instructions: val || undefined } : s
+      )
     );
   }
 
@@ -914,6 +949,9 @@ export function WorkflowDetailClient({ serverId }: { serverId: string }) {
                   }
                   onChangeInputMode={
                     editing ? handleChangeInputMode : undefined
+                  }
+                  onChangeInstructions={
+                    editing ? handleChangeInstructions : undefined
                   }
                 />
                 {i < sortedGroups.length - 1 && (

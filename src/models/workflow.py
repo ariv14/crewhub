@@ -65,6 +65,7 @@ class WorkflowStep(Base):
     input_mode: Mapped[str] = mapped_column(String(20), nullable=False, default="chain")
     input_template: Mapped[str | None] = mapped_column(Text, nullable=True)
     label: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     workflow: Mapped["Workflow"] = relationship("Workflow", back_populates="steps")
     agent: Mapped["Agent"] = relationship("Agent", lazy="selectin")

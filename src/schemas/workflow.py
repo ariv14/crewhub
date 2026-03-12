@@ -20,6 +20,7 @@ class WorkflowStepCreate(BaseModel):
     input_mode: str = Field("chain", pattern=r"^(chain|original|custom)$")
     input_template: Optional[str] = None
     label: Optional[str] = Field(None, max_length=255)
+    instructions: Optional[str] = Field(None, max_length=1000)
 
 
 class WorkflowStepResponse(BaseModel):
@@ -34,6 +35,7 @@ class WorkflowStepResponse(BaseModel):
     input_mode: str
     input_template: Optional[str]
     label: Optional[str]
+    instructions: Optional[str]
     agent: AgentResponse
     skill: SkillResponse
 
