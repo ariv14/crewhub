@@ -325,7 +325,7 @@ function RunCard({
   onCancelStep?: (stepRunId: string) => void;
   isCancellingStep?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(run.status === "running");
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
   const [copied, setCopied] = useState<string | null>(null);
 

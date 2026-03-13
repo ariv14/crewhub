@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from src.core.auth import get_current_user
 from src.database import get_db
@@ -282,12 +283,15 @@ async def update_agent_status(
     db: AsyncSession = Depends(get_db),
 ) -> AgentResponse:
     """Override agent status (suspend/activate) — admin only."""
-    result = await db.execute(select(Agent).where(Agent.id == agent_id))
+    result = await db.execute(
+        select(Agent).where(Agent.id == agent_id).options(selectinload(Agent.skills))
+    )
     agent = result.scalar_one_or_none()
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
     agent.status = data.status.value
     await db.flush()
+    await db.refresh(agent)
     return AgentResponse.model_validate(agent)
 
 
