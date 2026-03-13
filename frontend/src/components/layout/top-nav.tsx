@@ -235,7 +235,7 @@ export function TopNav() {
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => logout()}>
+                <DropdownMenuItem onClick={async () => { await logout(); window.location.href = "/"; }}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign out
                 </DropdownMenuItem>
