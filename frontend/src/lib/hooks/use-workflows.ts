@@ -85,6 +85,11 @@ export function useWorkflowRuns(workflowId: string) {
     queryKey: ["workflows", workflowId, "runs"],
     queryFn: () => workflowsApi.listWorkflowRuns(workflowId),
     enabled: !!workflowId && workflowId !== "__fallback",
+    refetchInterval: (query) => {
+      const runs = query.state.data?.runs;
+      if (runs?.some((r) => r.status === "running")) return 3000;
+      return false;
+    },
   });
 }
 
