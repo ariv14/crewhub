@@ -26,6 +26,12 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import type { Schedule, ScheduleCreate } from "@/types/schedule";
 
 const CRON_PRESETS = [
@@ -34,6 +40,24 @@ const CRON_PRESETS = [
   { label: "Weekly (Mon 9am)", value: "0 9 * * 1" },
   { label: "Monthly (1st, 9am)", value: "0 9 1 * *" },
 ];
+
+function describeCron(expr: string): string {
+  const presetMatch = CRON_PRESETS.find((p) => p.value === expr);
+  if (presetMatch) return presetMatch.label;
+  const parts = expr.split(" ");
+  if (parts.length !== 5) return "";
+  const [min, hour, dom, , dow] = parts;
+  const time = hour !== "*" && min !== "*" ? `at ${hour}:${min.padStart(2, "0")}` : "";
+  if (dow !== "*" && dom === "*") {
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const dayName = days[parseInt(dow)] ?? `day ${dow}`;
+    return `Every ${dayName} ${time}`.trim();
+  }
+  if (dom !== "*") return `Monthly on day ${dom} ${time}`.trim();
+  if (hour !== "*" && min !== "*") return `Daily ${time}`;
+  if (min === "0" && hour === "*") return "Every hour";
+  return "";
+}
 
 function ScheduleCard({
   schedule,
@@ -160,9 +184,7 @@ function CreateScheduleForm({
   }
 
   return (
-    <div className="rounded-xl border bg-card p-5">
-      <h3 className="font-semibold">Create Schedule</h3>
-      <div className="mt-4 space-y-3">
+    <div className="space-y-3">
         <div>
           <Label htmlFor="sched-name">Name</Label>
           <Input
@@ -224,6 +246,11 @@ function CreateScheduleForm({
             placeholder="Custom cron expression"
             className="mt-2"
           />
+          {cronExpression && describeCron(cronExpression) && (
+            <p className="text-xs text-muted-foreground">
+              Runs: <span className="font-medium text-foreground">{describeCron(cronExpression)}</span>
+            </p>
+          )}
         </div>
 
         <div>
@@ -263,7 +290,6 @@ function CreateScheduleForm({
             Cancel
           </Button>
         </div>
-      </div>
     </div>
   );
 }
@@ -300,22 +326,27 @@ export default function SchedulesPage() {
         </Button>
       </div>
 
-      {(showCreate || (hasPrefill && schedules.length === 0)) && (
-        <div className="mt-4">
-          <CreateScheduleForm
-            onClose={() => setShowCreate(false)}
-            prefill={
-              hasPrefill
-                ? {
-                    type: prefillType,
-                    targetId: prefillTarget,
-                    name: prefillName,
-                  }
-                : undefined
-            }
-          />
-        </div>
-      )}
+      <Sheet open={showCreate || (hasPrefill && schedules.length === 0 && !deleteTarget)} onOpenChange={(open) => !open && setShowCreate(false)}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>New Schedule</SheetTitle>
+          </SheetHeader>
+          <div className="mt-6">
+            <CreateScheduleForm
+              onClose={() => setShowCreate(false)}
+              prefill={
+                hasPrefill
+                  ? {
+                      type: prefillType,
+                      targetId: prefillTarget,
+                      name: prefillName,
+                    }
+                  : undefined
+              }
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <div className="mt-6">
         {!isLoading && schedules.length === 0 && !showCreate ? (

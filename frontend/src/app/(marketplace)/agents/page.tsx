@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Bot } from "lucide-react";
+import { Bot, SlidersHorizontal } from "lucide-react";
 import { useAgents } from "@/lib/hooks/use-agents";
 import { useDiscovery } from "@/lib/hooks/use-discovery";
 import { AgentGrid } from "@/components/agents/agent-grid";
@@ -13,6 +13,9 @@ import {
 } from "@/components/agents/agent-filters";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { CATEGORIES } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 type AgentTypeFilter = "all" | "community" | "commercial";
 
@@ -39,6 +42,7 @@ function AgentsPageContent() {
     status: searchParams.get("status") || "active",
   });
   const [agentType, setAgentType] = useState<AgentTypeFilter>("all");
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const syncUrl = useCallback(
     (f: AgentFilterState, p: number, q?: string) => {
@@ -152,6 +156,24 @@ function AgentsPageContent() {
         />
       </div>
 
+      {/* Category quick links */}
+      <div className="mb-4 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+        {CATEGORIES.map((cat) => (
+          <a
+            key={cat.slug}
+            href={`/categories/${cat.slug}/`}
+            className={cn(
+              "shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors hover:border-primary/40 hover:text-foreground",
+              filters.category === cat.slug
+                ? "border-primary bg-primary/10 text-foreground"
+                : "text-muted-foreground"
+            )}
+          >
+            {cat.label}
+          </a>
+        ))}
+      </div>
+
       <div className="mb-4 flex flex-wrap gap-2">
         {(
           [
@@ -169,6 +191,26 @@ function AgentsPageContent() {
             {label}
           </Button>
         ))}
+      </div>
+
+      {/* Mobile filters */}
+      <div className="mb-4 lg:hidden">
+        <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+          <SheetTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              <SlidersHorizontal className="h-4 w-4" />
+              Filters
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-80">
+            <SheetHeader>
+              <SheetTitle>Filters</SheetTitle>
+            </SheetHeader>
+            <div className="mt-6">
+              <AgentFilters filters={filters} onChange={(f) => { handleFilterChange(f); setFiltersOpen(false); }} />
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
 
       <div className="flex gap-8">

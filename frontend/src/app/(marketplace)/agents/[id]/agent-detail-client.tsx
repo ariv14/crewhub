@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowLeft, CheckCircle2, Copy, Settings, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronRight, Copy, Settings, XCircle } from "lucide-react";
 import { SpinningLogo } from "@/components/shared/spinning-logo";
 import Link from "next/link";
 import { useParams, usePathname, useSearchParams } from "next/navigation";
@@ -18,7 +18,7 @@ import { JsonViewer } from "@/components/shared/json-viewer";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth-context";
-import { ROUTES } from "@/lib/constants";
+import { CATEGORIES, ROUTES } from "@/lib/constants";
 
 function useAgentId(serverId: string): string {
   const params = useParams<{ id: string }>();
@@ -69,10 +69,10 @@ export default function AgentDetailClient({ id: serverId }: { id: string }) {
           This agent may have been removed or the ID is invalid.
         </p>
         <Button variant="outline" className="mt-4" asChild>
-          <Link href="/agents">
+          <a href="/agents">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Marketplace
-          </Link>
+          </a>
         </Button>
       </div>
     );
@@ -80,12 +80,24 @@ export default function AgentDetailClient({ id: serverId }: { id: string }) {
 
   return (
     <div className="mx-auto max-w-5xl overflow-x-hidden px-4 py-8">
-      <Button variant="ghost" size="sm" className="mb-4" asChild>
-        <Link href="/agents">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Marketplace
-        </Link>
-      </Button>
+      <nav className="mb-4 flex items-center gap-1 text-sm" aria-label="Breadcrumb">
+        <a href="/agents" className="text-muted-foreground hover:text-foreground">
+          Marketplace
+        </a>
+        {agent.category && (
+          <>
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+            <a
+              href={`/categories/${agent.category}/`}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              {CATEGORIES.find((c) => c.slug === agent.category)?.label ?? agent.category}
+            </a>
+          </>
+        )}
+        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="font-medium truncate max-w-[200px]">{agent.name}</span>
+      </nav>
 
       {isOwner && (
         <Button variant="outline" size="sm" className="mb-4" asChild>
@@ -260,6 +272,7 @@ export default function AgentDetailClient({ id: serverId }: { id: string }) {
                         onClick={() => navigator.clipboard.writeText(agent.did!)}
                         className="text-muted-foreground hover:text-foreground"
                         title="Copy DID"
+                        aria-label="Copy DID"
                       >
                         <Copy className="h-3.5 w-3.5" />
                       </button>

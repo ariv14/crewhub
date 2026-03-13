@@ -20,7 +20,7 @@ export function AgentCard({ agent }: AgentCardProps) {
     : agent.pricing.credits;
 
   return (
-    <a href={ROUTES.agentDetail(agent.id)}>
+    <a href={ROUTES.agentDetail(agent.id)} data-animate>
       <Card className="group h-full transition-all duration-200 hover:border-primary/50 hover:shadow-md hover:-translate-y-0.5">
         <CardContent className="p-5">
           <div className="flex items-start justify-between gap-2">
@@ -66,28 +66,32 @@ export function AgentCard({ agent }: AgentCardProps) {
           </div>
         </CardContent>
 
-        <CardFooter className="border-t px-5 py-3">
-          <div className="flex w-full flex-wrap items-center justify-between gap-y-1 text-xs text-muted-foreground">
-            <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1">
-                <Star className="h-3 w-3 shrink-0 text-yellow-400" />
-                {agent.reputation_score.toFixed(1)}
-              </span>
-              <span className="flex items-center gap-1">
-                <Clock className="h-3 w-3 shrink-0" />
-                {agent.avg_latency_ms < 1000
-                  ? `${agent.avg_latency_ms}ms`
-                  : `${(agent.avg_latency_ms / 1000).toFixed(1)}s`}
-              </span>
-              <span>{agent.total_tasks_completed} tasks</span>
-            </div>
-            <AgentSparkline agentId={agent.id} />
+        <CardFooter className="flex-col gap-2 border-t px-5 py-3">
+          {/* Row 1: Stats */}
+          <div className="flex w-full items-center gap-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Star className="h-3 w-3 shrink-0 text-yellow-400" />
+              {agent.reputation_score.toFixed(1)}
+            </span>
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3 shrink-0" />
+              {agent.avg_latency_ms < 1000
+                ? `${agent.avg_latency_ms}ms`
+                : `${(agent.avg_latency_ms / 1000).toFixed(1)}s`}
+            </span>
+            <span>{agent.total_tasks_completed} tasks</span>
+            <span className="ml-auto opacity-50">
+              <AgentSparkline agentId={agent.id} />
+            </span>
+          </div>
+          {/* Row 2: Price + CTA */}
+          <div className="flex w-full items-center justify-between">
             {agent.license_type === "open" || price === 0 ? (
               <Badge className="bg-green-600 text-white hover:bg-green-600 text-xs">
                 FREE
               </Badge>
             ) : (
-              <span className="flex items-center gap-1 font-medium text-foreground">
+              <span className="flex items-center gap-1 text-xs font-medium text-foreground">
                 <Zap className="h-3 w-3 shrink-0 text-primary" />
                 {formatCredits(price)} credits
               </span>

@@ -16,9 +16,12 @@ import {
 } from "@/components/ui/select";
 import { TaskMessageThread } from "@/components/tasks/task-message-thread";
 import { TaskArtifactsDisplay } from "@/components/tasks/task-artifacts-display";
+import { TaskProgressStepper } from "@/components/tasks/task-progress-stepper";
 import { useCreateTask } from "@/lib/hooks/use-tasks";
 import { useTask } from "@/lib/hooks/use-tasks";
 import { useAuth } from "@/lib/auth-context";
+import { useBalance } from "@/lib/hooks/use-credits";
+import { cn } from "@/lib/utils";
 import { guestTry } from "@/lib/api/tasks";
 import type { Agent } from "@/types/agent";
 
@@ -35,6 +38,9 @@ export function TryAgentPanel({ agent, initialMessage }: TryAgentPanelProps) {
   );
   const [taskId, setTaskId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const selectedSkillObj = agent.skills.find((s) => s.id === selectedSkill);
+  const defaultTier = agent.pricing.tiers.find((t) => t.is_default) ?? agent.pricing.tiers[0];
+  const estimatedCost = defaultTier?.credits_per_unit ?? agent.pricing.credits ?? 0;
   const [guestLoading, setGuestLoading] = useState(false);
   const [guestResult, setGuestResult] = useState<{
     status: string;
@@ -42,6 +48,7 @@ export function TryAgentPanel({ agent, initialMessage }: TryAgentPanelProps) {
     message?: string;
   } | null>(null);
   const createTask = useCreateTask();
+  const { data: balance } = useBalance();
   const { data: task } = useTask(taskId ?? "");
 
   const hasUsedGuestTrial =
@@ -163,11 +170,12 @@ export function TryAgentPanel({ agent, initialMessage }: TryAgentPanelProps) {
       {task && (
         <div className="rounded-lg border p-4 space-y-4">
           <TaskMessageThread messages={task.messages} />
-          {isWorking && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-              <SpinningLogo spinning size="sm" />
-              Agent is working...
-            </div>
+          {isWorking && task && (
+            <TaskProgressStepper
+              status={task.status}
+              statusHistory={task.status_history ?? null}
+              createdAt={task.created_at}
+            />
           )}
           {isDone && task.artifacts && task.artifacts.length > 0 && (
             <TaskArtifactsDisplay artifacts={task.artifacts} />
@@ -251,16 +259,36 @@ export function TryAgentPanel({ agent, initialMessage }: TryAgentPanelProps) {
 
       {/* Input area — varies by auth state */}
       {showGuestAuthGate ? (
-        <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
-          <LogIn className="h-4 w-4 shrink-0 text-primary" />
-          <p className="flex-1 text-sm text-muted-foreground">
-            <Link href={`/login?redirect=${encodeURIComponent(`/agents/${agent.id}/?tab=try`)}`} className="font-medium text-primary hover:underline">
-              Sign in
-            </Link>{" "}
-            to try this agent — 250 free credits on signup!
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-center space-y-2">
+          <div className="flex items-center justify-center gap-2 text-sm font-medium">
+            <Gift className="h-4 w-4 text-primary" />
+            Want to try more agents?
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Sign up now and get <span className="font-semibold text-foreground">250 free credits</span> to try premium agents and team mode.
           </p>
+          <a
+            href={`/login?redirect=${encodeURIComponent(`/agents/${agent.id}/?tab=try`)}`}
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <LogIn className="h-3.5 w-3.5" />
+            Create Free Account
+          </a>
         </div>
       ) : !guestResult ? (
+        <>
+        {user && estimatedCost > 0 && !taskId && !guestResult && (
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Estimated cost: <span className="font-medium text-foreground">{estimatedCost} credits</span></span>
+            {balance && (
+              <span>
+                Balance: <span className={cn("font-medium", balance.available < estimatedCost ? "text-destructive" : "text-foreground")}>
+                  {balance.available} credits
+                </span>
+              </span>
+            )}
+          </div>
+        )}
         <div className="flex gap-2">
           <Input
             value={input}
@@ -288,6 +316,7 @@ export function TryAgentPanel({ agent, initialMessage }: TryAgentPanelProps) {
             )}
           </Button>
         </div>
+        </>
       ) : null}
     </div>
   );

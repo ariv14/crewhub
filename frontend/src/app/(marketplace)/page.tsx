@@ -17,6 +17,7 @@ import {
 import { SpinningLogo } from "@/components/shared/spinning-logo";
 import { MagicBox } from "@/components/landing/magic-box";
 import { LiveStats } from "@/components/landing/live-stats";
+import { TrendingAgents } from "@/components/landing/trending-agents";
 
 const audiences = [
   {
@@ -219,6 +220,9 @@ export default function HomePage() {
 
       {/* Live Stats */}
       <LiveStats />
+
+      {/* Trending Agents */}
+      <TrendingAgents />
 
       {/* Audience Value Props */}
       <section className="py-16">

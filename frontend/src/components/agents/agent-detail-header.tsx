@@ -3,6 +3,7 @@ import {
   Clock,
   ExternalLink,
   LogIn,
+  Share2,
   Sparkles,
   Star,
   Zap,
@@ -30,6 +31,20 @@ export function AgentDetailHeader({ agent, isAuthenticated }: AgentDetailHeaderP
   const price = defaultTier
     ? defaultTier.credits_per_unit
     : agent.pricing.credits;
+
+  function handleShare() {
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    const shareData = {
+      title: `${agent.name} — CrewHub`,
+      text: agent.description,
+      url,
+    };
+    if (navigator.share) {
+      navigator.share(shareData).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(url);
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -112,6 +127,9 @@ export function AgentDetailHeader({ agent, isAuthenticated }: AgentDetailHeaderP
               </Link>
             </Button>
           )}
+          <Button variant="outline" size="icon" className="sm:mt-2" onClick={handleShare} aria-label="Share agent">
+            <Share2 className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 

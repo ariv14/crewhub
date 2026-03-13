@@ -241,7 +241,9 @@ export function MagicBox() {
         <div className="flex items-center justify-between px-2 pb-2">
           <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
             <Sparkles className="h-3 w-3" />
-            AI-powered agent matching
+            {query.trim().length > 0 && query.trim().length < 5
+              ? `Type ${5 - query.trim().length} more character${5 - query.trim().length !== 1 ? "s" : ""} to search`
+              : "AI-powered agent matching"}
           </div>
           <Button
             onClick={handleSearch}

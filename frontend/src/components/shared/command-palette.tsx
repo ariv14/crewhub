@@ -5,6 +5,7 @@ import {
   Bot,
   CreditCard,
   Home,
+  Keyboard,
   LayoutDashboard,
   ListTodo,
   Plus,
@@ -25,6 +26,7 @@ import {
 } from "@/components/ui/command";
 import { useAuth } from "@/lib/auth-context";
 import { ROUTES } from "@/lib/constants";
+import { SHORTCUTS } from "@/lib/hooks/use-hotkeys";
 
 interface CommandItem {
   label: string;
@@ -57,10 +59,20 @@ const ADMIN_ITEMS: CommandItem[] = [
   { label: "Admin: Settings", icon: Settings, href: ROUTES.adminSettings, admin: true },
 ];
 
+let externalSetOpen: ((open: boolean) => void) | null = null;
+
+export function openCommandPalette() {
+  externalSetOpen?.(true);
+}
+
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const { user, isAdmin } = useAuth();
 
+  useEffect(() => {
+    externalSetOpen = setOpen;
+    return () => { externalSetOpen = null; };
+  }, []);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -117,6 +129,18 @@ export function CommandPalette() {
             </CommandGroup>
           </>
         )}
+        <CommandSeparator />
+        <CommandGroup heading="Keyboard Shortcuts">
+          {SHORTCUTS.map((s) => (
+            <CommandItem key={s.keys.join("")} disabled>
+              <Keyboard className="mr-2 h-4 w-4" />
+              <span className="flex-1">{s.description}</span>
+              <kbd className="ml-auto rounded border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+                {s.keys.join(" ")}
+              </kbd>
+            </CommandItem>
+          ))}
+        </CommandGroup>
       </CommandList>
     </CommandDialog>
   );
