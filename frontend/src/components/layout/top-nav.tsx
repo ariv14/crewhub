@@ -15,6 +15,7 @@ import {
   Search,
   Settings,
   Shield,
+  Sparkles,
   User,
   Users,
 } from "lucide-react";
@@ -132,6 +133,12 @@ export function TopNav() {
                 </a>
               </Button>
               <Button variant="ghost" className="justify-start" asChild>
+                <a href={ROUTES.communityAgents} onClick={() => setMobileOpen(false)}>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Community Agents
+                </a>
+              </Button>
+              <Button variant="ghost" className="justify-start" asChild>
                 <a href={ROUTES.docs} onClick={() => setMobileOpen(false)}>
                   <BookOpen className="mr-2 h-4 w-4" />
                   Docs
@@ -169,6 +176,9 @@ export function TopNav() {
               </Button>
             </>
           )}
+          <Button variant="ghost" size="sm" asChild className={pathname.startsWith("/community-agents") ? "bg-accent" : ""}>
+            <a href={ROUTES.communityAgents}>Community</a>
+          </Button>
           <Button variant="ghost" size="sm" asChild className={pathname === "/docs" ? "bg-accent" : ""}>
             <a href={ROUTES.docs}>Docs</a>
           </Button>

@@ -27,5 +27,7 @@
 /dashboard/crews/:id/       /dashboard/crews/__fallback/ 200
 /dashboard/workflows/:id    /dashboard/workflows/__fallback/ 200
 /dashboard/workflows/:id/   /dashboard/workflows/__fallback/ 200
+/community-agents/:id       /community-agents/__fallback/ 200
+/community-agents/:id/      /community-agents/__fallback/ 200
 /admin/agents/:id           /admin/agents/__fallback/ 200
 /admin/agents/:id/          /admin/agents/__fallback/ 200

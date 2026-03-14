@@ -27,3 +27,4 @@ class SuggestionResponse(BaseModel):
     suggestions: list[SkillSuggestion]
     fallback_used: bool = False
     hint: Optional[str] = None
+    create_available: bool = False

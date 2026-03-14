@@ -270,7 +270,11 @@ class TaskBrokerService:
             hint = "Configure an API key in Settings > LLM Keys for smarter suggestions."
 
         if not scored and not fallback_used:
-            return SuggestionResponse(suggestions=[], hint="No active agents found.")
+            # Record demand signal for empty results
+            await self._record_demand_signal(message, confidence=0.0, user_id=user_id)
+            return SuggestionResponse(
+                suggestions=[], hint="No active agents found.", create_available=True,
+            )
 
         # Sort by score descending and take top N
         scored.sort(key=lambda x: x[2], reverse=True)
@@ -284,10 +288,21 @@ class TaskBrokerService:
                 low_confidence=score < 0.3,
             ))
 
+        # Determine if custom agent creation should be offered
+        top_confidence = suggestions[0].confidence if suggestions else 0.0
+        create_available = top_confidence < 0.3 or not suggestions
+
+        # Record demand signal for low-confidence searches
+        if create_available:
+            await self._record_demand_signal(
+                message, confidence=top_confidence, user_id=user_id,
+            )
+
         return SuggestionResponse(
             suggestions=suggestions,
             fallback_used=fallback_used,
             hint=hint,
+            create_available=create_available,
         )
 
     async def _fetch_agents(
@@ -471,6 +486,22 @@ class TaskBrokerService:
         if score >= 0.3:
             return f"Moderate match via {method}"
         return f"Weak match via {method}"
+
+    async def _record_demand_signal(
+        self,
+        query: str,
+        confidence: float | None = None,
+        user_id: str | None = None,
+    ) -> None:
+        """Fire-and-forget: record a demand signal for low-confidence searches."""
+        try:
+            from src.services.custom_agent_service import CustomAgentService
+
+            service = CustomAgentService(self.db)
+            uid = UUID(user_id) if user_id else None
+            await service.record_demand(query, confidence=confidence, user_id=uid)
+        except Exception:
+            logger.debug("Failed to record demand signal", exc_info=True)
 
     # ------------------------------------------------------------------
     # A2A dispatch (background)
