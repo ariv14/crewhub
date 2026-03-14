@@ -247,6 +247,7 @@ class CustomAgentService:
             agent.upvote_count += vote_value
 
         await self.db.flush()
+        await self.db.refresh(agent)
         agent._user_vote = vote_value
         return agent
 
