@@ -267,19 +267,25 @@ export function MagicBox() {
 
       {/* Conversation starters */}
       {!searched && (
-        <div className="mt-4 flex flex-wrap justify-center gap-2" data-testid="magic-box-starters">
-          {STARTERS.map((s) => (
-            <button
-              key={s}
-              onClick={() => {
-                setQuery(s);
-              }}
-              className="rounded-full border bg-card px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-            >
-              {s}
-            </button>
-          ))}
-        </div>
+        <>
+          <div className="mt-4 flex flex-wrap justify-center gap-2" data-testid="magic-box-starters">
+            {STARTERS.map((s) => (
+              <button
+                key={s}
+                onClick={() => {
+                  setQuery(s);
+                }}
+                className="rounded-full border bg-card px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+          <p className="mt-3 text-center text-[11px] text-muted-foreground/70">
+            <Sparkles className="mr-1 inline h-3 w-3" />
+            Can&apos;t find a match? We&apos;ll <a href={ROUTES.createAgent} className="text-primary hover:underline">create one</a> for you.
+          </p>
+        </>
       )}
 
       {/* Results */}
@@ -302,8 +308,8 @@ export function MagicBox() {
         </div>
       )}
 
-      {/* Create Agent CTA — shown when no results or low confidence */}
-      {searched && (createAvailable || suggestions.length === 0) && !error && (
+      {/* Create Agent CTA — shown when no results, low confidence, or API flags it */}
+      {searched && (createAvailable || suggestions.length === 0 || suggestions.every(s => s.confidence < 0.5)) && !error && (
         <div
           className="mt-6 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-6 text-center"
           data-testid="magic-box-create-cta"
