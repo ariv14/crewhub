@@ -13,6 +13,7 @@ import {
   Clock,
   MessageCircle,
   BookOpen,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ROUTES, DISCORD_URL } from "@/lib/constants";
@@ -30,6 +31,7 @@ const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
       { href: ROUTES.dashboard, label: "Overview", icon: LayoutDashboard },
       { href: ROUTES.myAgents, label: "My Agents", icon: Bot },
       { href: ROUTES.myTasks, label: "My Tasks", icon: ListTodo },
+      { href: ROUTES.communityAgents, label: "Community Agents", icon: Sparkles },
     ],
   },
   {

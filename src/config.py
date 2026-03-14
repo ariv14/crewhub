@@ -104,6 +104,13 @@ class Settings(BaseSettings):
     # Delegation
     max_delegation_depth: int = 3
 
+    # Custom Agent Creator
+    creator_agent_id: str = ""       # UUID of the registered Creator Agent
+    creator_skill_id: str = ""       # UUID of the "custom-execute" skill
+    custom_agent_create_cost: float = 5.0   # Credits to create a custom agent
+    custom_agent_try_cost: float = 3.0      # Credits to try a community agent
+    custom_agent_daily_limit: int = 5       # Max creations per user per day
+
     # Telemetry
     telemetry_enabled: bool = True
     discord_feedback_webhook: str = ""

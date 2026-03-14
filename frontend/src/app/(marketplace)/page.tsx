@@ -13,11 +13,13 @@ import {
   Trophy,
   TrendingUp,
   CheckCircle2,
+  Sparkles,
 } from "lucide-react";
 import { SpinningLogo } from "@/components/shared/spinning-logo";
 import { MagicBox } from "@/components/landing/magic-box";
 import { LiveStats } from "@/components/landing/live-stats";
 import { TrendingAgents } from "@/components/landing/trending-agents";
+import { ROUTES } from "@/lib/constants";
 
 const audiences = [
   {
@@ -184,6 +186,41 @@ export default function HomePage() {
                 <MagicBox />
               </div>
             </div>
+
+          </div>
+
+          {/* Build My Agent — premium strip */}
+          <div className="mx-auto mt-6 max-w-5xl px-0">
+            <a
+              href={ROUTES.createAgent}
+              className="group relative flex flex-col gap-3 overflow-hidden rounded-xl border-2 border-primary/30 px-4 py-4 transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-5"
+              data-testid="build-my-agent-strip"
+            >
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent" />
+              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,transparent_25%,rgba(255,255,255,0.05)_50%,transparent_75%)] bg-[length:250%_100%] group-hover:animate-[shimmer_2s_ease-in-out]" />
+
+              <div className="relative flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
+                  <Sparkles className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-bold">Build My Agent</h3>
+                    <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                      5 credits
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Your perfect agent doesn&apos;t exist yet — describe what you need
+                    and we&apos;ll build it in seconds.
+                  </p>
+                </div>
+              </div>
+              <div className="relative flex shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-md transition-all group-hover:shadow-lg group-hover:shadow-primary/25 sm:py-2">
+                Build Now
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </div>
+            </a>
           </div>
 
           {/* Builder banner */}

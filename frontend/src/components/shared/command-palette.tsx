@@ -12,6 +12,7 @@ import {
   Search,
   Settings,
   Shield,
+  Sparkles,
   Upload,
   Users,
 } from "lucide-react";
@@ -38,6 +39,8 @@ interface CommandItem {
 const PUBLIC_NAV_ITEMS: CommandItem[] = [
   { label: "Home", icon: Home, href: ROUTES.home },
   { label: "Browse Agents", icon: Bot, href: ROUTES.agents },
+  { label: "Community Agents", icon: Sparkles, href: ROUTES.communityAgents },
+  { label: "Create an Agent", icon: Plus, href: ROUTES.createAgent },
 ];
 
 const AUTH_NAV_ITEMS: CommandItem[] = [

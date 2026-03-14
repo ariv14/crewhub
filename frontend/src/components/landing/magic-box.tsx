@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, ArrowRight, Loader2, LogIn, Sparkles, Star, Zap } from "lucide-react";
+import { AlertTriangle, ArrowRight, Loader2, LogIn, Plus, Sparkles, Star, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { listAgents } from "@/lib/api/agents";
 import { ApiError } from "@/lib/api-client";
 import { FeedbackThumbs } from "@/components/shared/feedback-thumbs";
 import { useAuth } from "@/lib/auth-context";
+import { ROUTES } from "@/lib/constants";
 import type { SkillSuggestion } from "@/types/task";
 
 const STARTERS = [
@@ -150,17 +151,20 @@ export function MagicBox() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [createAvailable, setCreateAvailable] = useState(false);
 
   async function handleSearch() {
     if (query.trim().length < 5) return;
     setLoading(true);
     setError(null);
+    setCreateAvailable(false);
     try {
       const result = await suggestAgents({
         message: query.trim(),
         limit: 3,
       });
       setSuggestions(result.suggestions);
+      setCreateAvailable(result.create_available ?? false);
       setSearched(true);
     } catch (err) {
       // Fall back to public agent list with client-side keyword matching
@@ -263,19 +267,25 @@ export function MagicBox() {
 
       {/* Conversation starters */}
       {!searched && (
-        <div className="mt-4 flex flex-wrap justify-center gap-2" data-testid="magic-box-starters">
-          {STARTERS.map((s) => (
-            <button
-              key={s}
-              onClick={() => {
-                setQuery(s);
-              }}
-              className="rounded-full border bg-card px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-            >
-              {s}
-            </button>
-          ))}
-        </div>
+        <>
+          <div className="mt-4 flex flex-wrap justify-center gap-2" data-testid="magic-box-starters">
+            {STARTERS.map((s) => (
+              <button
+                key={s}
+                onClick={() => {
+                  setQuery(s);
+                }}
+                className="rounded-full border bg-card px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+          <p className="mt-3 text-center text-[11px] text-muted-foreground/70">
+            <Sparkles className="mr-1 inline h-3 w-3" />
+            Can&apos;t find a match? We&apos;ll <a href={ROUTES.createAgent} className="text-primary hover:underline">create one</a> for you.
+          </p>
+        </>
       )}
 
       {/* Results */}
@@ -298,16 +308,46 @@ export function MagicBox() {
         </div>
       )}
 
-      {/* No results */}
-      {searched && suggestions.length === 0 && !error && (
-        <div className="mt-6 text-center" data-testid="magic-box-empty">
-          <p className="text-sm text-muted-foreground">
-            No matching agents found. Try a different description or{" "}
-            <a href="/agents" className="text-primary hover:underline">
-              browse all agents
-            </a>
-            .
+      {/* Create Agent CTA — shown when no results, low confidence, or API flags it */}
+      {searched && (createAvailable || suggestions.length === 0 || suggestions.every(s => s.confidence < 0.5)) && !error && (
+        <div
+          className="mt-6 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-6 text-center"
+          data-testid="magic-box-create-cta"
+        >
+          <Sparkles className="mx-auto h-8 w-8 text-primary/60" />
+          <h3 className="mt-3 font-semibold">
+            {suggestions.length === 0
+              ? "No specialist found for this yet"
+              : "Want a dedicated specialist?"}
+          </h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            We can create a custom AI agent tailored to your exact need.
           </p>
+          <div className="mt-4 flex items-center justify-center gap-3">
+            {isAuthenticated ? (
+              <a
+                href={`${ROUTES.communityAgents}?create=true&q=${encodeURIComponent(query)}`}
+              >
+                <Button className="gap-1">
+                  <Plus className="h-4 w-4" />
+                  Create My Agent
+                </Button>
+              </a>
+            ) : (
+              <a
+                href={`/login?redirect=${encodeURIComponent(`${ROUTES.communityAgents}?create=true&q=${encodeURIComponent(query)}`)}`}
+              >
+                <Button className="gap-1">
+                  <Plus className="h-4 w-4" />
+                  Create My Agent
+                </Button>
+              </a>
+            )}
+            <a href="/agents">
+              <Button variant="outline">Browse all agents</Button>
+            </a>
+          </div>
+          <p className="mt-2 text-[10px] text-muted-foreground">5 credits</p>
         </div>
       )}
 

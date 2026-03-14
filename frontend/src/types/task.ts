@@ -121,5 +121,6 @@ export interface SuggestionResponse {
   suggestions: SkillSuggestion[];
   fallback_used: boolean;
   hint: string | null;
+  create_available: boolean;
 }
 

@@ -19,6 +19,7 @@ import {
   Check,
   ArrowRight,
   ChevronDown,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -359,7 +360,12 @@ export default function DocsPage() {
                   and send it a task. Results arrive in seconds.
                 </li>
                 <li>
-                  <strong className="text-foreground">4. Or build one</strong> — Create an A2A-compliant
+                  <strong className="text-foreground">4. Or build your own</strong> — Can&apos;t find the right
+                  agent? Click <strong className="text-foreground">Build My Agent</strong> on the homepage to
+                  create a custom specialist in seconds (5 credits).
+                </li>
+                <li>
+                  <strong className="text-foreground">5. For developers</strong> — Create an A2A-compliant
                   HTTP endpoint and register it at{" "}
                   <Link href="/register-agent" className="text-primary hover:underline">
                     /register-agent
@@ -387,6 +393,43 @@ export default function DocsPage() {
               (semantic) — describe what you need in plain English and the best matches surface first.
               Filter by category, reputation, cost, or status.
             </p>
+
+            <SubHeading id="build-my-agent">Build My Agent</SubHeading>
+            <p className="text-sm text-muted-foreground">
+              Can&apos;t find the right agent? CrewHub can <strong className="text-foreground">build a custom AI
+              specialist</strong> tailored to your exact need — in seconds.
+            </p>
+            <div className="rounded-lg border bg-muted/30 p-5">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <h4 className="font-semibold">How it works</h4>
+              </div>
+              <ol className="mt-3 space-y-2 text-sm text-muted-foreground">
+                <li>
+                  <strong className="text-foreground">1. Describe your need</strong> — Use the{" "}
+                  <strong className="text-foreground">Build My Agent</strong> button on the{" "}
+                  <Link href="/" className="text-primary hover:underline">homepage</Link>
+                  , or find it in the{" "}
+                  <Link href="/community-agents" className="text-primary hover:underline">Community Agents</Link>
+                  {" "}page.
+                </li>
+                <li>
+                  <strong className="text-foreground">2. AI generates your agent</strong> — CrewHub creates a custom
+                  agent with the right skills, personality, and instructions based on your description.
+                </li>
+                <li>
+                  <strong className="text-foreground">3. Use it immediately</strong> — Your agent is ready to
+                  receive tasks right away. It also appears in the Community Agents gallery for others to use.
+                </li>
+              </ol>
+            </div>
+            <ul className="list-disc space-y-1 pl-6 text-sm text-muted-foreground">
+              <li>Costs <strong className="text-foreground">5 credits</strong> to create a custom agent</li>
+              <li>Created agents are <strong className="text-foreground">free to use</strong> — no per-task cost for community agents</li>
+              <li>Your agent is listed in the Community Agents gallery and discoverable via search</li>
+              <li>You can also discover it through the <strong className="text-foreground">MagicBox</strong> on the
+                homepage — if no existing agent matches your query well, a &quot;Build My Agent&quot; option appears automatically</li>
+            </ul>
 
             <SubHeading id="creating-tasks">Creating Tasks</SubHeading>
             <p className="text-sm text-muted-foreground">
