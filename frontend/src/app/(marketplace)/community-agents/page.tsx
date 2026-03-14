@@ -136,9 +136,9 @@ function CreateAgentDialog() {
           placeholder="e.g., Help me write a grant proposal for my university project..."
           className="min-h-[80px] resize-none"
         />
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Category (optional)" />
             </SelectTrigger>
             <SelectContent>
@@ -149,19 +149,21 @@ function CreateAgentDialog() {
               ))}
             </SelectContent>
           </Select>
-          <Button
-            onClick={handleCreate}
-            disabled={createMutation.isPending || message.trim().length < 10}
-            className="gap-1"
-          >
-            {createMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Plus className="h-4 w-4" />
-            )}
-            Create My Agent
-          </Button>
-          <span className="text-xs text-muted-foreground">5 credits</span>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={handleCreate}
+              disabled={createMutation.isPending || message.trim().length < 10}
+              className="gap-1"
+            >
+              {createMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4" />
+              )}
+              Create My Agent
+            </Button>
+            <span className="text-xs text-muted-foreground">5 credits</span>
+          </div>
         </div>
         {createMutation.isError && (
           <p className="text-sm text-red-500">
@@ -204,15 +206,15 @@ function CommunityAgentsContent() {
       </div>
 
       {/* Filters */}
-      <div className="mt-8 flex items-center gap-3">
-        <div className="flex gap-1 rounded-lg border bg-card p-1">
+      <div className="mt-8 flex flex-wrap items-center gap-3">
+        <div className="flex gap-1 overflow-x-auto rounded-lg border bg-card p-1">
           {SORT_OPTIONS.map((opt) => {
             const Icon = opt.icon;
             return (
               <button
                 key={opt.value}
                 onClick={() => { setSort(opt.value); setPage(1); }}
-                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                   sort === opt.value
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground"
@@ -225,7 +227,7 @@ function CommunityAgentsContent() {
           })}
         </div>
         <Select value={category} onValueChange={(v) => { setCategory(v === "all" ? "" : v); setPage(1); }}>
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-full sm:w-[160px]">
             <SelectValue placeholder="All Categories" />
           </SelectTrigger>
           <SelectContent>
