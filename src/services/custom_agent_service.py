@@ -314,8 +314,6 @@ class CustomAgentService:
 
     async def _generate_persona(self, query: str, category: str | None) -> dict:
         """Call LLM to generate an agent persona from the user's query."""
-        import httpx
-
         prompt = _META_PROMPT.format(query=query)
         if category:
             prompt += f"\nPreferred category: {category}"
