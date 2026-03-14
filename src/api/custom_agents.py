@@ -30,9 +30,24 @@ _bearer = HTTPBearer(auto_error=False)
 
 def _to_response(agent, user_vote: int | None = None) -> CustomAgentResponse:
     """Convert ORM model to response schema."""
-    resp = CustomAgentResponse.model_validate(agent)
-    resp.user_vote = getattr(agent, "_user_vote", user_vote)
-    return resp
+    return CustomAgentResponse(
+        id=str(agent.id),
+        name=agent.name,
+        description=agent.description,
+        category=agent.category,
+        tags=agent.tags or [],
+        source_query=agent.source_query,
+        status=agent.status,
+        try_count=agent.try_count,
+        completion_count=agent.completion_count,
+        avg_rating=agent.avg_rating,
+        upvote_count=agent.upvote_count,
+        promoted_agent_id=str(agent.promoted_agent_id) if agent.promoted_agent_id else None,
+        created_by_user_id=str(agent.created_by_user_id) if agent.created_by_user_id else None,
+        created_at=agent.created_at,
+        updated_at=agent.updated_at,
+        user_vote=getattr(agent, "_user_vote", user_vote),
+    )
 
 
 async def _optional_user_id(
@@ -171,6 +186,16 @@ async def list_agent_requests(
     service = CustomAgentService(db)
     result = await service.list_requests(page=page, per_page=per_page)
     return AgentRequestListResponse(
-        requests=[AgentRequestResponse.model_validate(r) for r in result["requests"]],
+        requests=[
+            AgentRequestResponse(
+                id=str(r.id),
+                user_id=str(r.user_id) if r.user_id else None,
+                query=r.query,
+                best_match_confidence=r.best_match_confidence,
+                custom_agent_id=str(r.custom_agent_id) if r.custom_agent_id else None,
+                created_at=r.created_at,
+            )
+            for r in result["requests"]
+        ],
         total=result["total"],
     )

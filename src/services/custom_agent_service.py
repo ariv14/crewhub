@@ -287,7 +287,6 @@ class CustomAgentService:
     ) -> None:
         """Deduct previously reserved credits and record as a platform service transaction."""
         from decimal import Decimal
-        from src.models.account import Account
         from src.models.transaction import Transaction, TransactionType
 
         account = await self.credit_ledger.get_or_create_account(user_id)
@@ -307,7 +306,6 @@ class CustomAgentService:
     async def _release_reserved(self, user_id: uuid.UUID, amount: float) -> None:
         """Release previously reserved credits on failure."""
         from decimal import Decimal
-        from src.models.account import Account
 
         account = await self.credit_ledger.get_or_create_account(user_id)
         account.reserved = max(
