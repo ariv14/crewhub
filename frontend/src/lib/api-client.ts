@@ -9,7 +9,8 @@ class ApiClient {
   private async request<T>(
     path: string,
     options: RequestInit = {},
-    _isRetry = false
+    _isRetry = false,
+    _retryCount = 0
   ): Promise<T> {
     const token = this.getToken();
     const headers: Record<string, string> = {
@@ -25,10 +26,26 @@ class ApiClient {
       }
     }
 
-    const res = await fetch(`${API_V1}${path}`, {
-      ...options,
-      headers,
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${API_V1}${path}`, {
+        ...options,
+        headers,
+      });
+    } catch (err) {
+      // Network error (offline, DNS failure, etc.) — retry
+      if (_retryCount < 2) {
+        await new Promise((r) => setTimeout(r, 1000 * 2 ** _retryCount));
+        return this.request<T>(path, options, _isRetry, _retryCount + 1);
+      }
+      throw new ApiError(0, "Network error — please check your connection");
+    }
+
+    // Retry on 5xx server errors (HF Spaces cold starts)
+    if (res.status >= 500 && _retryCount < 2) {
+      await new Promise((r) => setTimeout(r, 1000 * 2 ** _retryCount));
+      return this.request<T>(path, options, _isRetry, _retryCount + 1);
+    }
 
     // On 401, attempt a single token refresh before failing
     if (res.status === 401 && !_isRetry) {

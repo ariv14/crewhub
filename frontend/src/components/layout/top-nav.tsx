@@ -19,11 +19,13 @@ import {
   Users,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { useHotkeys } from "@/lib/hooks/use-hotkeys";
 import { SpinningLogo } from "@/components/shared/spinning-logo";
 import { useBalance } from "@/lib/hooks/use-credits";
 import { ROUTES } from "@/lib/constants";
-import { formatCredits } from "@/lib/utils";
+import { formatCredits, cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { openCommandPalette } from "@/components/shared/command-palette";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -47,6 +49,7 @@ export function TopNav() {
   const { data: balance } = useBalance();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  useHotkeys();
 
   // Synchronous hint: if a token exists in localStorage, user was previously
   // authenticated. Show auth-gated nav items during loading to prevent flash.
@@ -60,7 +63,7 @@ export function TopNav() {
         {/* Mobile hamburger */}
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild className="md:hidden">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" aria-label="Open menu">
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
@@ -175,15 +178,19 @@ export function TopNav() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="hidden md:flex">
+          <Button variant="ghost" size="icon" className="hidden md:flex" onClick={openCommandPalette} aria-label="Search">
             <Search className="h-4 w-4" />
           </Button>
 
           {user && balance && (
-            <a href={ROUTES.credits}>
+            <a href={ROUTES.credits} aria-label={`Credits: ${formatCredits(balance.available)}`}>
               <Badge
-                variant="secondary"
-                className="cursor-pointer gap-1 px-2.5 py-1"
+                variant={balance.available < 10 ? "destructive" : "secondary"}
+                className={cn(
+                  "cursor-pointer gap-1 px-2.5 py-1",
+                  balance.available < 50 && balance.available >= 10 && "border-amber-500/50 text-amber-500",
+                  balance.available < 10 && "animate-pulse"
+                )}
               >
                 <CreditCard className="h-3 w-3" />
                 {formatCredits(balance.available)}
@@ -243,7 +250,7 @@ export function TopNav() {
             </DropdownMenu>
           ) : authLoading ? null : (
             <Button size="sm" asChild>
-              <a href={ROUTES.login}>Sign In</a>
+              <a href={`${ROUTES.login}?redirect=${encodeURIComponent(pathname)}`}>Sign In</a>
             </Button>
           )}
         </div>

@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 
 const PROVIDERS = [
   { id: "openai", name: "OpenAI", hint: "sk-..." },
@@ -79,6 +80,7 @@ export default function SettingsPage() {
   const [showKeyInput, setShowKeyInput] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deletingProvider, setDeletingProvider] = useState<string | null>(null);
+  const [confirmDeleteProvider, setConfirmDeleteProvider] = useState<string | null>(null);
 
   const loadLLMKeys = useCallback(async () => {
     setLoadingKeys(true);
@@ -370,7 +372,7 @@ export default function SettingsPage() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => handleDeleteKey(key.provider)}
+                            onClick={() => setConfirmDeleteProvider(key.provider)}
                             disabled={deletingProvider === key.provider}
                           >
                             {deletingProvider === key.provider ? (
@@ -451,6 +453,21 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      <ConfirmDialog
+        open={!!confirmDeleteProvider}
+        onOpenChange={(open) => { if (!open) setConfirmDeleteProvider(null); }}
+        title="Remove API Key"
+        description={`Are you sure you want to remove the ${PROVIDERS.find((p) => p.id === confirmDeleteProvider)?.name ?? confirmDeleteProvider} API key? This action cannot be undone.`}
+        confirmLabel="Remove"
+        variant="destructive"
+        onConfirm={() => {
+          if (confirmDeleteProvider) {
+            handleDeleteKey(confirmDeleteProvider);
+            setConfirmDeleteProvider(null);
+          }
+        }}
+        loading={!!deletingProvider}
+      />
     </div>
   );
 }

@@ -16,6 +16,7 @@ import {
   Circle,
   Coins,
   Save,
+  Share2,
   GitBranch,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -271,6 +272,82 @@ function AgentStatusRow({
             <span className="text-muted-foreground">
               ({s.agent.name.replace("AI Agency: ", "")})
             </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Per-agent collapsible result cards (working phase)
+// ---------------------------------------------------------------------------
+function AgentResultCards({
+  suggestions,
+  taskMap,
+}: {
+  suggestions: SkillSuggestion[];
+  taskMap: Map<string, Task>;
+}) {
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  function toggleExpand(agentId: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(agentId)) next.delete(agentId);
+      else next.add(agentId);
+      return next;
+    });
+  }
+
+  return (
+    <div className="space-y-2">
+      {suggestions.map((s) => {
+        const task = taskMap.get(s.agent.id);
+        if (!task) return null;
+        const isCompleted = task.status === "completed";
+        const isFailed = task.status === "failed";
+        const isWorking = ["submitted", "working", "input_required"].includes(task.status);
+        const isOpen = expanded.has(s.agent.id);
+        const text = isCompleted && task.artifacts?.length
+          ? extractArtifactText(task.artifacts)
+          : null;
+
+        return (
+          <div key={s.agent.id} className="rounded-lg border">
+            <button
+              onClick={() => toggleExpand(s.agent.id)}
+              className="flex w-full items-center gap-3 p-3 text-left hover:bg-muted/30 transition-colors"
+            >
+              <div className="shrink-0">
+                {isWorking && <SpinningLogo spinning size="sm" />}
+                {isCompleted && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+                {isFailed && <XCircle className="h-4 w-4 text-red-400" />}
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="text-sm font-medium">{s.skill.name}</span>
+                <span className="ml-2 text-xs text-muted-foreground">
+                  by {s.agent.name.replace("AI Agency: ", "")}
+                </span>
+              </div>
+              {(isCompleted || isFailed) && (
+                isOpen
+                  ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+              )}
+            </button>
+            {isOpen && text && (
+              <div className="border-t px-4 py-3">
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+                </div>
+              </div>
+            )}
+            {isOpen && isFailed && (
+              <div className="border-t px-4 py-3 text-sm text-red-400">
+                Agent failed to complete this task.
+              </div>
+            )}
           </div>
         );
       })}
@@ -769,6 +846,9 @@ export default function TeamPage() {
           {/* Agent status pills */}
           <AgentStatusRow suggestions={suggestions} taskMap={taskMap} />
 
+          {/* Per-agent collapsible results */}
+          <AgentResultCards suggestions={suggestions} taskMap={taskMap} />
+
           {/* Actions */}
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Combined Result</h2>
@@ -792,6 +872,22 @@ export default function TeamPage() {
               >
                 <RotateCcw className="h-3 w-3" />
                 New Team
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const text = `Check out my AI team result on CrewHub!\n\nGoal: ${goal}`;
+                  if (navigator.share) {
+                    navigator.share({ title: "CrewHub Team Result", text, url: window.location.href }).catch(() => {});
+                  } else {
+                    navigator.clipboard.writeText(`${text}\n${window.location.href}`);
+                  }
+                }}
+                className="gap-1"
+              >
+                <Share2 className="h-3 w-3" />
+                Share
               </Button>
             </div>
           </div>

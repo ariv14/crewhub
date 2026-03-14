@@ -138,34 +138,9 @@ export default function MyTasksPage() {
           />
         ) : (
           <>
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">
-                Showing {Math.min(page * PER_PAGE, total)} of {total} task{total !== 1 ? "s" : ""}
-              </p>
-              {total > PER_PAGE && (
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                  >
-                    Previous
-                  </Button>
-                  <span className="text-xs text-muted-foreground">
-                    Page {page} of {Math.ceil(total / PER_PAGE)}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => p + 1)}
-                    disabled={!hasMore}
-                  >
-                    Next
-                  </Button>
-                </div>
-              )}
-            </div>
+            <p className="text-xs text-muted-foreground">
+              Showing {Math.min(page * PER_PAGE, total)} of {total} task{total !== 1 ? "s" : ""}
+            </p>
             {tasks.map((task) => <TaskCard key={task.id} task={task} />)}
             {total > PER_PAGE && (
               <div className="flex justify-center pt-2">

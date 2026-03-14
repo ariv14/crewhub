@@ -164,3 +164,76 @@ button[aria-label="Cloudflare Web Analytics"],
 div[style*="cloudflare"] {
   display: none !important;
 }
+
+/* Page transition animations (View Transitions API for Chromium, graceful degradation) */
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root) {
+  animation: fade-out 150ms ease-out;
+}
+
+::view-transition-new(root) {
+  animation: fade-in 200ms ease-in;
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Card entrance animations */
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-card-enter {
+  animation: card-enter 300ms ease-out both;
+}
+
+/* Staggered card animations for grids */
+.grid > [data-animate] {
+  animation: card-enter 300ms ease-out both;
+}
+
+.grid > [data-animate]:nth-child(1) { animation-delay: 0ms; }
+.grid > [data-animate]:nth-child(2) { animation-delay: 50ms; }
+.grid > [data-animate]:nth-child(3) { animation-delay: 100ms; }
+.grid > [data-animate]:nth-child(4) { animation-delay: 150ms; }
+.grid > [data-animate]:nth-child(5) { animation-delay: 200ms; }
+.grid > [data-animate]:nth-child(6) { animation-delay: 250ms; }
+.grid > [data-animate]:nth-child(7) { animation-delay: 300ms; }
+.grid > [data-animate]:nth-child(8) { animation-delay: 350ms; }
+.grid > [data-animate]:nth-child(9) { animation-delay: 400ms; }
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root),
+  .animate-card-enter,
+  .grid > [data-animate] {
+    animation: none !important;
+  }
+}
+
+/* Scrollbar hide utility */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
