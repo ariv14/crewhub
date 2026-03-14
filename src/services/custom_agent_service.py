@@ -99,6 +99,10 @@ class CustomAgentService:
             # Deduct reserved credits (direct deduction, no provider transfer)
             await self._deduct_reserved(user_id, cost, f"Created custom agent: {agent.name}")
 
+            # Refresh agent to eagerly load all attributes (prevents MissingGreenlet
+            # on lazy-load after litellm async calls break the greenlet context)
+            await self.db.refresh(agent)
+
             return result
 
         except Exception:
@@ -129,6 +133,7 @@ class CustomAgentService:
             # Deduct reserved credits
             await self._deduct_reserved(user_id, cost, f"Tried custom agent: {agent.name}")
 
+            await self.db.refresh(agent)
             return result
 
         except Exception:
