@@ -66,9 +66,9 @@ class CustomAgentService:
         # Rate limit: max creations per day
         await self._check_daily_limit(user_id)
 
-        # Reserve credits for creation
+        # Check balance and reserve credits
         cost = settings.custom_agent_create_cost
-        await self.credit_ledger.reserve(user_id, cost, reason="Custom agent creation")
+        await self.credit_ledger.reserve_credits(user_id, cost)
 
         try:
             # Generate persona via LLM
@@ -96,16 +96,14 @@ class CustomAgentService:
                 result["task_id"] = task_result.get("task_id")
                 result["result"] = task_result.get("result")
 
-            # Charge credits (creation succeeded)
-            await self.credit_ledger.charge(
-                user_id, cost, reason=f"Created custom agent: {agent.name}"
-            )
+            # Deduct reserved credits (direct deduction, no provider transfer)
+            await self._deduct_reserved(user_id, cost, f"Created custom agent: {agent.name}")
 
             return result
 
         except Exception:
             # Release reserved credits on failure
-            await self.credit_ledger.release(user_id, cost, reason="Custom agent creation failed")
+            await self._release_reserved(user_id, cost)
             raise
 
     async def try_custom_agent(
@@ -119,7 +117,7 @@ class CustomAgentService:
 
         # Reserve credits
         cost = settings.custom_agent_try_cost
-        await self.credit_ledger.reserve(user_id, cost, reason=f"Try custom agent: {agent.name}")
+        await self.credit_ledger.reserve_credits(user_id, cost)
 
         try:
             result = await self._execute_task(agent, message, user_id)
@@ -128,17 +126,13 @@ class CustomAgentService:
             agent.try_count += 1
             await self.db.flush()
 
-            # Charge credits
-            await self.credit_ledger.charge(
-                user_id, cost, reason=f"Tried custom agent: {agent.name}"
-            )
+            # Deduct reserved credits
+            await self._deduct_reserved(user_id, cost, f"Tried custom agent: {agent.name}")
 
             return result
 
         except Exception:
-            await self.credit_ledger.release(
-                user_id, cost, reason="Custom agent try failed"
-            )
+            await self._release_reserved(user_id, cost)
             raise
 
     async def list_agents(
@@ -287,6 +281,38 @@ class CustomAgentService:
     # ------------------------------------------------------------------
     # Private helpers
     # ------------------------------------------------------------------
+
+    async def _deduct_reserved(
+        self, user_id: uuid.UUID, amount: float, description: str
+    ) -> None:
+        """Deduct previously reserved credits and record as a platform service transaction."""
+        from decimal import Decimal
+        from src.models.account import Account
+        from src.models.transaction import Transaction, TransactionType
+
+        account = await self.credit_ledger.get_or_create_account(user_id)
+        dec = Decimal(str(amount))
+        account.balance -= dec
+        account.reserved = max(Decimal("0"), account.reserved - dec)
+
+        txn = Transaction(
+            from_account_id=account.id,
+            to_account_id=None,  # platform service
+            amount=dec,
+            type=TransactionType.PLATFORM_FEE,
+            description=description,
+        )
+        self.db.add(txn)
+
+    async def _release_reserved(self, user_id: uuid.UUID, amount: float) -> None:
+        """Release previously reserved credits on failure."""
+        from decimal import Decimal
+        from src.models.account import Account
+
+        account = await self.credit_ledger.get_or_create_account(user_id)
+        account.reserved = max(
+            Decimal("0"), account.reserved - Decimal(str(amount))
+        )
 
     async def _get_agent(self, custom_agent_id: uuid.UUID) -> CustomAgent:
         stmt = select(CustomAgent).where(CustomAgent.id == custom_agent_id)
