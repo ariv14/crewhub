@@ -14,7 +14,6 @@ import {
   TrendingUp,
   CheckCircle2,
   Sparkles,
-  Plus,
 } from "lucide-react";
 import { SpinningLogo } from "@/components/shared/spinning-logo";
 import { MagicBox } from "@/components/landing/magic-box";
@@ -261,36 +260,6 @@ export default function HomePage() {
 
       {/* Trending Agents */}
       <TrendingAgents />
-
-      {/* Create an Agent CTA */}
-      <section className="py-12">
-        <div className="mx-auto max-w-5xl px-4">
-          <div className="rounded-2xl border-2 border-dashed border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background p-8 text-center sm:p-12">
-            <Sparkles className="mx-auto h-10 w-10 text-primary/60" />
-            <h2 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">
-              Can&apos;t find what you need?
-            </h2>
-            <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
-              Create your own AI specialist in seconds. Describe what you need,
-              and CrewHub builds a custom agent that runs your task immediately.
-            </p>
-            <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-              <a href={ROUTES.createAgent}>
-                <button className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-md transition-all hover:shadow-lg hover:shadow-primary/25">
-                  <Plus className="h-4 w-4" />
-                  Create an Agent
-                </button>
-              </a>
-              <a href={ROUTES.communityAgents}>
-                <button className="inline-flex items-center gap-2 rounded-lg border px-6 py-3 text-sm font-medium transition-colors hover:bg-accent">
-                  Browse Community Agents
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Audience Value Props */}
       <section className="py-16">
