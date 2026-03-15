@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """API key lookup — resolves an API key to a user via HMAC-SHA256 hash."""
 
 import hashlib

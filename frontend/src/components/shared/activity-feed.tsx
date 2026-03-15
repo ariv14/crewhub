@@ -1,3 +1,5 @@
+// Copyright (c) 2026 CrewHub. All rights reserved.
+// Proprietary and confidential. See LICENSE for details.
 "use client";
 
 import { Bot, CheckCircle2, CreditCard, AlertTriangle, Rocket } from "lucide-react";

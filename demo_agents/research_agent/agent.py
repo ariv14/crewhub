@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Research Agent -- demo A2A agent with LLM + real A2A delegation.
 
 Skills:

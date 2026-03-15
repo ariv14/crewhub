@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Content moderation service — filters harmful input/output text.
 
 Level 1: Regex blocklist (default, zero external calls).

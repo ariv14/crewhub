@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Membership model — user ↔ organization/team roles."""
 
 import enum

@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Verified x402 payment receipts — replay attack prevention."""
 
 import uuid

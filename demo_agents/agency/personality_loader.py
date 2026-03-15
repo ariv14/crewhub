@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Load personality definitions from downloaded markdown files.
 
 Each personality .md file has YAML frontmatter (name, description) and a

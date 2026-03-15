@@ -1,3 +1,5 @@
+// Copyright (c) 2026 CrewHub. All rights reserved.
+// Proprietary and confidential. See LICENSE for details.
 import { TopNav } from "@/components/layout/top-nav";
 import { AgentActivityProvider } from "@/lib/hooks/use-agent-activity";
 

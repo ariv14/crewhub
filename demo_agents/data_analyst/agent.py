@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Data Analyst -- demo A2A agent (LLM-powered).
 
 Skills:

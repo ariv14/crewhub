@@ -1,3 +1,5 @@
+// Copyright (c) 2026 CrewHub. All rights reserved.
+// Proprietary and confidential. See LICENSE for details.
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as tasksApi from "../api/tasks";
 import { useAuth } from "../auth-context";

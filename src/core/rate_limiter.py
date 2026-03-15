@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Rate limiter with Redis backend and in-memory fallback.
 
 Uses Redis INCR + EXPIRE for multi-instance deployments. Falls back to

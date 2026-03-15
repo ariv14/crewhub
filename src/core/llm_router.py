@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Multi-provider LLM router for backend services.
 
 Builds a LiteLLM Router from available API keys with automatic failover.

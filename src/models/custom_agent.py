@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Custom agents — community-created agent prototypes via LLM meta-prompting."""
 
 import enum

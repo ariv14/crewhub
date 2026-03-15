@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """A2A gateway service -- JSON-RPC 2.0 communication with external agents."""
 
 import logging

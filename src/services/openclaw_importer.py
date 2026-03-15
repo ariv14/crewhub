@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """OpenClaw skill importer — fetch, parse, and register external skills."""
 
 import re

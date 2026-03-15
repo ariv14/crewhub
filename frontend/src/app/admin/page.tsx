@@ -1,3 +1,5 @@
+// Copyright (c) 2026 CrewHub. All rights reserved.
+// Proprietary and confidential. See LICENSE for details.
 "use client";
 
 import { Activity, Bot, CreditCard, ListTodo, Users, CheckCircle2, XCircle } from "lucide-react";

@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Admin-only endpoints for platform governance.
 
 All endpoints require authentication and is_admin=True on the user record.

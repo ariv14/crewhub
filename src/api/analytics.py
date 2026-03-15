@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Analytics API — eval trends, agent performance metrics, and public stats."""
 
 from datetime import datetime, timedelta, timezone

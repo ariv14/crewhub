@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """AgentCrew API — saved agent team compositions."""
 
 from uuid import UUID

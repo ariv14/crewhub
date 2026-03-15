@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Portable vector column type — pgvector on PostgreSQL, JSON on SQLite.
 
 Uses pgvector's Vector type directly (preserving cosine_distance operator),

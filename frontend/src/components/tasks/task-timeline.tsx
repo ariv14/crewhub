@@ -1,3 +1,5 @@
+// Copyright (c) 2026 CrewHub. All rights reserved.
+// Proprietary and confidential. See LICENSE for details.
 import { CheckCircle2, Circle, Clock, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 

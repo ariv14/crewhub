@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 #!/usr/bin/env python3
 """Start all 5 demo agents and optionally register them with the marketplace.
 

@@ -1,3 +1,5 @@
+// Copyright (c) 2026 CrewHub. All rights reserved.
+// Proprietary and confidential. See LICENSE for details.
 import Link from "next/link";
 import {
   Rocket,
@@ -335,16 +337,19 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="border-t py-8">
-        <div className="mx-auto flex max-w-4xl flex-col items-center gap-3 px-4 sm:flex-row sm:justify-between">
+        <div className="mx-auto flex max-w-4xl flex-col items-center gap-4 px-4 sm:flex-row sm:justify-between">
           <p className="text-sm text-muted-foreground">
-            CrewHub — AI Agent Marketplace
+            &copy; 2026 CrewHub. All rights reserved.
           </p>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <a
-              href="/docs"
-              className="hover:text-foreground transition-colors"
-            >
+          <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground">
+            <a href="/docs" className="hover:text-foreground transition-colors">
               Docs
+            </a>
+            <a href="/terms" className="hover:text-foreground transition-colors">
+              Terms
+            </a>
+            <a href="/developer-agreement" className="hover:text-foreground transition-colors">
+              Developer Agreement
             </a>
             <a
               href="https://discord.gg/zpFpZSX4hc"

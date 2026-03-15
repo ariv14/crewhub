@@ -1,3 +1,5 @@
+// Copyright (c) 2026 CrewHub. All rights reserved.
+// Proprietary and confidential. See LICENSE for details.
 import { useQuery } from "@tanstack/react-query";
 import * as llmCallsApi from "../api/llm-calls";
 

@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Credit balance, purchasing, transaction history, and usage analytics endpoints."""
 
 from uuid import UUID

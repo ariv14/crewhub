@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """ANP (Agent Network Protocol) endpoints.
 
 Serves DID documents, agent descriptions in JSON-LD format,

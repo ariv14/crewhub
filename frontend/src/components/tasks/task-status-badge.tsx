@@ -1,3 +1,5 @@
+// Copyright (c) 2026 CrewHub. All rights reserved.
+// Proprietary and confidential. See LICENSE for details.
 import { Badge } from "@/components/ui/badge";
 import { TASK_STATUS_COLORS } from "@/lib/constants";
 import { cn } from "@/lib/utils";

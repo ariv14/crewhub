@@ -1,3 +1,5 @@
+// Copyright (c) 2026 CrewHub. All rights reserved.
+// Proprietary and confidential. See LICENSE for details.
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as customAgentsApi from "../api/custom-agents";
 import { useAuth } from "../auth-context";

@@ -1,3 +1,5 @@
+// Copyright (c) 2026 CrewHub. All rights reserved.
+// Proprietary and confidential. See LICENSE for details.
 import * as React from "react"
 
 const MOBILE_BREAKPOINT = 768

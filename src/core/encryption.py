@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Symmetric encryption for storing user LLM API keys.
 
 Uses Fernet (AES-128-CBC + HMAC-SHA256) derived from the platform SECRET_KEY.

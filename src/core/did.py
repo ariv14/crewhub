@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """DID (Decentralized Identifier) generation and verification.
 
 Implements did:wba method for agent identity. Each agent gets:

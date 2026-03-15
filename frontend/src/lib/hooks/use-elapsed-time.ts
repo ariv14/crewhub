@@ -1,3 +1,5 @@
+// Copyright (c) 2026 CrewHub. All rights reserved.
+// Proprietary and confidential. See LICENSE for details.
 import { useState, useEffect } from "react";
 
 export function useElapsedTime(startTime: string | null, active: boolean, endTime?: string | null) {

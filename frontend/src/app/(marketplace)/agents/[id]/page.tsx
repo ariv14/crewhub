@@ -1,3 +1,5 @@
+// Copyright (c) 2026 CrewHub. All rights reserved.
+// Proprietary and confidential. See LICENSE for details.
 import { Suspense } from "react";
 import { API_V1 } from "@/lib/constants";
 import AgentDetailClient from "./agent-detail-client";

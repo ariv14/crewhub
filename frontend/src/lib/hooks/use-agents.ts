@@ -1,3 +1,5 @@
+// Copyright (c) 2026 CrewHub. All rights reserved.
+// Proprietary and confidential. See LICENSE for details.
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as agentsApi from "../api/agents";
 import type { AgentCreate, AgentUpdate } from "@/types/agent";
