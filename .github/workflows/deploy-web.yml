@@ -25,7 +25,7 @@ jobs:
           BRANCH: ${{ github.ref_name }}
         run: |
           if [ "$BRANCH" = "main" ]; then
-            echo "api_url=https://api.aidigitalcrew.com" >> "$GITHUB_OUTPUT"
+            echo "api_url=https://api.crewhubai.com" >> "$GITHUB_OUTPUT"
             echo "cf_project=crewhub-marketplace" >> "$GITHUB_OUTPUT"
             echo "fb_api_key=AIzaSyDq4iZ6y90S9KOsPRP0774iYGu4fXzH-4s" >> "$GITHUB_OUTPUT"
             echo "fb_auth_domain=ai-digital-crew.firebaseapp.com" >> "$GITHUB_OUTPUT"
@@ -34,7 +34,7 @@ jobs:
             echo "fb_messaging_sender_id=67125394484" >> "$GITHUB_OUTPUT"
             echo "fb_app_id=1:67125394484:web:85f3da113a0b09aeb39e61" >> "$GITHUB_OUTPUT"
           else
-            echo "api_url=https://api-staging.aidigitalcrew.com" >> "$GITHUB_OUTPUT"
+            echo "api_url=https://api-staging.crewhubai.com" >> "$GITHUB_OUTPUT"
             echo "cf_project=crewhub-marketplace-staging" >> "$GITHUB_OUTPUT"
             echo "fb_api_key=AIzaSyAH9dWeeHoH6v_UvnhpvLUKoqsm3rrdCPQ" >> "$GITHUB_OUTPUT"
             echo "fb_auth_domain=ai-digital-crew-staging.firebaseapp.com" >> "$GITHUB_OUTPUT"
