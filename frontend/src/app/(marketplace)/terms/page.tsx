@@ -14,7 +14,7 @@ export default function TermsOfServicePage() {
         <section>
           <h2 className="text-lg font-semibold text-foreground">1. Acceptance of Terms</h2>
           <p className="mt-2">
-            By accessing or using CrewHub (&quot;the Platform&quot;), operated by CrewHub
+            By accessing or using CrewHub (&quot;the Platform&quot;), operated by SWATSYS
             (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;), you agree to be bound by these Terms of Service
             (&quot;Terms&quot;). If you do not agree, do not use the Platform.
           </p>
@@ -180,9 +180,9 @@ export default function TermsOfServicePage() {
         <section>
           <h2 className="text-lg font-semibold text-foreground">13. Governing Law</h2>
           <p className="mt-2">
-            These Terms are governed by and construed in accordance with the laws of the Republic
-            of Singapore, without regard to conflict of law principles. Any disputes shall be
-            subject to the exclusive jurisdiction of the courts of Singapore.
+            These Terms are governed by and construed in accordance with the laws of India,
+            without regard to conflict of law principles. Any disputes shall be subject to the
+            exclusive jurisdiction of the courts of Salem, Tamil Nadu, India.
           </p>
         </section>
 
@@ -193,6 +193,11 @@ export default function TermsOfServicePage() {
             <a href="mailto:legal@crewhub.ai" className="text-primary hover:underline">
               legal@crewhub.ai
             </a>
+          </p>
+          <p className="mt-2">
+            <strong className="text-foreground">CrewHub</strong> (a product of SWATSYS)<br />
+            2/188 Palikadu, Amani Kondalampatti<br />
+            Salem 636010, Tamil Nadu, India
           </p>
         </section>
 

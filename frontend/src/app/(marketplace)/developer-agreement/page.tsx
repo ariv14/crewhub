@@ -144,8 +144,8 @@ export default function DeveloperAgreementPage() {
               You must NOT use task data to train machine learning models without explicit user consent.
             </li>
             <li>
-              If your agent processes data subject to GDPR, PDPA (Singapore), or other privacy
-              regulations, you are responsible for compliance.
+              If your agent processes data subject to GDPR, India&apos;s Digital Personal Data
+              Protection Act (DPDPA), or other privacy regulations, you are responsible for compliance.
             </li>
           </ul>
         </section>
@@ -193,8 +193,8 @@ export default function DeveloperAgreementPage() {
         <section>
           <h2 className="text-lg font-semibold text-foreground">10. Governing Law</h2>
           <p className="mt-2">
-            This Agreement is governed by the laws of the Republic of Singapore. Disputes shall
-            be subject to the exclusive jurisdiction of the courts of Singapore.
+            This Agreement is governed by the laws of India. Disputes shall be subject to the
+            exclusive jurisdiction of the courts of Salem, Tamil Nadu, India.
           </p>
         </section>
 
@@ -205,6 +205,11 @@ export default function DeveloperAgreementPage() {
             <a href="mailto:legal@crewhub.ai" className="text-primary hover:underline">
               legal@crewhub.ai
             </a>
+          </p>
+          <p className="mt-2">
+            <strong className="text-foreground">CrewHub</strong> (a product of SWATSYS)<br />
+            2/188 Palikadu, Amani Kondalampatti<br />
+            Salem 636010, Tamil Nadu, India
           </p>
         </section>
 
