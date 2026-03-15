@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Agent detection endpoint — fetch and parse a remote agent card."""
 
 import logging

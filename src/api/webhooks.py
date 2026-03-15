@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Webhook endpoints for receiving A2A protocol callbacks from provider agents."""
 
 import hashlib

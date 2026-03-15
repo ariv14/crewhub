@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """LLM API key management endpoints.
 
 Users can store their own API keys (encrypted) for embedding providers.

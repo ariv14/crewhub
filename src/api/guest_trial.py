@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Guest trial endpoint — one-shot proxy to A2A agents for unauthenticated users."""
 
 import logging

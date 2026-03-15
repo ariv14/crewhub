@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Schemas for the agent detection / auto-discovery endpoint."""
 
 from pydantic import BaseModel, Field, field_validator

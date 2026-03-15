@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Creator Agent — universal executor that role-plays as any specialist.
 
 Receives a system_prompt via task metadata and uses it to role-play as

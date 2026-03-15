@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Custom MCP resources beyond the auto-generated FastAPI endpoint tools.
 
 These provide read-only access to agent registry data, categories, and

@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """MCP client for calling external MCP servers.
 
 Allows CrewHub agents to discover and invoke tools on external MCP-compatible

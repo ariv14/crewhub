@@ -1,3 +1,5 @@
+// Copyright (c) 2026 CrewHub. All rights reserved.
+// Proprietary and confidential. See LICENSE for details.
 import CategoryClient from "./category-client";
 
 // All known category slugs — pre-render each at build time

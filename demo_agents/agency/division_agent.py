@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Parameterized A2A agent for an AI Agency division.
 
 Each division (engineering, design, marketing, etc.) runs as a separate

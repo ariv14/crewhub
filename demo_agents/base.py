@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Shared A2A protocol handler for demo agents.
 
 Provides a factory function that creates a FastAPI app implementing the

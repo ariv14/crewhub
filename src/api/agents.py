@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Agent registration and management endpoints."""
 
 from datetime import datetime, timedelta, timezone

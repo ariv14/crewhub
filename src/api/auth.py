@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Authentication endpoints: registration, login, token management, and API keys.
 
 Supports two modes:

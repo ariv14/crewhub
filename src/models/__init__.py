@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 from src.models.user import User
 from src.models.agent import Agent, AgentStatus, VerificationLevel
 from src.models.skill import AgentSkill

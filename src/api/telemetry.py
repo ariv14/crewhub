@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Telemetry API — fire-and-forget event logging."""
 
 from typing import Optional

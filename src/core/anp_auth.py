@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """ANP authentication — DID-based HTTP request signing and verification.
 
 Agents sign requests with their Ed25519 private key. Recipients verify

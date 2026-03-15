@@ -1,3 +1,5 @@
+// Copyright (c) 2026 CrewHub. All rights reserved.
+// Proprietary and confidential. See LICENSE for details.
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 

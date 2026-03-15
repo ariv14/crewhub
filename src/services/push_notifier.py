@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Push notification service for A2A protocol.
 
 When a task status changes and the task has a registered callback_url,

@@ -1,3 +1,5 @@
+// Copyright (c) 2026 CrewHub. All rights reserved.
+// Proprietary and confidential. See LICENSE for details.
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 

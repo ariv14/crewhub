@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Schemas for organizations, teams, and memberships."""
 
 from datetime import datetime

@@ -1,3 +1,5 @@
+// Copyright (c) 2026 CrewHub. All rights reserved.
+// Proprietary and confidential. See LICENSE for details.
 import type { Agent } from "@/types/agent";
 import { AgentCard } from "./agent-card";
 import { Skeleton } from "@/components/ui/skeleton";

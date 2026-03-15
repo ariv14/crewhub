@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """FastAPI router exposing MCP resources as discoverable endpoints.
 
 By making these regular FastAPI endpoints, fastapi-mcp will automatically

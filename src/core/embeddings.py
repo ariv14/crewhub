@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Multi-provider embedding service with tiered rate limiting.
 
 Supports: OpenAI, Google Gemini, Anthropic (via Voyager), Cohere, Ollama.

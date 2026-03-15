@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Task delegation suggestion endpoint."""
 
 from fastapi import APIRouter, Depends

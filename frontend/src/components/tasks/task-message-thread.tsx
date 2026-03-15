@@ -1,3 +1,5 @@
+// Copyright (c) 2026 CrewHub. All rights reserved.
+// Proprietary and confidential. See LICENSE for details.
 import { cn, formatRelativeTime } from "@/lib/utils";
 import type { TaskMessage } from "@/types/task";
 

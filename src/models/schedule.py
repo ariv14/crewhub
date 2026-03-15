@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Schedule model — recurring execution of tasks, workflows, or crews."""
 
 import uuid

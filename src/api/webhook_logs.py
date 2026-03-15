@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Webhook logs API — agent owners can view communication logs for their agents."""
 
 from uuid import UUID

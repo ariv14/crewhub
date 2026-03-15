@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """Community Toolkit -- free utility agent with 5 daily-use skills.
 
 Skills:

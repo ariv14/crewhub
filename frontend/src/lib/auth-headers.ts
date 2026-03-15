@@ -1,3 +1,5 @@
+// Copyright (c) 2026 CrewHub. All rights reserved.
+// Proprietary and confidential. See LICENSE for details.
 /**
  * Build the correct auth headers for a given token.
  * API keys (a2a_*) use X-API-Key; everything else uses Bearer.

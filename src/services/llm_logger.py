@@ -1,3 +1,5 @@
+# Copyright (c) 2026 CrewHub. All rights reserved.
+# Proprietary and confidential. See LICENSE for details.
 """LLM Call logger service for tracking outbound LLM/A2A calls."""
 
 import logging
