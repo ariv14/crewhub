@@ -360,7 +360,7 @@ class AgentResponse(BaseModel):
     def compute_did(self):
         """Populate the DID field from the agent ID if it has a DID public key."""
         if self.did is None and self.id:
-            self.did = f"did:wba:api.aidigitalcrew.com:agents:{self.id}"
+            self.did = f"did:wba:api.crewhubai.com:agents:{self.id}"
         return self
 
 

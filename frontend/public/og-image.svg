@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <radialGradient id="ogBg" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#1a1040"/>
+      <stop offset="100%" stop-color="#0c0a1a"/>
+    </radialGradient>
+    <radialGradient id="ogBlue" cx="40%" cy="35%" r="50%">
+      <stop offset="0%" stop-color="#93c5fd"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </radialGradient>
+    <radialGradient id="ogPurple" cx="40%" cy="35%" r="50%">
+      <stop offset="0%" stop-color="#c4b5fd"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </radialGradient>
+    <radialGradient id="ogTeal" cx="40%" cy="35%" r="50%">
+      <stop offset="0%" stop-color="#67e8f9"/>
+      <stop offset="100%" stop-color="#0891b2"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#ogBg)"/>
+
+  <!-- Subtle grid pattern -->
+  <g opacity="0.04" stroke="#818cf8" stroke-width="1">
+    <line x1="0" y1="0" x2="0" y2="630"/><line x1="60" y1="0" x2="60" y2="630"/>
+    <line x1="120" y1="0" x2="120" y2="630"/><line x1="180" y1="0" x2="180" y2="630"/>
+    <line x1="240" y1="0" x2="240" y2="630"/><line x1="300" y1="0" x2="300" y2="630"/>
+    <line x1="360" y1="0" x2="360" y2="630"/><line x1="420" y1="0" x2="420" y2="630"/>
+    <line x1="480" y1="0" x2="480" y2="630"/><line x1="540" y1="0" x2="540" y2="630"/>
+    <line x1="600" y1="0" x2="600" y2="630"/><line x1="660" y1="0" x2="660" y2="630"/>
+    <line x1="720" y1="0" x2="720" y2="630"/><line x1="780" y1="0" x2="780" y2="630"/>
+    <line x1="840" y1="0" x2="840" y2="630"/><line x1="900" y1="0" x2="900" y2="630"/>
+    <line x1="960" y1="0" x2="960" y2="630"/><line x1="1020" y1="0" x2="1020" y2="630"/>
+    <line x1="1080" y1="0" x2="1080" y2="630"/><line x1="1140" y1="0" x2="1140" y2="630"/>
+    <line x1="0" y1="60" x2="1200" y2="60"/><line x1="0" y1="120" x2="1200" y2="120"/>
+    <line x1="0" y1="180" x2="1200" y2="180"/><line x1="0" y1="240" x2="1200" y2="240"/>
+    <line x1="0" y1="300" x2="1200" y2="300"/><line x1="0" y1="360" x2="1200" y2="360"/>
+    <line x1="0" y1="420" x2="1200" y2="420"/><line x1="0" y1="480" x2="1200" y2="480"/>
+    <line x1="0" y1="540" x2="1200" y2="540"/>
+  </g>
+
+  <!-- Logo (refined spheres) — right side -->
+  <g transform="translate(850, 180) scale(0.5)">
+    <path d="M 240 140 Q 190 240 148 320" stroke="#3b82f6" stroke-width="3" fill="none" opacity="0.35"/>
+    <path d="M 272 140 Q 320 240 364 320" stroke="#06b6d4" stroke-width="3" fill="none" opacity="0.35"/>
+    <path d="M 168 350 Q 256 370 344 350" stroke="#8b5cf6" stroke-width="3" fill="none" opacity="0.35"/>
+    <circle cx="256" cy="125" r="56" fill="url(#ogBlue)"/>
+    <circle cx="148" cy="335" r="56" fill="url(#ogPurple)"/>
+    <circle cx="364" cy="335" r="56" fill="url(#ogTeal)"/>
+    <ellipse cx="244" cy="110" rx="16" ry="10" fill="white" opacity="0.3" transform="rotate(-15 244 110)"/>
+    <ellipse cx="136" cy="320" rx="16" ry="10" fill="white" opacity="0.3" transform="rotate(-15 136 320)"/>
+    <ellipse cx="352" cy="320" rx="16" ry="10" fill="white" opacity="0.3" transform="rotate(-15 352 320)"/>
+  </g>
+
+  <!-- Text — left side -->
+  <text x="80" y="240" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="700" fill="#fafafa">CrewHub</text>
+  <text x="80" y="310" font-family="system-ui, -apple-system, sans-serif" font-size="30" font-weight="400" fill="#a5b4fc">AI Agent Marketplace</text>
+
+  <text x="80" y="400" font-family="system-ui, -apple-system, sans-serif" font-size="20" fill="#71717a">Discover, deploy, and orchestrate AI agents.</text>
+  <text x="80" y="432" font-family="system-ui, -apple-system, sans-serif" font-size="20" fill="#71717a">Agent-to-agent delegation at scale.</text>
+
+  <!-- Domain -->
+  <text x="80" y="550" font-family="system-ui, -apple-system, sans-serif" font-size="18" fill="#6366f1">crewhubai.com</text>
+
+  <!-- Bottom accent line -->
+  <rect x="0" y="620" width="1200" height="10" fill="#6366f1" opacity="0.8"/>
+</svg>

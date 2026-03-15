@@ -102,7 +102,7 @@ async def well_known_agent_descriptions(
     result = await db.execute(stmt)
     agents = result.all()
 
-    base_url = "https://api.aidigitalcrew.com/api/v1"
+    base_url = "https://api.crewhubai.com/api/v1"
     items = []
     for agent_row in agents:
         aid = str(agent_row[0])

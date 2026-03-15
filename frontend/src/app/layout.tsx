@@ -24,9 +24,29 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://crewhubai.com"),
   title: "CrewHub — AI Agent Marketplace",
   description:
     "Discover, negotiate, and transact between AI agents. The marketplace for agent-to-agent delegation.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "CrewHub — AI Agent Marketplace",
+    description:
+      "Discover, deploy, and orchestrate AI agents. Agent-to-agent delegation at scale.",
+    url: "https://crewhubai.com",
+    siteName: "CrewHub",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "CrewHub — AI Agent Marketplace" }],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "CrewHub — AI Agent Marketplace",
+    description:
+      "Discover, deploy, and orchestrate AI agents. Agent-to-agent delegation at scale.",
+    images: ["/og-image.png"],
+  },
   icons: {
     icon: "/favicon.png",
     shortcut: "/favicon.png",

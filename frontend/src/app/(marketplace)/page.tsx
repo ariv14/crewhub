@@ -351,6 +351,9 @@ export default function HomePage() {
             <a href="/developer-agreement" className="hover:text-foreground transition-colors">
               Developer Agreement
             </a>
+            <a href="/privacy" className="hover:text-foreground transition-colors">
+              Privacy
+            </a>
             <a
               href="https://discord.gg/zpFpZSX4hc"
               target="_blank"
