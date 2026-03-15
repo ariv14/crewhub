@@ -157,6 +157,28 @@
   animation: logo-glow 2s ease-in-out infinite;
 }
 
+/* Logo orbit particles */
+@keyframes logo-orbit {
+  from { transform: rotate(0deg) translateX(var(--orbit-radius)) rotate(0deg); }
+  to { transform: rotate(360deg) translateX(var(--orbit-radius)) rotate(-360deg); }
+}
+.logo-orbit-container { position: relative; }
+.logo-orbit-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--dot-size);
+  height: var(--dot-size);
+  margin: calc(var(--dot-size) / -2) 0 0 calc(var(--dot-size) / -2);
+  border-radius: 50%;
+  background: var(--dot-color);
+  box-shadow: 0 0 6px var(--dot-color);
+  pointer-events: none;
+}
+.logo-orbit-1 { animation: logo-orbit 8s linear infinite; opacity: 0.6; }
+.logo-orbit-2 { animation: logo-orbit 12s linear infinite reverse; animation-delay: -3s; opacity: 0.5; }
+.logo-orbit-3 { animation: logo-orbit 16s linear infinite; animation-delay: -7s; opacity: 0.4; }
+
 /* Hide Cloudflare Pages built-in feedback widget */
 [data-cf-beacon],
 #cf-feedback-widget,

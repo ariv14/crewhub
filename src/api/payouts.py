@@ -48,14 +48,19 @@ async def connect_onboard(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        error_msg = str(e)
+        error_msg = str(e).lower()
         logger.error("Connect onboarding failed for user %s: %s", user_id, e)
-        if "signed up for Connect" in error_msg:
+        if any(phrase in error_msg for phrase in [
+            "signed up for connect",
+            "connect is not available",
+            "platform profile",
+            "not registered as a platform",
+        ]):
             raise HTTPException(
                 status_code=503,
                 detail="Stripe Connect is not yet enabled for this platform. Please contact support.",
             )
-        raise HTTPException(status_code=500, detail="Failed to connect with Stripe. Please try again later.")
+        raise HTTPException(status_code=500, detail=f"Failed to connect with Stripe: {str(e)[:200]}")
     return OnboardingResponse(onboarding_url=url)
 
 
