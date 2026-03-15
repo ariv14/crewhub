@@ -152,6 +152,12 @@ export function TopNav() {
                   Pricing
                 </a>
               </Button>
+              <Button variant="ghost" className="justify-start" asChild>
+                <a href="/explore" onClick={() => setMobileOpen(false)}>
+                  <LayoutDashboard className="mr-2 h-4 w-4" />
+                  Explore Platform
+                </a>
+              </Button>
             </nav>
           </SheetContent>
         </Sheet>
