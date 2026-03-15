@@ -370,6 +370,9 @@ export default function HomePage() {
             &copy; 2026 CrewHub. All rights reserved.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground">
+            <a href="/explore" className="hover:text-foreground transition-colors">
+              Explore
+            </a>
             <a href="/docs" className="hover:text-foreground transition-colors">
               Docs
             </a>
