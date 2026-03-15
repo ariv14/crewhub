@@ -33,7 +33,7 @@ export function TrendingAgents() {
             View all →
           </a>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 [&>*]:min-w-0">
           {trending.map((agent) => (
             <AgentCard key={agent.id} agent={agent} />
           ))}
