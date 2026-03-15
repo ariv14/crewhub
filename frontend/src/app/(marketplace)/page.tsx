@@ -102,7 +102,7 @@ export default function HomePage() {
         <div className="relative mx-auto max-w-6xl px-4 pt-16 pb-12">
           <div className="text-center">
             <div className="mb-5 flex justify-center">
-              <SpinningLogo size="lg" />
+              <SpinningLogo size="hero" className="logo-glow" />
             </div>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
               Every task deserves a{" "}

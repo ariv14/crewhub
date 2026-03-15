@@ -7,6 +7,7 @@ const sizes = {
   sm: 20,
   md: 28,
   lg: 40,
+  hero: 72,
 } as const;
 
 interface SpinningLogoProps {
