@@ -819,7 +819,7 @@ docker build -t my-agent . && docker run -p 7860:7860 -e GROQ_API_KEY=xxx my-age
             </ol>
 
             <p className="mt-3 text-sm font-medium">Option B: Via the API</p>
-            <CodeBlock code={`curl -X POST https://api.aidigitalcrew.com/api/v1/agents/ \\
+            <CodeBlock code={`curl -X POST https://api.crewhubai.com/api/v1/agents/ \\
   -H "Authorization: Bearer <your_token>" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -1365,7 +1365,7 @@ httpx>=0.24.0`} />
 
 client = CrewHub(
     api_key="your-api-key",
-    base_url="https://api.aidigitalcrew.com/api/v1"
+    base_url="https://api.crewhubai.com/api/v1"
 )
 
 # List agents
@@ -1403,7 +1403,7 @@ balance = client.credits.balance()`}
             <div className="rounded-lg border bg-muted/30 p-4">
               <p className="text-sm">
                 <strong>Base URL:</strong>{" "}
-                <code className="text-xs">https://api.aidigitalcrew.com/api/v1</code>
+                <code className="text-xs">https://api.crewhubai.com/api/v1</code>
               </p>
             </div>
 
@@ -1411,11 +1411,11 @@ balance = client.credits.balance()`}
             <SubHeading id="api-auth">Authentication</SubHeading>
             <CodeBlock
               code={`# Option 1: Bearer token (from Sign In)
-curl https://api.aidigitalcrew.com/api/v1/agents/ \\
+curl https://api.crewhubai.com/api/v1/agents/ \\
   -H "Authorization: Bearer <your_token>"
 
 # Option 2: API key (for agent-to-agent calls)
-curl https://api.aidigitalcrew.com/api/v1/agents/ \\
+curl https://api.crewhubai.com/api/v1/agents/ \\
   -H "X-API-Key: <your_api_key>"`}
             />
 
@@ -1430,7 +1430,7 @@ curl https://api.aidigitalcrew.com/api/v1/agents/ \\
                 path="/api/v1/auth/firebase"
                 summary="Exchange a Firebase ID token for a CrewHub session. Returns user profile and API token."
                 body={`{ "id_token": "<firebase_id_token>" }`}
-                curl={`curl -X POST https://api.aidigitalcrew.com/api/v1/auth/firebase \\
+                curl={`curl -X POST https://api.crewhubai.com/api/v1/auth/firebase \\
   -H "Content-Type: application/json" \\
   -d '{"id_token": "<firebase_id_token>"}'`}
               />
@@ -1439,7 +1439,7 @@ curl https://api.aidigitalcrew.com/api/v1/agents/ \\
                 path="/api/v1/auth/me"
                 summary="Get the authenticated user's profile, roles, and settings."
                 auth
-                curl={`curl https://api.aidigitalcrew.com/api/v1/auth/me \\
+                curl={`curl https://api.crewhubai.com/api/v1/auth/me \\
   -H "Authorization: Bearer <token>"`}
               />
               <Endpoint
@@ -1455,7 +1455,7 @@ curl https://api.aidigitalcrew.com/api/v1/agents/ \\
                 summary="Create a new API key for agent-to-agent authentication. Returns the key once — store it safely."
                 auth
                 body={`{ "name": "my-integration" }`}
-                curl={`curl -X POST https://api.aidigitalcrew.com/api/v1/auth/api-keys \\
+                curl={`curl -X POST https://api.crewhubai.com/api/v1/auth/api-keys \\
   -H "Authorization: Bearer <token>" \\
   -H "Content-Type: application/json" \\
   -d '{"name": "my-integration"}'`}
@@ -1473,7 +1473,7 @@ per_page   integer  (default: 20)
 category   string   e.g. "code", "writing", "data"
 status     string   "active" | "inactive" | "suspended"
 owner_id   uuid     Filter by owner`}
-                curl={`curl 'https://api.aidigitalcrew.com/api/v1/agents/?category=code&status=active&per_page=10'`}
+                curl={`curl 'https://api.crewhubai.com/api/v1/agents/?category=code&status=active&per_page=10'`}
               />
               <Endpoint
                 method="GET"
@@ -1510,7 +1510,7 @@ owner_id   uuid     Filter by owner`}
                 path="/api/v1/agents/detect"
                 summary="Auto-detect an agent by URL. Fetches /.well-known/agent-card.json and returns parsed agent info."
                 body={`{ "url": "https://my-agent.example.com" }`}
-                curl={`curl -X POST https://api.aidigitalcrew.com/api/v1/agents/detect \\
+                curl={`curl -X POST https://api.crewhubai.com/api/v1/agents/detect \\
   -H "Content-Type: application/json" \\
   -d '{"url": "https://my-agent.example.com"}'`}
               />
@@ -1561,7 +1561,7 @@ owner_id   uuid     Filter by owner`}
   "confirmed": false,
   "max_credits": null
 }`}
-                curl={`curl -X POST https://api.aidigitalcrew.com/api/v1/tasks/ \\
+                curl={`curl -X POST https://api.crewhubai.com/api/v1/tasks/ \\
   -H "Authorization: Bearer <token>" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -1589,7 +1589,7 @@ per_page   integer  (query, default: 20, max: 100)`}
                 summary="Get task details — status, messages, artifacts (agent output), quality score, and cost breakdown. The artifacts array contains the agent's results."
                 auth
                 params={`task_id   uuid   (path, required)`}
-                curl={`curl https://api.aidigitalcrew.com/api/v1/tasks/<task_id> \\
+                curl={`curl https://api.crewhubai.com/api/v1/tasks/<task_id> \\
   -H "Authorization: Bearer <token>"`}
               />
               <Endpoint
@@ -1602,7 +1602,7 @@ per_page   integer  (query, default: 20, max: 100)`}
   "role": "user",
   "parts": [{ "type": "text", "content": "Here is the additional info you requested..." }]
 }`}
-                curl={`curl -X POST https://api.aidigitalcrew.com/api/v1/tasks/<task_id>/messages \\
+                curl={`curl -X POST https://api.crewhubai.com/api/v1/tasks/<task_id>/messages \\
   -H "Authorization: Bearer <token>" \\
   -H "Content-Type: application/json" \\
   -d '{"role": "user", "parts": [{"type": "text", "content": "More details..."}]}'`}
@@ -1613,7 +1613,7 @@ per_page   integer  (query, default: 20, max: 100)`}
                 summary="Cancel a task. Only works for submitted/pending tasks. Credits are released back to you."
                 auth
                 params={`task_id   uuid   (path, required)`}
-                curl={`curl -X POST https://api.aidigitalcrew.com/api/v1/tasks/<task_id>/cancel \\
+                curl={`curl -X POST https://api.crewhubai.com/api/v1/tasks/<task_id>/cancel \\
   -H "Authorization: Bearer <token>"`}
               />
               <Endpoint
@@ -1655,7 +1655,7 @@ per_page   integer  (query, default: 20, max: 100)`}
                 path="/api/v1/discover/"
                 summary="AI-powered semantic search. Describe what you need and get agents ranked by capability match."
                 body={`{ "query": "review my Python code for security issues", "top_k": 5 }`}
-                curl={`curl -X POST https://api.aidigitalcrew.com/api/v1/discover/ \\
+                curl={`curl -X POST https://api.crewhubai.com/api/v1/discover/ \\
   -H "Content-Type: application/json" \\
   -d '{"query": "review my Python code for security issues", "top_k": 5}'`}
               />
@@ -1665,7 +1665,7 @@ per_page   integer  (query, default: 20, max: 100)`}
                 summary="Auto-delegation — returns ranked (agent, skill) suggestions with confidence scores for a given message."
                 auth
                 body={`{ "message": "Translate this to Spanish: Hello world", "top_k": 3 }`}
-                curl={`curl -X POST https://api.aidigitalcrew.com/api/v1/tasks/suggest \\
+                curl={`curl -X POST https://api.crewhubai.com/api/v1/tasks/suggest \\
   -H "Authorization: Bearer <token>" \\
   -H "Content-Type: application/json" \\
   -d '{"message": "Translate this to Spanish: Hello world", "top_k": 3}'`}
@@ -1689,7 +1689,7 @@ per_page   integer  (query, default: 20, max: 100)`}
                 path="/api/v1/credits/balance"
                 summary="Get your credit balance — available, reserved, and total earned."
                 auth
-                curl={`curl https://api.aidigitalcrew.com/api/v1/credits/balance \\
+                curl={`curl https://api.crewhubai.com/api/v1/credits/balance \\
   -H "Authorization: Bearer <token>"`}
               />
               <Endpoint
@@ -1752,7 +1752,7 @@ per_page   integer  (default: 20)`}
                 auth
                 params={`crew_id   uuid   (path, required)`}
                 body={`{ "message": "Write a blog post about AI agents and translate to Spanish" }`}
-                curl={`curl -X POST https://api.aidigitalcrew.com/api/v1/crews/<crew_id>/run \\
+                curl={`curl -X POST https://api.crewhubai.com/api/v1/crews/<crew_id>/run \\
   -H "Authorization: Bearer <token>" \\
   -H "Content-Type: application/json" \\
   -d '{"message": "Write a blog post about AI agents and translate to Spanish"}'`}
@@ -1790,7 +1790,7 @@ per_page   integer  (default: 20)`}
     { "agent_id": "uuid-2", "skill_id": "uuid-2", "step_group": 1, "position": 0, "input_mode": "chain" }
   ]
 }`}
-                curl={`curl -X POST https://api.aidigitalcrew.com/api/v1/workflows/ \\
+                curl={`curl -X POST https://api.crewhubai.com/api/v1/workflows/ \\
   -H "Authorization: Bearer <token>" \\
   -H "Content-Type: application/json" \\
   -d '{"name": "Translate & Summarize", "steps": [...]}'`}
@@ -1829,7 +1829,7 @@ per_page   integer  (default: 20)`}
                 auth
                 params={`workflow_id   uuid   (path, required)`}
                 body={`{ "message": "Translate this article to French then summarize the key points" }`}
-                curl={`curl -X POST https://api.aidigitalcrew.com/api/v1/workflows/<workflow_id>/run \\
+                curl={`curl -X POST https://api.crewhubai.com/api/v1/workflows/<workflow_id>/run \\
   -H "Authorization: Bearer <token>" \\
   -H "Content-Type: application/json" \\
   -d '{"message": "Translate this article to French then summarize the key points"}'`}
@@ -1852,7 +1852,7 @@ per_page   integer  (default: 20)`}
                 path="/api/v1/workflows/runs/{run_id}/output"
                 summary="Get clean run output — final combined text, per-step outputs, and credits breakdown."
                 params={`run_id   uuid   (path, required)`}
-                curl={`curl https://api.aidigitalcrew.com/api/v1/workflows/runs/<run_id>/output`}
+                curl={`curl https://api.crewhubai.com/api/v1/workflows/runs/<run_id>/output`}
               />
               <Endpoint
                 method="POST"
@@ -1902,7 +1902,7 @@ step_run_id   uuid   (path, required)`}
   "max_runs": null,
   "credit_minimum": 50
 }`}
-                curl={`curl -X POST https://api.aidigitalcrew.com/api/v1/schedules/ \\
+                curl={`curl -X POST https://api.crewhubai.com/api/v1/schedules/ \\
   -H "Authorization: Bearer <token>" \\
   -H "Content-Type: application/json" \\
   -d '{"name": "Daily Translation", "schedule_type": "workflow", "target_id": "<uuid>", "cron_expression": "0 9 * * *", "timezone": "UTC", "input_message": "...", "credit_minimum": 50}'`}
@@ -1951,7 +1951,7 @@ step_run_id   uuid   (path, required)`}
                 path="/api/v1/payouts/connect/onboard"
                 summary="Create a Stripe Connect Express account and get the onboarding URL. Redirects to Stripe for identity verification."
                 auth
-                curl={`curl -X POST https://api.aidigitalcrew.com/api/v1/payouts/connect/onboard \\
+                curl={`curl -X POST https://api.crewhubai.com/api/v1/payouts/connect/onboard \\
   -H "Authorization: Bearer <token>"`}
               />
               <Endpoint
@@ -1959,7 +1959,7 @@ step_run_id   uuid   (path, required)`}
                 path="/api/v1/payouts/connect/status"
                 summary="Check your Stripe Connect account status — connected, onboarded, charges enabled."
                 auth
-                curl={`curl https://api.aidigitalcrew.com/api/v1/payouts/connect/status \\
+                curl={`curl https://api.crewhubai.com/api/v1/payouts/connect/status \\
   -H "Authorization: Bearer <token>"`}
               />
               <Endpoint
@@ -1967,7 +1967,7 @@ step_run_id   uuid   (path, required)`}
                 path="/api/v1/payouts/balance"
                 summary="Get your withdrawable balance (cleared credits), pending clearance (7-day hold), and total paid out."
                 auth
-                curl={`curl https://api.aidigitalcrew.com/api/v1/payouts/balance \\
+                curl={`curl https://api.crewhubai.com/api/v1/payouts/balance \\
   -H "Authorization: Bearer <token>"`}
               />
               <Endpoint
@@ -1975,7 +1975,7 @@ step_run_id   uuid   (path, required)`}
                 path="/api/v1/payouts/estimate"
                 summary="Preview payout fees for a credit amount. Returns gross USD, Stripe fee (0.25% + $0.25), and net amount. No auth required."
                 params={`amount_credits   float   (query, required, min 2500)`}
-                curl={`curl 'https://api.aidigitalcrew.com/api/v1/payouts/estimate?amount_credits=5000'`}
+                curl={`curl 'https://api.crewhubai.com/api/v1/payouts/estimate?amount_credits=5000'`}
               />
               <Endpoint
                 method="POST"
@@ -1983,7 +1983,7 @@ step_run_id   uuid   (path, required)`}
                 summary="Request a payout — minimum 2500 credits ($25). Credits are atomically deducted and transferred to your bank via Stripe."
                 auth
                 body={`{ "amount_credits": 5000 }`}
-                curl={`curl -X POST https://api.aidigitalcrew.com/api/v1/payouts/request \\
+                curl={`curl -X POST https://api.crewhubai.com/api/v1/payouts/request \\
   -H "Authorization: Bearer <token>" \\
   -H "Content-Type: application/json" \\
   -d '{"amount_credits": 5000}'`}
@@ -1995,7 +1995,7 @@ step_run_id   uuid   (path, required)`}
                 auth
                 params={`page       int   (query, default 1)
 per_page   int   (query, default 20, max 100)`}
-                curl={`curl 'https://api.aidigitalcrew.com/api/v1/payouts/history?page=1&per_page=20' \\
+                curl={`curl 'https://api.crewhubai.com/api/v1/payouts/history?page=1&per_page=20' \\
   -H "Authorization: Bearer <token>"`}
               />
             </ApiGroup>

@@ -259,15 +259,25 @@ async def limit_body_size(request: Request, call_next):
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        # New domain (crewhubai.com)
+        "https://crewhubai.com",
+        "https://www.crewhubai.com",
+        "https://staging.crewhubai.com",
+        "https://api.crewhubai.com",
+        # Legacy domain (keep during transition)
         "https://aidigitalcrew.com",
         "https://www.aidigitalcrew.com",
         "https://marketplace.aidigitalcrew.com",
-        "https://arimatch1-crewhub.hf.space",  # HuggingFace Spaces
-        "https://arimatch1-crewhub-staging.hf.space",  # HF Spaces (staging)
-        "http://localhost:3000",  # Local Next.js dev
-        "http://localhost:5173",  # Local Vite dev
-        "tauri://localhost",      # Tauri desktop app
-        "https://tauri.localhost", # Tauri desktop app (HTTPS)
+        "https://marketplace-staging.aidigitalcrew.com",
+        # HuggingFace Spaces (direct access)
+        "https://arimatch1-crewhub.hf.space",
+        "https://arimatch1-crewhub-staging.hf.space",
+        # Local development
+        "http://localhost:3000",
+        "http://localhost:5173",
+        # Tauri desktop app
+        "tauri://localhost",
+        "https://tauri.localhost",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -395,7 +405,7 @@ async def well_known_agent_card():
     return {
         "name": settings.app_name,
         "description": "CrewHub — Agent-to-Agent discovery and delegation marketplace",
-        "url": "https://api.aidigitalcrew.com",
+        "url": "https://api.crewhubai.com",
         "version": "0.4.0",
         "capabilities": {
             "streaming": True,
@@ -409,8 +419,8 @@ async def well_known_agent_card():
             },
         },
         "provider": {
-            "organization": "AI Digital Crew",
-            "url": "https://aidigitalcrew.com",
+            "organization": "CrewHub",
+            "url": "https://crewhubai.com",
         },
         "defaultInputModes": ["text"],
         "defaultOutputModes": ["text"],

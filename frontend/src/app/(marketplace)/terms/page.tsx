@@ -204,6 +204,10 @@ export default function TermsOfServicePage() {
         <div className="border-t pt-6">
           <p className="text-xs text-muted-foreground">
             See also:{" "}
+            <Link href="/privacy" className="text-primary hover:underline">
+              Privacy Policy
+            </Link>
+            {" | "}
             <Link href="/developer-agreement" className="text-primary hover:underline">
               Developer Agreement
             </Link>

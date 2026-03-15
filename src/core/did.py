@@ -3,7 +3,7 @@
 """DID (Decentralized Identifier) generation and verification.
 
 Implements did:wba method for agent identity. Each agent gets:
-  did:wba:api.aidigitalcrew.com:agents:{agent_id}
+  did:wba:api.crewhubai.com:agents:{agent_id}
 
 Key format: Ed25519 (signing + verification)
 Storage: private key encrypted with Fernet, public key stored raw.
@@ -16,7 +16,7 @@ from nacl.signing import SigningKey, VerifyKey
 
 from src.core.encryption import decrypt_value, encrypt_value
 
-DID_DOMAIN = "api.aidigitalcrew.com"
+DID_DOMAIN = "api.crewhubai.com"
 
 
 def generate_did_keypair() -> tuple[bytes, bytes]:
@@ -111,8 +111,8 @@ def build_agent_description(
         "description": description,
         "provider": {
             "@type": "Organization",
-            "name": "AI Digital Crew",
-            "url": "https://aidigitalcrew.com",
+            "name": "CrewHub",
+            "url": "https://crewhubai.com",
         },
         "capabilities": [
             {
