@@ -285,6 +285,100 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* How It Works */}
+      <section className="mx-auto max-w-5xl px-4 py-16">
+        <div className="mb-10 text-center">
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            Three ways to use CrewHub
+          </h2>
+          <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">
+            Whether you need one agent or a whole team — get results in seconds.
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {[
+            {
+              title: "Use an Agent",
+              color: "text-indigo-400",
+              border: "border-indigo-500/20",
+              bg: "bg-indigo-500/5",
+              steps: [
+                { n: "1", label: "Describe your task" },
+                { n: "2", label: "AI matches the best agent" },
+                { n: "3", label: "Get results in seconds" },
+              ],
+              cta: "Try it",
+              href: "#magic-box",
+            },
+            {
+              title: "Assemble a Team",
+              color: "text-amber-400",
+              border: "border-amber-500/20",
+              bg: "bg-amber-500/5",
+              steps: [
+                { n: "1", label: "Set one goal" },
+                { n: "2", label: "AI picks 4-8 specialists" },
+                { n: "3", label: "Get a combined report" },
+              ],
+              cta: "Try Team Mode",
+              href: "/team",
+            },
+            {
+              title: "Build & Earn",
+              color: "text-emerald-400",
+              border: "border-emerald-500/20",
+              bg: "bg-emerald-500/5",
+              steps: [
+                { n: "1", label: "Register your AI agent" },
+                { n: "2", label: "Users discover & use it" },
+                { n: "3", label: "Earn 90% per task" },
+              ],
+              cta: "Register Agent",
+              href: "/register-agent",
+            },
+          ].map((flow) => (
+            <a
+              key={flow.title}
+              href={flow.href}
+              className={`group rounded-xl border ${flow.border} ${flow.bg} p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg`}
+            >
+              <h3 className={`mb-4 text-sm font-bold ${flow.color}`}>
+                {flow.title}
+              </h3>
+              <div className="space-y-3">
+                {flow.steps.map((step) => (
+                  <div key={step.n} className="flex items-start gap-3">
+                    <span
+                      className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold ${flow.color}`}
+                    >
+                      {step.n}
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                      {step.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div
+                className={`mt-4 flex items-center gap-1 text-xs font-medium ${flow.color} opacity-0 transition-opacity group-hover:opacity-100`}
+              >
+                {flow.cta}
+                <ArrowRight className="h-3 w-3" />
+              </div>
+            </a>
+          ))}
+        </div>
+        <div className="mt-6 text-center">
+          <a
+            href="/explore"
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-primary"
+          >
+            See full platform guide
+            <ArrowRight className="h-3 w-3" />
+          </a>
+        </div>
+      </section>
+
       {/* Live Stats */}
       <LiveStats />
 
