@@ -84,6 +84,122 @@ async def get_public_stats(
     )
 
 
+# ---------------------------------------------------------------------------
+# Delegation accuracy
+# ---------------------------------------------------------------------------
+
+
+class DelegationAccuracyResponse(BaseModel):
+    total_suggestions_used: int
+    agent_match_count: int
+    agent_match_rate: float | None
+    correct_count: int  # matched agent AND completed
+    accuracy_pct: float | None
+    avg_confidence: float | None
+    weekly_trends: list["DelegationWeek"]
+
+
+class DelegationWeek(BaseModel):
+    week: str
+    suggestions_used: int
+    correct: int
+    accuracy_pct: float | None
+    avg_confidence: float | None
+
+
+@router.get("/delegation-accuracy", response_model=DelegationAccuracyResponse)
+async def get_delegation_accuracy(
+    weeks: int = Query(default=12, ge=1, le=52),
+    db: AsyncSession = Depends(get_db),
+):
+    """Platform-wide delegation accuracy — how often auto-suggestions lead to successful tasks."""
+    cutoff = datetime.now(timezone.utc) - timedelta(weeks=weeks)
+
+    # Overall stats
+    base = select(Task).where(
+        Task.suggested_agent_id.isnot(None),
+        Task.created_at >= cutoff,
+        Task.status.in_(["completed", "failed", "canceled"]),
+    )
+
+    total_q = select(func.count()).select_from(base.subquery())
+    total = (await db.execute(total_q)).scalar_one()
+
+    match_q = select(func.count()).select_from(
+        base.where(Task.provider_agent_id == Task.suggested_agent_id).subquery()
+    )
+    matched = (await db.execute(match_q)).scalar_one()
+
+    correct_q = select(func.count()).select_from(
+        base.where(
+            Task.provider_agent_id == Task.suggested_agent_id,
+            Task.status == "completed",
+        ).subquery()
+    )
+    correct = (await db.execute(correct_q)).scalar_one()
+
+    avg_conf_q = select(func.avg(Task.suggestion_confidence)).where(
+        Task.suggested_agent_id.isnot(None),
+        Task.created_at >= cutoff,
+    )
+    avg_conf = (await db.execute(avg_conf_q)).scalar_one()
+
+    # Weekly breakdown
+    yr, wk = _week_columns()
+    weekly_stmt = (
+        select(
+            yr,
+            wk,
+            func.count().label("used"),
+            func.sum(
+                case(
+                    (
+                        (Task.provider_agent_id == Task.suggested_agent_id)
+                        & (Task.status == "completed"),
+                        1,
+                    ),
+                    else_=0,
+                )
+            ).label("correct"),
+            func.avg(Task.suggestion_confidence).label("avg_conf"),
+        )
+        .where(
+            Task.suggested_agent_id.isnot(None),
+            Task.created_at >= cutoff,
+            Task.status.in_(["completed", "failed", "canceled"]),
+        )
+        .group_by("yr", "wk")
+        .order_by("yr", "wk")
+    )
+    rows = (await db.execute(weekly_stmt)).all()
+
+    trends = []
+    for row in rows:
+        y = int(row.yr) if row.yr else 0
+        w = int(row.wk) if row.wk else 0
+        used = int(row.used)
+        cor = int(row.correct)
+        trends.append(
+            DelegationWeek(
+                week=f"{y}-W{w:02d}",
+                suggestions_used=used,
+                correct=cor,
+                accuracy_pct=round(cor / used * 100, 1) if used > 0 else None,
+                avg_confidence=round(float(row.avg_conf), 3) if row.avg_conf else None,
+            )
+        )
+
+    return DelegationAccuracyResponse(
+        total_suggestions_used=total,
+        agent_match_count=matched,
+        agent_match_rate=round(matched / total * 100, 1) if total > 0 else None,
+        correct_count=correct,
+        accuracy_pct=round(correct / total * 100, 1) if total > 0 else None,
+        avg_confidence=round(float(avg_conf), 3) if avg_conf else None,
+        weekly_trends=trends,
+    )
+
+
 class WeeklyTrend(BaseModel):
     week: str  # ISO week label e.g. "2026-W10"
     avg_quality: float | None
