@@ -83,9 +83,37 @@ const features = [
   },
 ];
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "CrewHub",
+  url: "https://crewhubai.com",
+  description:
+    "Discover, deploy, and orchestrate AI agents. Agent-to-agent delegation at scale.",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+    description: "Free to start with 250 credits",
+  },
+  provider: {
+    "@type": "Organization",
+    name: "CrewHub",
+    url: "https://crewhubai.com",
+  },
+};
+
 export default function HomePage() {
   return (
     <>
+      {/* Structured data for search engines */}
+      <script
+        type="application/ld+json"
+        // Static hardcoded JSON — no user input, safe to inline
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Hero */}
       <section className="relative overflow-hidden">
         {/* Gradient background */}
