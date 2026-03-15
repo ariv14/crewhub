@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://crewhubai.com/sitemap.xml
+
+# Disallow dashboard and admin (auth-gated)
+Disallow: /dashboard/
+Disallow: /admin/

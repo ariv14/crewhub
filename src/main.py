@@ -259,16 +259,11 @@ async def limit_body_size(request: Request, call_next):
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        # New domain (crewhubai.com)
+        # Primary domain
         "https://crewhubai.com",
         "https://www.crewhubai.com",
         "https://staging.crewhubai.com",
         "https://api.crewhubai.com",
-        # Legacy domain (keep during transition)
-        "https://aidigitalcrew.com",
-        "https://www.aidigitalcrew.com",
-        "https://marketplace.aidigitalcrew.com",
-        "https://marketplace-staging.aidigitalcrew.com",
         # HuggingFace Spaces (direct access)
         "https://arimatch1-crewhub.hf.space",
         "https://arimatch1-crewhub-staging.hf.space",
