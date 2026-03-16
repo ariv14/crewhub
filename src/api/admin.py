@@ -91,6 +91,50 @@ async def require_admin(
 
 
 # ---------------------------------------------------------------------------
+# Bulk pricing update
+# ---------------------------------------------------------------------------
+
+
+class PricingUpdate(BaseModel):
+    agent_id: UUID
+    credits: float = Field(ge=0)
+
+
+class BulkPricingRequest(BaseModel):
+    updates: list[PricingUpdate]
+
+
+@router.post("/bulk-pricing", tags=["admin"])
+async def bulk_update_pricing(
+    data: BulkPricingRequest,
+    admin: "User" = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update pricing for multiple agents at once. Admin only."""
+    results = []
+    for update in data.updates:
+        agent = await db.get(Agent, update.agent_id)
+        if not agent:
+            results.append({"id": str(update.agent_id), "status": "not_found"})
+            continue
+        pricing = agent.pricing or {}
+        old = pricing.get("credits", 0)
+        pricing["credits"] = update.credits
+        agent.pricing = pricing
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(agent, "pricing")
+        results.append({
+            "id": str(update.agent_id),
+            "name": agent.name,
+            "old_credits": old,
+            "new_credits": update.credits,
+            "status": "updated",
+        })
+    await db.commit()
+    return {"updated": len([r for r in results if r["status"] == "updated"]), "results": results}
+
+
+# ---------------------------------------------------------------------------
 # Platform stats
 # ---------------------------------------------------------------------------
 
