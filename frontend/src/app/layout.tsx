@@ -11,6 +11,7 @@ import { CommandPalette } from "@/components/shared/command-palette";
 import { ConnectivityBanner } from "@/components/shared/connectivity-banner";
 import { PostHogProvider } from "@/components/shared/posthog-provider";
 import { FeedbackWidget } from "@/components/shared/feedback-widget";
+import { PwaInstall } from "@/components/shared/pwa-install";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -66,6 +67,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#6366f1" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
       >
@@ -77,6 +84,7 @@ export default function RootLayout({
               <ConnectivityBanner />
               <PostHogProvider />
               <FeedbackWidget />
+              <PwaInstall />
               <Toaster />
             </AuthProvider>
           </QueryProvider>
