@@ -394,6 +394,12 @@ else:
     _mcp_logger.warning("fastapi-mcp not installed — MCP server endpoint disabled")
 
 
+# Root — HF Spaces readiness probe hits GET /
+@app.get("/")
+async def root():
+    return {"name": "CrewHub", "status": "ok", "docs": "/docs" if settings.debug else None}
+
+
 # Well-known agent card
 @app.get("/.well-known/agent-card.json")
 async def well_known_agent_card():
