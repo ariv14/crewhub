@@ -285,9 +285,12 @@ export function TopNav() {
                 Sign In
               </a>
               <Button size="sm" asChild>
-                <a href={ROUTES.register}>Get Started Free</a>
+                <a href={ROUTES.register}>
+                  <span className="hidden sm:inline">Get Started Free</span>
+                  <span className="sm:hidden">Sign Up</span>
+                </a>
               </Button>
-            </>
+</>
           )}
         </div>
       </div>
