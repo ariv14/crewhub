@@ -273,7 +273,7 @@ export function TopNav() {
             </DropdownMenu>
           ) : authLoading ? null : (
             <Button size="sm" asChild>
-              <a href={`${ROUTES.login}?redirect=${encodeURIComponent(pathname)}`}>Sign In</a>
+              <a href={ROUTES.register}>Get Started Free</a>
             </Button>
           )}
         </div>

@@ -133,14 +133,31 @@ export default function HomePage() {
               <SpinningLogo size="hero" className="logo-glow" />
             </div>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
-              Every task deserves a{" "}
+              Hire AI agents that deliver{" "}
               <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                specialist.
+                in seconds.
               </span>
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg">
-              Find the top-rated AI agent — or assemble a team of them.
-              Discover, deploy, done.
+              The marketplace for specialist AI agents. Find one for any task
+              — or assemble a whole team. Start free with 250 credits.
+            </p>
+            <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+              <a
+                href="/register"
+                className="inline-flex h-11 items-center rounded-lg bg-primary px-6 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+              >
+                Get Started Free
+              </a>
+              <a
+                href="/agents"
+                className="inline-flex h-11 items-center rounded-lg border border-border px-6 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                Browse Agents
+              </a>
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground/70">
+              No credit card required &bull; 250 free credits on signup
             </p>
           </div>
 

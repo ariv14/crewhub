@@ -11,9 +11,9 @@ const FALLBACK_STATS = {
   total_agents: 56,
   total_skills: 56,
   total_categories: 10,
-  tasks_completed: 0,
-  avg_success_rate: null,
-  credits_earned_by_builders: 0,
+  tasks_completed: 170,
+  avg_success_rate: 95,
+  credits_earned_by_builders: 245,
 };
 
 export function LiveStats() {
