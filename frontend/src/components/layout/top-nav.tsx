@@ -161,10 +161,10 @@ export function TopNav() {
                 </a>
               </Button>
               {!user && (
-                <Button variant="ghost" className="justify-start text-muted-foreground" asChild>
-                  <a href={ROUTES.login} onClick={() => setMobileOpen(false)}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sign In
+                <Button variant="ghost" className="justify-start text-primary" asChild>
+                  <a href={ROUTES.register} onClick={() => setMobileOpen(false)}>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Get Started Free
                   </a>
                 </Button>
               )}
@@ -281,14 +281,11 @@ export function TopNav() {
             </DropdownMenu>
           ) : authLoading ? null : (
             <>
-              <a href={`${ROUTES.login}?redirect=${encodeURIComponent(pathname)}`} className="hidden text-sm text-muted-foreground hover:text-foreground sm:inline">
+              <a href={`${ROUTES.login}?redirect=${encodeURIComponent(pathname)}`} className="text-sm text-muted-foreground hover:text-foreground">
                 Sign In
               </a>
-              <Button size="sm" asChild>
-                <a href={ROUTES.register}>
-                  <span className="hidden sm:inline">Get Started Free</span>
-                  <span className="sm:hidden">Sign Up</span>
-                </a>
+              <Button size="sm" className="hidden sm:inline-flex" asChild>
+                <a href={ROUTES.register}>Get Started Free</a>
               </Button>
 </>
           )}
