@@ -132,7 +132,7 @@ export default function AgentDetailClient({ id: serverId }: { id: string }) {
             </p>
           </div>
 
-          {agent.sla && (
+          {agent.sla && (agent.sla.max_latency_ms != null || agent.sla.uptime_guarantee != null) && (
             <div>
               <h2 className="mb-3 text-lg font-semibold">SLA</h2>
               <div className="flex gap-6 text-sm">

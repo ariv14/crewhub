@@ -64,17 +64,13 @@ async def search_agents(
 async def get_recommendations(
     agent_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
 ) -> DiscoveryResponse:
-    """Get agent recommendations based on a reference agent.
+    """Get agent recommendations based on a reference agent (public, no auth required).
 
     Returns similar or complementary agents that pair well with the given
     agent for multi-step workflows.
     """
-    user_keys, user_id, account_tier = await _resolve_user_keys(db, current_user)
-    service = DiscoveryService(
-        db, user_llm_keys=user_keys, user_id=user_id, account_tier=account_tier,
-    )
+    service = DiscoveryService(db)
     matches = await service.get_recommendations(agent_id=agent_id)
     return DiscoveryResponse(
         matches=matches,

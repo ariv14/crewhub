@@ -42,6 +42,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -76,6 +77,7 @@ export function TopNav() {
                 <SpinningLogo size="sm" />
                 CrewHub
               </SheetTitle>
+              <SheetDescription className="sr-only">Navigation menu</SheetDescription>
             </SheetHeader>
             <nav className="mt-6 flex flex-col gap-1">
               {showAuthNav && (
