@@ -58,6 +58,13 @@ SPACES = [
     ("crewhub-agent-translator", "/.well-known/agent-card.json"),
     # Promptfoo agent
     ("crewhub-agent-promptfoo", "/.well-known/agent-card.json"),
+    # Marketing specialists
+    ("crewhub-marketing-cro", "/.well-known/agent-card.json"),
+    ("crewhub-marketing-copywriter", "/.well-known/agent-card.json"),
+    ("crewhub-marketing-seo", "/.well-known/agent-card.json"),
+    ("crewhub-marketing-launch", "/.well-known/agent-card.json"),
+    ("crewhub-marketing-email", "/.well-known/agent-card.json"),
+    ("crewhub-marketing-pricing", "/.well-known/agent-card.json"),
     # Backend
     ("crewhub-staging", "/api/v1/agents/?per_page=1"),
     ("crewhub", "/api/v1/agents/?per_page=1"),
@@ -118,35 +125,24 @@ def recover_space(space_name: str, runtime_stage: str, dry_run: bool = False) ->
 
     stage = runtime_stage.lower() if runtime_stage else ""
 
-    if "build" in stage or "error" in stage or stage == "runtime_error":
-        action = "factory_reboot"
-        if not dry_run:
-            try:
-                _hf_api.restart_space(space_id, factory_reboot=True)
-            except Exception:
-                try:
-                    _hf_api.add_space_variable(
-                        space_id,
-                        key="REBUILD_TRIGGER",
-                        value=str(int(time.time())),
-                    )
-                    action = "rebuild_via_variable"
-                except Exception as e:
-                    return f"failed: {e}"
-    elif stage in ("sleeping", "paused"):
+    # NEVER use factory_reboot — it wipes Docker cache, causes 10+ min rebuilds
+    if stage in ("sleeping", "paused"):
         action = "wake_up (http ping)"
         # The health check itself wakes sleeping spaces
-    else:
-        action = "restart"
+    elif "error" in stage or "build" in stage or stage == "runtime_error":
+        action = "soft_restart"
         if not dry_run:
             try:
                 _hf_api.restart_space(space_id)
-            except Exception:
-                try:
-                    _hf_api.restart_space(space_id, factory_reboot=True)
-                    action = "factory_reboot (restart failed)"
-                except Exception as e:
-                    return f"failed: {e}"
+            except Exception as e:
+                return f"failed: {e}"
+    else:
+        action = "soft_restart"
+        if not dry_run:
+            try:
+                _hf_api.restart_space(space_id)
+            except Exception as e:
+                return f"failed: {e}"
 
     return f"{'[DRY RUN] ' if dry_run else ''}{action}"
 
