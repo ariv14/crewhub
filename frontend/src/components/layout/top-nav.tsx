@@ -160,6 +160,14 @@ export function TopNav() {
                   Explore Platform
                 </a>
               </Button>
+              {!user && (
+                <Button variant="ghost" className="justify-start text-muted-foreground" asChild>
+                  <a href={ROUTES.login} onClick={() => setMobileOpen(false)}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign In
+                  </a>
+                </Button>
+              )}
             </nav>
           </SheetContent>
         </Sheet>
@@ -272,9 +280,14 @@ export function TopNav() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : authLoading ? null : (
-            <Button size="sm" asChild>
-              <a href={ROUTES.register}>Get Started Free</a>
-            </Button>
+            <>
+              <a href={`${ROUTES.login}?redirect=${encodeURIComponent(pathname)}`} className="hidden text-sm text-muted-foreground hover:text-foreground sm:inline">
+                Sign In
+              </a>
+              <Button size="sm" asChild>
+                <a href={ROUTES.register}>Get Started Free</a>
+              </Button>
+            </>
           )}
         </div>
       </div>
