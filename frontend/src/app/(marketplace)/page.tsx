@@ -21,6 +21,7 @@ import { SpinningLogo } from "@/components/shared/spinning-logo";
 import { MagicBox } from "@/components/landing/magic-box";
 import { LiveStats } from "@/components/landing/live-stats";
 import { TrendingAgents } from "@/components/landing/trending-agents";
+import { SocialProof } from "@/components/landing/social-proof";
 import { ROUTES } from "@/lib/constants";
 
 const audiences = [
@@ -302,6 +303,9 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Social Proof */}
+      <SocialProof />
+
       {/* How It Works */}
       <section className="mx-auto max-w-5xl px-4 py-16">
         <div className="mb-10 text-center">
@@ -395,9 +399,6 @@ export default function HomePage() {
           </a>
         </div>
       </section>
-
-      {/* Live Stats */}
-      <LiveStats />
 
       {/* Trending Agents */}
       <TrendingAgents />
