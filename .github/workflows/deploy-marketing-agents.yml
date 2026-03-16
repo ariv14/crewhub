@@ -1,0 +1,44 @@
+name: Deploy Marketing Agents
+
+on:
+  workflow_dispatch:
+    inputs:
+      divisions:
+        description: "Divisions to deploy (comma-separated, or 'all')"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - cro
+          - copywriter
+          - seo
+          - launch
+          - email
+          - pricing
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install "huggingface_hub>=0.25.0"
+
+      - name: Deploy marketing agents
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          DEPLOY_TARGET: ${{ inputs.divisions }}
+        run: |
+          if [ "$DEPLOY_TARGET" = "all" ]; then
+            python scripts/deploy_marketing_agents.py --all
+          else
+            python scripts/deploy_marketing_agents.py --divisions "$DEPLOY_TARGET"
+          fi
