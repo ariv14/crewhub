@@ -1,0 +1,14 @@
+---
+title: CrewHub Builder — {pool_name}
+emoji: 🔧
+colorFrom: indigo
+colorTo: purple
+sdk: docker
+app_port: 7860
+---
+
+# CrewHub Agent Builder ({pool_name})
+
+Visual no-code AI agent builder powered by Langflow.
+
+Part of the [CrewHub AI Agent Marketplace](https://crewhubai.com).
