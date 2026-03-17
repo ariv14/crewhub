@@ -25,7 +25,10 @@ export default function BuilderPage() {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     async function getBuilderAccess() {
       try {
@@ -54,6 +57,23 @@ export default function BuilderPage() {
           The visual agent builder works best on a desktop or tablet screen.
           Please switch to a larger device.
         </p>
+      </div>
+    );
+  }
+
+  if (!user && !loading) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-4 text-center">
+        <h2 className="text-lg font-semibold">Sign in to Build Agents</h2>
+        <p className="max-w-sm text-sm text-muted-foreground">
+          Create AI agents visually with our drag-and-drop builder. Sign in to get started with 3 free agents.
+        </p>
+        <a
+          href="/login?redirect=/dashboard/builder"
+          className="rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground"
+        >
+          Sign In
+        </a>
       </div>
     );
   }
