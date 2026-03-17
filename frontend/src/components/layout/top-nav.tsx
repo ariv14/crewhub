@@ -86,6 +86,7 @@ export function TopNav() {
                     { href: ROUTES.dashboard, label: "Overview", icon: LayoutDashboard },
                     { href: ROUTES.myAgents, label: "My Agents", icon: Bot },
                     { href: ROUTES.myTasks, label: "My Tasks", icon: ListTodo },
+                    { href: "/dashboard/builder", label: "Build Agent", icon: Sparkles },
                   ].map((item) => (
                     <Button key={item.href} variant={pathname === item.href || (item.href !== ROUTES.dashboard && pathname.startsWith(item.href)) ? "secondary" : "ghost"} className="justify-start" asChild>
                       <a href={item.href} onClick={() => setMobileOpen(false)}>
