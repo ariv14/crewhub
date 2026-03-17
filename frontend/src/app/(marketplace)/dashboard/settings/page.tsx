@@ -11,6 +11,11 @@ import {
   Loader2,
   Eye,
   EyeOff,
+  Sparkles,
+  ExternalLink,
+  CheckCircle2,
+  XCircle,
+  ChevronDown,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { createApiKey, revokeApiKey, updateMe } from "@/lib/api/auth";
@@ -180,6 +185,10 @@ export default function SettingsPage() {
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="api-keys">API Keys</TabsTrigger>
+          <TabsTrigger value="builder" className="gap-1.5">
+            <Sparkles className="h-3.5 w-3.5" />
+            Builder
+          </TabsTrigger>
           <TabsTrigger value="llm-keys" className="gap-1.5">
             <Key className="h-3.5 w-3.5" />
             LLM Keys
@@ -454,6 +463,188 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </TabsContent>
+        {/* Builder Settings Tab */}
+        <TabsContent value="builder" className="mt-6 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Agent Builder Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Free Tier Info */}
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                <p className="text-sm font-medium">Free Trial</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  You get 3 free agent builds. Agents run on CrewHub&apos;s infrastructure
+                  using our default LLM. Optionally bring your own LLM key for custom models.
+                </p>
+              </div>
+
+              {/* LLM Provider for Builder */}
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">LLM Provider (Optional)</Label>
+                <p className="text-xs text-muted-foreground">
+                  Bring your own key for faster or premium model responses.
+                  Leave blank to use CrewHub&apos;s default (Groq Llama 3.3 70B — free).
+                </p>
+
+                {/* Provider Guides */}
+                <div className="space-y-2">
+                  {[
+                    {
+                      name: "Groq (Free — Recommended)",
+                      prefix: "gsk_",
+                      steps: [
+                        "Go to console.groq.com",
+                        "Sign up (free, no credit card)",
+                        'Click "API Keys" → "Create API Key"',
+                        'Name: "CrewHub", copy key (starts with gsk_)',
+                      ],
+                      link: "https://console.groq.com",
+                      linkLabel: "Open Groq Console",
+                      model: "Llama 3.3 70B | Free: 30 req/min",
+                    },
+                    {
+                      name: "OpenAI",
+                      prefix: "sk-",
+                      steps: [
+                        "Go to platform.openai.com/api-keys",
+                        "Sign in or create account",
+                        '"Create new secret key" → name "CrewHub"',
+                        "Copy key (starts with sk-)",
+                      ],
+                      link: "https://platform.openai.com/api-keys",
+                      linkLabel: "Open OpenAI Platform",
+                      model: "GPT-4o ($2.50/1M tokens), GPT-4o-mini ($0.15/1M)",
+                    },
+                    {
+                      name: "Anthropic",
+                      prefix: "sk-ant-",
+                      steps: [
+                        "Go to console.anthropic.com",
+                        "Settings → API Keys",
+                        '"Create Key" → name "CrewHub"',
+                        "Copy key (starts with sk-ant-)",
+                      ],
+                      link: "https://console.anthropic.com",
+                      linkLabel: "Open Anthropic Console",
+                      model: "Claude Sonnet 4 ($3/1M), Haiku ($0.25/1M)",
+                    },
+                    {
+                      name: "Google Gemini",
+                      prefix: "",
+                      steps: [
+                        "Go to aistudio.google.com/apikey",
+                        "Sign in with Google account",
+                        '"Create API Key" → select project',
+                        "Copy key",
+                      ],
+                      link: "https://aistudio.google.com/apikey",
+                      linkLabel: "Open Google AI Studio",
+                      model: "Gemini 2.0 Flash (free tier), Pro ($1.25/1M)",
+                    },
+                  ].map((provider) => (
+                    <details
+                      key={provider.name}
+                      className="rounded-lg border bg-card"
+                    >
+                      <summary className="flex cursor-pointer items-center justify-between px-4 py-2.5 text-sm font-medium hover:bg-accent/50">
+                        {provider.name}
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      </summary>
+                      <div className="border-t px-4 py-3 text-xs text-muted-foreground">
+                        <ol className="mb-2 list-decimal space-y-1 pl-4">
+                          {provider.steps.map((step, i) => (
+                            <li key={i}>{step}</li>
+                          ))}
+                        </ol>
+                        <p className="mb-2 text-[10px]">
+                          Model: {provider.model}
+                        </p>
+                        <a
+                          href={provider.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-primary hover:underline"
+                        >
+                          {provider.linkLabel}
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Paid Tier — HuggingFace Key */}
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">
+                  HuggingFace API Key
+                  <Badge variant="outline" className="ml-2 text-[10px]">Paid Tier</Badge>
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Required for the paid Builder tier ($5/mo). Your agents deploy to your
+                  own HuggingFace account for full isolation. CrewHub manages everything.
+                </p>
+                <details className="rounded-lg border bg-card">
+                  <summary className="flex cursor-pointer items-center justify-between px-4 py-2.5 text-sm font-medium hover:bg-accent/50">
+                    How to get your HuggingFace key
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  </summary>
+                  <div className="border-t px-4 py-3 text-xs text-muted-foreground">
+                    <ol className="mb-2 list-decimal space-y-1 pl-4">
+                      <li>Go to huggingface.co/settings/tokens</li>
+                      <li>Click &quot;New token&quot;</li>
+                      <li>Name: &quot;CrewHub Builder&quot;</li>
+                      <li>Role: select <strong>Write</strong> (required to create Spaces)</li>
+                      <li>Click &quot;Generate&quot;, copy the key (starts with hf_)</li>
+                    </ol>
+                    <div className="flex gap-3">
+                      <a
+                        href="https://huggingface.co/join"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-primary hover:underline"
+                      >
+                        Create HF Account
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                      <a
+                        href="https://huggingface.co/settings/tokens"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-primary hover:underline"
+                      >
+                        Get Token
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                  </div>
+                </details>
+                <p className="text-[10px] text-muted-foreground/70">
+                  Your keys are encrypted at rest. CrewHub uses them only to create and
+                  manage Spaces in your account. You can revoke anytime on HuggingFace.
+                </p>
+              </div>
+
+              {/* Coming Soon */}
+              <div className="rounded-lg border border-dashed border-muted-foreground/20 p-4 text-center">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Paid Builder tier coming soon
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground/70">
+                  $5/mo for 20 agents on your own HuggingFace infrastructure.
+                  Free trial: 3 agents on CrewHub&apos;s pool.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
       </Tabs>
       <ConfirmDialog
         open={!!confirmDeleteProvider}
