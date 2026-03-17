@@ -32,7 +32,9 @@ export default function BuilderPage() {
         const data = await api.post<ExchangeCodeResponse>(
           "/builder/exchange-code"
         );
-        setBuilderUrl(`${data.builder_url}?code=${data.code}`);
+        // Load directly into the flow editor (skip Langflow welcome screen)
+        // Langflow URL pattern: /flows to see the workspace
+        setBuilderUrl(`${data.builder_url}/all`);
       } catch {
         setError("Failed to load builder. Please try again.");
       } finally {
@@ -81,16 +83,21 @@ export default function BuilderPage() {
   return (
     <div className="flex h-[calc(100vh-3.5rem)] flex-col">
       {/* Header bar */}
-      <div className="flex items-center justify-between border-b px-4 py-2">
-        <div className="flex items-center gap-2">
-          <h1 className="text-sm font-semibold">Agent Builder</h1>
+      <div className="flex items-center justify-between border-b bg-card px-4 py-2">
+        <div className="flex items-center gap-3">
+          <h1 className="text-sm font-semibold">CrewHub Agent Builder</h1>
           <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
             Beta
           </span>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Drag components from the left sidebar to build your agent
-        </p>
+        <div className="flex items-center gap-4">
+          <p className="hidden text-xs text-muted-foreground sm:block">
+            Create a flow, then use our custom CrewHub components to build your agent
+          </p>
+          <span className="text-[10px] text-muted-foreground/50">
+            Powered by Langflow
+          </span>
+        </div>
       </div>
 
       {/* Langflow iframe */}
