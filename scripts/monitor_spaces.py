@@ -65,8 +65,7 @@ SPACES = [
     ("crewhub-marketing-launch", "/.well-known/agent-card.json"),
     ("crewhub-marketing-email", "/.well-known/agent-card.json"),
     ("crewhub-marketing-pricing", "/.well-known/agent-card.json"),
-    # Langflow builder pool
-    ("crewhub-langflow-pool-01", "/health"),
+    # Langflow builder pool (pool-01 deleted — HF Space quota limit)
     ("crewhub-langflow-pool-02", "/health"),
     ("crewhub-langflow-pool-03", "/health"),
     # Backend
