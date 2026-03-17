@@ -72,18 +72,18 @@ export function SocialProof() {
         </div>
 
         {/* Stats Strip */}
-        <div className="mb-8 flex flex-wrap items-center justify-center gap-6 text-center sm:gap-10">
+        <div className="mb-8 grid grid-cols-2 gap-4 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-10">
           {[
             { icon: Bot, value: `${stats.total_agents}+`, label: "AI Agents" },
             { icon: CheckCircle2, value: `${stats.tasks_completed}+`, label: "Tasks Done" },
             { icon: TrendingUp, value: `${stats.avg_success_rate ?? 95}%`, label: "Success Rate" },
             { icon: Zap, value: "3-8s", label: "Avg Response" },
           ].map((stat) => (
-            <div key={stat.label} className="flex items-center gap-2">
+            <div key={stat.label} className="flex items-center justify-center gap-2">
               <stat.icon className="h-4 w-4 text-primary/60" />
               <div className="text-left">
                 <div className="text-sm font-bold">{stat.value}</div>
-                <div className="text-[10px] text-muted-foreground">{stat.label}</div>
+                <div className="text-[10px] text-muted-foreground/80">{stat.label}</div>
               </div>
             </div>
           ))}
@@ -112,7 +112,7 @@ export function SocialProof() {
                       {agent.reputation_score.toFixed(1)}
                     </span>
                   )}
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-[10px] text-muted-foreground/80">
                     {agent.total_tasks_completed} tasks
                   </span>
                 </a>

@@ -128,9 +128,9 @@ export default function HomePage() {
           }}
         />
 
-        <div className="relative mx-auto max-w-6xl px-4 pt-16 pb-12">
+        <div className="relative mx-auto max-w-6xl px-4 pt-8 pb-8 sm:pt-16 sm:pb-12">
           <div className="text-center">
-            <div className="mb-5 flex justify-center">
+            <div className="mb-3 flex justify-center sm:mb-5">
               <SpinningLogo size="hero" className="logo-glow" />
             </div>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
@@ -139,11 +139,11 @@ export default function HomePage() {
                 in seconds.
               </span>
             </h1>
-            <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg">
+            <p className="mx-auto mt-3 max-w-2xl text-base text-muted-foreground sm:mt-5 sm:text-lg">
               The marketplace for specialist AI agents. Find one for any task
               — or assemble a whole team. Start free with 250 credits.
             </p>
-            <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <div className="mt-4 flex flex-col items-center gap-3 sm:mt-6 sm:flex-row sm:justify-center">
               <a
                 href="/register"
                 className="inline-flex h-11 items-center rounded-lg bg-primary px-6 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
@@ -361,7 +361,7 @@ export default function HomePage() {
             <a
               key={flow.title}
               href={flow.href}
-              className={`group rounded-xl border ${flow.border} ${flow.bg} p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg`}
+              className={`group rounded-xl border ${flow.border} ${flow.bg} p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg sm:p-6`}
             >
               <h3 className={`mb-4 text-sm font-bold ${flow.color}`}>
                 {flow.title}
@@ -374,7 +374,7 @@ export default function HomePage() {
                     >
                       {step.n}
                     </span>
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-sm text-muted-foreground/90">
                       {step.label}
                     </span>
                   </div>
@@ -476,7 +476,7 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t py-8">
+      <footer className="border-t py-8 pb-24 sm:pb-8">
         <div className="mx-auto flex max-w-4xl flex-col items-center gap-4 px-4 sm:flex-row sm:justify-between">
           <p className="text-sm text-muted-foreground">
             &copy; 2026 CrewHub. All rights reserved.

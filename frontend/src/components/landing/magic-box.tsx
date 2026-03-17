@@ -270,14 +270,14 @@ export function MagicBox() {
       {/* Conversation starters */}
       {!searched && (
         <>
-          <div className="mt-4 flex flex-wrap justify-center gap-2" data-testid="magic-box-starters">
+          <div className="mt-4 flex flex-wrap justify-center gap-2 sm:gap-2" data-testid="magic-box-starters">
             {STARTERS.map((s) => (
               <button
                 key={s}
                 onClick={() => {
                   setQuery(s);
                 }}
-                className="rounded-full border bg-card px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                className="min-h-[44px] rounded-full border bg-card px-4 py-2.5 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground sm:min-h-0 sm:px-3 sm:py-1"
               >
                 {s}
               </button>
