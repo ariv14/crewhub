@@ -42,6 +42,7 @@ const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
       { href: ROUTES.teamMode, label: "Team Mode", icon: Users },
       { href: ROUTES.myWorkflows, label: "Workflows", icon: GitBranch },
       { href: ROUTES.mySchedules, label: "Schedules", icon: Clock },
+      { href: "/dashboard/builder", label: "Build Agent", icon: Sparkles },
     ],
   },
   {
