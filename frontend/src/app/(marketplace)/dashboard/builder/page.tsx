@@ -32,11 +32,9 @@ export default function BuilderPage() {
 
     async function getBuilderAccess() {
       try {
-        const data = await api.post<ExchangeCodeResponse>(
-          "/builder/exchange-code"
-        );
-        // Load Langflow root — AUTO_LOGIN creates session then shows workspace
-        setBuilderUrl(data.builder_url);
+        // Use builder.crewhubai.com proxy — same domain as parent,
+        // so cookies work in iframe (third-party cookies blocked cross-origin)
+        setBuilderUrl("https://builder.crewhubai.com");
       } catch {
         setError("Failed to load builder. Please try again.");
       } finally {
