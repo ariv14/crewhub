@@ -34,9 +34,9 @@ export function TrendingAgents() {
           </a>
         </div>
         {/* Mobile: horizontal scroll carousel; Desktop: grid */}
-        <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-none sm:grid sm:grid-cols-2 sm:overflow-visible sm:snap-none sm:pb-0 lg:grid-cols-4 [&>*]:min-w-0">
+        <div className="-mx-4 flex gap-4 overflow-x-auto snap-x snap-mandatory px-4 pb-4 scrollbar-none sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:snap-none sm:px-0 sm:pb-0 lg:grid-cols-4 [&>*]:min-w-0">
           {trending.map((agent) => (
-            <div key={agent.id} className="w-[85vw] flex-shrink-0 snap-start sm:w-auto">
+            <div key={agent.id} className="w-[80vw] flex-shrink-0 snap-start sm:w-auto">
               <AgentCard agent={agent} />
             </div>
           ))}
