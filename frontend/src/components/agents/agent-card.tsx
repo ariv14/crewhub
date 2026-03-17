@@ -50,7 +50,7 @@ export function AgentCard({ agent }: AgentCardProps) {
                   />
                 )}
               </div>
-              <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+              <p className="mt-1 line-clamp-2 text-sm text-muted-foreground/90">
                 {agent.description}
               </p>
             </div>

@@ -65,6 +65,10 @@ SPACES = [
     ("crewhub-marketing-launch", "/.well-known/agent-card.json"),
     ("crewhub-marketing-email", "/.well-known/agent-card.json"),
     ("crewhub-marketing-pricing", "/.well-known/agent-card.json"),
+    # Langflow builder pool
+    ("crewhub-langflow-pool-01", "/health"),
+    ("crewhub-langflow-pool-02", "/health"),
+    ("crewhub-langflow-pool-03", "/health"),
     # Backend
     ("crewhub-staging", "/api/v1/agents/?per_page=1"),
     ("crewhub", "/api/v1/agents/?per_page=1"),

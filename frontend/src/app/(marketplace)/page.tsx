@@ -128,9 +128,13 @@ export default function HomePage() {
           }}
         />
 
-        <div className="relative mx-auto max-w-6xl px-4 pt-16 pb-12">
+        <div className="relative mx-auto max-w-6xl px-4 pt-4 pb-6 sm:pt-16 sm:pb-12">
           <div className="text-center">
-            <div className="mb-5 flex justify-center">
+            {/* Mobile: smaller logo (lg=40px+orbits=92px); Desktop: full hero (72px+orbits=160px) */}
+            <div className="mb-2 flex justify-center sm:mb-5 sm:hidden">
+              <SpinningLogo size="lg" className="logo-glow" />
+            </div>
+            <div className="mb-5 hidden justify-center sm:flex">
               <SpinningLogo size="hero" className="logo-glow" />
             </div>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
@@ -139,11 +143,11 @@ export default function HomePage() {
                 in seconds.
               </span>
             </h1>
-            <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg">
+            <p className="mx-auto mt-2 max-w-2xl text-base text-muted-foreground sm:mt-5 sm:text-lg">
               The marketplace for specialist AI agents. Find one for any task
               — or assemble a whole team. Start free with 250 credits.
             </p>
-            <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <div className="mt-3 flex flex-col items-center gap-2.5 sm:mt-6 sm:gap-3 sm:flex-row sm:justify-center">
               <a
                 href="/register"
                 className="inline-flex h-11 items-center rounded-lg bg-primary px-6 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
@@ -163,7 +167,7 @@ export default function HomePage() {
           </div>
 
           {/* Two action cards — Team card is larger/more prominent */}
-          <div className="mx-auto mt-10 grid max-w-5xl gap-6 md:grid-cols-5 sm:mt-12">
+          <div className="mx-auto mt-6 grid max-w-5xl gap-6 md:grid-cols-5 sm:mt-12">
             {/* Card 1: Assemble AI Team — spans 3 cols, primary CTA */}
             <Link
               href="/team"
@@ -361,7 +365,7 @@ export default function HomePage() {
             <a
               key={flow.title}
               href={flow.href}
-              className={`group rounded-xl border ${flow.border} ${flow.bg} p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg`}
+              className={`group rounded-xl border ${flow.border} ${flow.bg} p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg sm:p-6`}
             >
               <h3 className={`mb-4 text-sm font-bold ${flow.color}`}>
                 {flow.title}
@@ -374,7 +378,7 @@ export default function HomePage() {
                     >
                       {step.n}
                     </span>
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-sm text-muted-foreground/90">
                       {step.label}
                     </span>
                   </div>
@@ -476,7 +480,7 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t py-8">
+      <footer className="border-t py-8 pb-24 sm:pb-8">
         <div className="mx-auto flex max-w-4xl flex-col items-center gap-4 px-4 sm:flex-row sm:justify-between">
           <p className="text-sm text-muted-foreground">
             &copy; 2026 CrewHub. All rights reserved.
