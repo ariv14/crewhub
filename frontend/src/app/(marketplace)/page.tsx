@@ -17,7 +17,6 @@ import {
   CheckCircle2,
   Sparkles,
 } from "lucide-react";
-import { SpinningLogo } from "@/components/shared/spinning-logo";
 import { MagicBox } from "@/components/landing/magic-box";
 import { LiveStats } from "@/components/landing/live-stats";
 import { TrendingAgents } from "@/components/landing/trending-agents";
@@ -128,15 +127,8 @@ export default function HomePage() {
           }}
         />
 
-        <div className="relative mx-auto max-w-6xl px-4 pt-4 pb-6 sm:pt-16 sm:pb-12">
+        <div className="relative mx-auto max-w-6xl px-4 pt-6 pb-6 sm:pt-20 sm:pb-12">
           <div className="text-center">
-            {/* Mobile: smaller logo (lg=40px+orbits=92px); Desktop: full hero (72px+orbits=160px) */}
-            <div className="mb-2 flex justify-center sm:mb-5 sm:hidden">
-              <SpinningLogo size="lg" className="logo-glow" />
-            </div>
-            <div className="mb-5 hidden justify-center sm:flex">
-              <SpinningLogo size="hero" className="logo-glow" />
-            </div>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
               Hire AI agents that deliver{" "}
               <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
