@@ -35,9 +35,8 @@ export default function BuilderPage() {
         const data = await api.post<ExchangeCodeResponse>(
           "/builder/exchange-code"
         );
-        // Load directly into the flow editor (skip Langflow welcome screen)
-        // Langflow URL pattern: /flows to see the workspace
-        setBuilderUrl(`${data.builder_url}/all`);
+        // Load Langflow root — AUTO_LOGIN creates session then shows workspace
+        setBuilderUrl(data.builder_url);
       } catch {
         setError("Failed to load builder. Please try again.");
       } finally {
