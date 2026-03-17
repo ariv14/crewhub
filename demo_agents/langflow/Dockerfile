@@ -1,4 +1,4 @@
-FROM langflowai/langflow:latest
+FROM langflowai/langflow-backend:latest
 
 USER root
 
