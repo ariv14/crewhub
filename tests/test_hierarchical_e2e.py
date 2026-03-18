@@ -19,8 +19,6 @@ class HierarchicalE2ETests:
         self.failed = 0
 
     async def _post(self, path: str, data: dict) -> dict:
-        if not path.endswith("/"):
-            path += "/"
         url = f"{self.base_url}/api/v1{path}"
         async with httpx.AsyncClient(timeout=120, follow_redirects=True) as client:
             resp = await client.post(url, json=data, headers=self.headers)
@@ -28,8 +26,6 @@ class HierarchicalE2ETests:
             return resp.json()
 
     async def _get(self, path: str) -> dict:
-        if not path.endswith("/"):
-            path += "/"
         async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
             resp = await client.get(
                 f"{self.base_url}/api/v1{path}",
@@ -39,8 +35,6 @@ class HierarchicalE2ETests:
             return resp.json()
 
     async def _delete(self, path: str):
-        if not path.endswith("/"):
-            path += "/"
         async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
             resp = await client.delete(
                 f"{self.base_url}/api/v1{path}",
@@ -101,7 +95,7 @@ class HierarchicalE2ETests:
             # Try to make A reference itself
             async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
                 resp = await client.put(
-                    f"{self.base_url}/api/v1/workflows/{wf_a['id']}/",
+                    f"{self.base_url}/api/v1/workflows/{wf_a['id']}",
                     json={
                         "steps": [{"sub_workflow_id": wf_a["id"], "step_group": 0}],
                     },
