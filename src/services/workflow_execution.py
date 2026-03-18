@@ -32,8 +32,17 @@ class WorkflowExecutionService:
     # ------------------------------------------------------------------
 
     async def execute_workflow(
-        self, workflow_id: UUID, user_id: UUID, input_message: str, schedule_id: UUID | None = None
+        self,
+        workflow_id: UUID,
+        user_id: UUID,
+        input_message: str,
+        schedule_id: UUID | None = None,
+        parent_run_id: UUID | None = None,
+        depth: int = 0,
     ) -> WorkflowRun:
+        if depth >= 10:  # safety cap
+            raise ValueError(f"Maximum nesting depth (10) exceeded")
+
         from src.services.workflow_service import WorkflowService
 
         wf_svc = WorkflowService(self.db)
@@ -50,8 +59,9 @@ class WorkflowExecutionService:
             "steps": [
                 {
                     "id": str(s.id),
-                    "agent_id": str(s.agent_id),
-                    "skill_id": str(s.skill_id),
+                    "agent_id": str(s.agent_id) if s.agent_id else None,
+                    "skill_id": str(s.skill_id) if s.skill_id else None,
+                    "sub_workflow_id": str(s.sub_workflow_id) if s.sub_workflow_id else None,
                     "step_group": s.step_group,
                     "position": s.position,
                     "input_mode": s.input_mode,
@@ -89,6 +99,8 @@ class WorkflowExecutionService:
             workflow_id=workflow_id,
             user_id=user_id,
             schedule_id=schedule_id,
+            parent_run_id=parent_run_id,
+            depth=depth,
             status="running",
             current_step_group=0,
             input_message=input_message,
@@ -131,6 +143,7 @@ class WorkflowExecutionService:
             select(WorkflowRun)
             .where(WorkflowRun.status == "running")
             .options(selectinload(WorkflowRun.step_runs))
+            .order_by(WorkflowRun.depth.desc())
             .limit(20)
         )
         runs = list(result.scalars().unique().all())
@@ -292,31 +305,50 @@ class WorkflowExecutionService:
         self, step_runs: list[WorkflowStepRun], snapshot: dict
     ) -> None:
         for sr in step_runs:
-            if sr.status in ("completed", "failed") or not sr.task_id:
-                continue
-            result = await self.db.execute(
-                select(Task).where(Task.id == sr.task_id)
-            )
-            task = result.scalar_one_or_none()
-            if not task:
+            if sr.status in ("completed", "failed"):
                 continue
 
-            task_status = task.status.value if hasattr(task.status, "value") else str(task.status)
-
-            if task_status == "completed":
-                sr.status = "completed"
-                sr.completed_at = datetime.now(timezone.utc)
-                sr.output_text = self._extract_task_output(task)
-                sr.credits_charged = task.credits_charged
-            elif task_status in ("failed", "canceled"):
-                sr.status = "failed"
-                sr.completed_at = datetime.now(timezone.utc)
-                step_info = self._step_info_from_snapshot(snapshot, sr.step_id)
-                agent_name = step_info.get("agent_name", "Unknown") if step_info else "Unknown"
-                sr.error = (
-                    f"Task {task_status} — agent '{agent_name}' "
-                    f"could not complete the request."
+            if sr.child_run_id:
+                # Use select+options, NOT db.get() — avoids MissingGreenlet
+                result = await self.db.execute(
+                    select(WorkflowRun)
+                    .options(selectinload(WorkflowRun.step_runs))
+                    .where(WorkflowRun.id == sr.child_run_id)
                 )
+                child_run = result.scalar_one_or_none()
+                if child_run and child_run.status == "completed":
+                    sr.status = "completed"
+                    sr.output_text = self._collect_child_output(child_run)
+                    sr.credits_charged = child_run.total_credits_charged
+                    sr.completed_at = datetime.now(timezone.utc)
+                elif child_run and child_run.status in ("failed", "canceled"):
+                    sr.status = "failed"
+                    sr.error = f"Sub-workflow {child_run.status}: {child_run.error or 'unknown'}"
+                    sr.completed_at = datetime.now(timezone.utc)
+            elif sr.task_id:
+                result = await self.db.execute(
+                    select(Task).where(Task.id == sr.task_id)
+                )
+                task = result.scalar_one_or_none()
+                if not task:
+                    continue
+
+                task_status = task.status.value if hasattr(task.status, "value") else str(task.status)
+
+                if task_status == "completed":
+                    sr.status = "completed"
+                    sr.completed_at = datetime.now(timezone.utc)
+                    sr.output_text = self._extract_task_output(task)
+                    sr.credits_charged = task.credits_charged
+                elif task_status in ("failed", "canceled"):
+                    sr.status = "failed"
+                    sr.completed_at = datetime.now(timezone.utc)
+                    step_info = self._step_info_from_snapshot(snapshot, sr.step_id)
+                    agent_name = step_info.get("agent_name", "Unknown") if step_info else "Unknown"
+                    sr.error = (
+                        f"Task {task_status} — agent '{agent_name}' "
+                        f"could not complete the request."
+                    )
 
     # ------------------------------------------------------------------
     # Dispatch helpers
@@ -350,6 +382,40 @@ class WorkflowExecutionService:
                 step, input_text, prev_output, all_outputs
             )
             final_input = self._apply_instructions(resolved_input, step.instructions)
+
+            step_run = sr_by_step.get(step.id)
+
+            # Check for invalid step (deleted sub-workflow leaves both null)
+            if step.agent_id is None and step.skill_id is None and step.sub_workflow_id is None:
+                if step_run:
+                    step_run.status = "failed"
+                    step_run.error = f"Step '{step.label or step.id}' has no agent or sub-workflow (may have been deleted)"
+                continue
+
+            if step.sub_workflow_id:
+                # Hierarchical: dispatch sub-workflow
+                try:
+                    child_run = await self.execute_workflow(
+                        workflow_id=step.sub_workflow_id,
+                        input_message=resolved_input,
+                        user_id=run.user_id,
+                        parent_run_id=run.id,
+                        depth=run.depth + 1,
+                    )
+                    if step_run:
+                        step_run.child_run_id = child_run.id
+                        step_run.status = "running"
+                        step_run.started_at = datetime.now(timezone.utc)
+                except Exception as exc:
+                    logger.exception(
+                        "Failed to dispatch sub-workflow %s in workflow run %s",
+                        step.sub_workflow_id, run.id,
+                    )
+                    if step_run:
+                        step_run.status = "failed"
+                        step_run.error = f"Failed to start sub-workflow: {exc}"
+                        step_run.completed_at = datetime.now(timezone.utc)
+                continue
 
             message = TaskMessage(
                 role="user",
@@ -424,6 +490,17 @@ class WorkflowExecutionService:
                 outputs.append(sr.output_text)
         return "\n\n---\n\n".join(outputs) if outputs else ""
 
+    def _collect_child_output(self, child_run) -> str:
+        """Collect output from a completed child workflow run."""
+        if not child_run.step_runs:
+            return ""
+        last_group = max(sr.step_group for sr in child_run.step_runs)
+        outputs = [
+            sr.output_text for sr in child_run.step_runs
+            if sr.step_group == last_group and sr.output_text
+        ]
+        return "\n\n---\n\n".join(outputs)
+
     def _extract_task_output(self, task: Task) -> str:
         if task.artifacts:
             parts = []
@@ -480,6 +557,8 @@ class WorkflowExecutionService:
                 sr.status = "failed"
                 sr.error = "Canceled by user"
                 sr.completed_at = now
+                if sr.child_run_id:
+                    await self.cancel_run(sr.child_run_id, user_id)
         self._tally_credits(run)
         await self.db.commit()
         return run
