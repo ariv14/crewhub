@@ -2,7 +2,7 @@
 import asyncio
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request, Response, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import PORT, GATEWAY_URL
@@ -12,6 +12,27 @@ import billing
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 logger = logging.getLogger("gateway")
+
+
+def get_adapter(platform: str):
+    """Get the appropriate adapter for a platform."""
+    if platform == "telegram":
+        from adapters.telegram import TelegramAdapter
+        return TelegramAdapter()
+    elif platform == "slack":
+        from adapters.slack import SlackAdapter
+        return SlackAdapter()
+    elif platform == "discord":
+        from adapters.discord import DiscordAdapter
+        return DiscordAdapter()
+    elif platform == "teams":
+        from adapters.teams import TeamsAdapter
+        return TeamsAdapter()
+    elif platform == "whatsapp":
+        from adapters.whatsapp import WhatsAppAdapter
+        return WhatsAppAdapter()
+    raise ValueError(f"Unknown platform: {platform}")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -42,34 +63,139 @@ async def health():
     return {"status": "ok", "service": "crewhub-gateway"}
 
 
-# Telegram webhook
-@app.post("/webhook/telegram/{connection_id}")
-async def telegram_webhook(connection_id: str, request: Request):
-    from adapters.telegram import TelegramAdapter
+# ── Generic webhook handler ─────────────────────────────────────
 
-    body = await request.json()
-    adapter = TelegramAdapter()
-
-    # Parse message
-    message = adapter.parse_inbound(body)
-    if not message:
-        return Response(status_code=200)
-
-    # Dedup
+async def handle_platform_webhook(platform: str, connection_id: str, message):
+    """Common webhook handling: dedup, rate limit, dispatch."""
     if dedup.is_duplicate(connection_id, message.platform_message_id):
         return Response(status_code=200)
 
-    # Rate limit end-user (10 msg/min)
     user_key = f"user:{connection_id}:{message.platform_user_id}"
     if rate_limiter.is_rate_limited(user_key, max_requests=10, window_seconds=60):
         return Response(status_code=200)
 
-    # Ack immediately, process in background
-    asyncio.create_task(process_message("telegram", connection_id, message))
+    asyncio.create_task(process_message(platform, connection_id, message))
     return Response(status_code=200)
 
 
-# Task callback (called by CrewHub when agent completes)
+# ── Telegram ─────────────────────────────────────────────────────
+
+@app.post("/webhook/telegram/{connection_id}")
+async def telegram_webhook(connection_id: str, request: Request):
+    body = await request.json()
+    adapter = get_adapter("telegram")
+    message = adapter.parse_inbound(body)
+    if not message:
+        return Response(status_code=200)
+    return await handle_platform_webhook("telegram", connection_id, message)
+
+
+# ── Slack ────────────────────────────────────────────────────────
+
+@app.post("/webhook/slack/{connection_id}")
+async def slack_webhook(connection_id: str, request: Request):
+    body = await request.json()
+    adapter = get_adapter("slack")
+
+    # Handle Slack URL verification challenge
+    challenge = adapter.handle_url_verification(body)
+    if challenge is not None:
+        return {"challenge": challenge}
+
+    message = adapter.parse_inbound(body)
+    if not message:
+        return Response(status_code=200)
+    return await handle_platform_webhook("slack", connection_id, message)
+
+
+# ── Discord ──────────────────────────────────────────────────────
+
+@app.post("/webhook/discord/{connection_id}")
+async def discord_webhook(connection_id: str, request: Request):
+    body = await request.json()
+    adapter = get_adapter("discord")
+
+    # Handle Discord PING verification
+    pong = adapter.handle_ping(body)
+    if pong is not None:
+        return pong
+
+    message = adapter.parse_inbound(body)
+    if not message:
+        return Response(status_code=200)
+
+    # For interactions, send deferred response first (Discord requires <3s ack)
+    # Then process in background
+    if dedup.is_duplicate(connection_id, message.platform_message_id):
+        return {"type": 5}  # DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE
+
+    user_key = f"user:{connection_id}:{message.platform_user_id}"
+    if rate_limiter.is_rate_limited(user_key, max_requests=10, window_seconds=60):
+        return {"type": 5}
+
+    asyncio.create_task(process_message("discord", connection_id, message,
+                                         interaction_token=body.get("token"),
+                                         application_id=body.get("application_id")))
+    return {"type": 5}  # DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE
+
+
+# ── Teams ────────────────────────────────────────────────────────
+
+@app.post("/webhook/teams/{connection_id}")
+async def teams_webhook(connection_id: str, request: Request):
+    body = await request.json()
+    adapter = get_adapter("teams")
+    message = adapter.parse_inbound(body)
+    if not message:
+        return Response(status_code=200)
+
+    # Store service_url from activity for reply routing
+    service_url = body.get("serviceUrl", "")
+
+    if dedup.is_duplicate(connection_id, message.platform_message_id):
+        return Response(status_code=200)
+
+    user_key = f"user:{connection_id}:{message.platform_user_id}"
+    if rate_limiter.is_rate_limited(user_key, max_requests=10, window_seconds=60):
+        return Response(status_code=200)
+
+    asyncio.create_task(process_message("teams", connection_id, message,
+                                         service_url=service_url))
+    return Response(status_code=200)
+
+
+# ── WhatsApp ─────────────────────────────────────────────────────
+
+@app.get("/webhook/whatsapp/{connection_id}")
+async def whatsapp_verify(connection_id: str,
+                          hub_mode: str = Query("", alias="hub.mode"),
+                          hub_token: str = Query("", alias="hub.verify_token"),
+                          hub_challenge: str = Query("", alias="hub.challenge")):
+    """Meta webhook verification GET challenge."""
+    conn = await get_connection_cached(connection_id)
+    if not conn:
+        return Response(status_code=404)
+
+    adapter = get_adapter("whatsapp")
+    verify_token = conn.get("config", {}).get("verify_token", "")
+    result = adapter.handle_verification_challenge(hub_mode, hub_token, hub_challenge, verify_token)
+    if result is not None:
+        return Response(content=result, media_type="text/plain")
+    return Response(status_code=403)
+
+
+@app.post("/webhook/whatsapp/{connection_id}")
+async def whatsapp_webhook(connection_id: str, request: Request):
+    body = await request.json()
+    adapter = get_adapter("whatsapp")
+    message = adapter.parse_inbound(body)
+    if not message:
+        return Response(status_code=200)
+    return await handle_platform_webhook("whatsapp", connection_id, message)
+
+
+# ── Task callback (all platforms) ────────────────────────────────
+
 @app.post("/internal/task-callback/{connection_id}/{chat_id}")
 async def task_callback(connection_id: str, chat_id: str, request: Request):
     body = await request.json()
@@ -77,13 +203,30 @@ async def task_callback(connection_id: str, chat_id: str, request: Request):
     if not conn:
         return Response(status_code=404)
 
-    # Get adapter and send response
     platform = conn.get("platform", "telegram")
-    if platform == "telegram":
-        from adapters.telegram import TelegramAdapter
-        adapter = TelegramAdapter()
-        text = body.get("result", body.get("artifacts", [{}])[0].get("content", "No response"))
-        bot_token = conn.get("bot_token_decrypted", "")
+    bot_token = conn.get("bot_token_decrypted", "")
+    text = body.get("result", "")
+    if not text:
+        artifacts = body.get("artifacts", [])
+        text = artifacts[0].get("content", "No response") if artifacts else "No response"
+
+    # Send response via platform adapter
+    adapter = get_adapter(platform)
+    if platform == "whatsapp":
+        phone_number_id = conn.get("config", {}).get("phone_number_id", "")
+        await adapter.send_message(bot_token, chat_id, text, phone_number_id=phone_number_id)
+    elif platform == "teams":
+        service_url = conn.get("config", {}).get("last_service_url", "")
+        await adapter.send_message(bot_token, chat_id, text, service_url=service_url)
+    elif platform == "discord":
+        # Discord followup uses interaction token stored in config
+        interaction_token = conn.get("config", {}).get("last_interaction_token", "")
+        application_id = conn.get("config", {}).get("application_id", "")
+        if interaction_token and application_id:
+            await adapter.send_followup(application_id, interaction_token, text)
+        else:
+            await adapter.send_message(bot_token, chat_id, text)
+    else:
         await adapter.send_message(bot_token, chat_id, text)
 
     # Log outbound message
@@ -100,7 +243,11 @@ async def task_callback(connection_id: str, chat_id: str, request: Request):
     return Response(status_code=200)
 
 
-async def process_message(platform: str, connection_id: str, message):
+# ── Background message processing ───────────────────────────────
+
+async def process_message(platform: str, connection_id: str, message,
+                          interaction_token: str = "", application_id: str = "",
+                          service_url: str = ""):
     """Background task: check credits, create task, send typing."""
     try:
         conn = await get_connection_cached(connection_id)
@@ -108,7 +255,6 @@ async def process_message(platform: str, connection_id: str, message):
             logger.error("Connection %s not found", connection_id)
             return
 
-        # Check if connection is active
         if conn.get("status") != "active":
             logger.info("Connection %s is %s, skipping", connection_id, conn.get("status"))
             return
@@ -116,13 +262,27 @@ async def process_message(platform: str, connection_id: str, message):
         owner_id = conn.get("owner_id", "")
         agent_id = conn.get("agent_id", "")
         skill_id = conn.get("skill_id")
+        bot_token = conn.get("bot_token_decrypted", "")
 
         # Send typing indicator
-        if platform == "telegram":
-            from adapters.telegram import TelegramAdapter
-            adapter = TelegramAdapter()
-            bot_token = conn.get("bot_token_decrypted", "")
+        adapter = get_adapter(platform)
+        if platform == "whatsapp":
+            phone_number_id = conn.get("config", {}).get("phone_number_id", "")
+            await adapter.send_typing(bot_token, message.chat_id, phone_number_id=phone_number_id)
+        elif platform == "teams":
             await adapter.send_typing(bot_token, message.chat_id)
+        elif platform == "discord":
+            await adapter.send_typing(bot_token, message.chat_id)
+        else:
+            await adapter.send_typing(bot_token, message.chat_id)
+
+        # WhatsApp surcharge check
+        extra_credits = 0
+        if platform == "whatsapp":
+            surcharge = adapter.get_surcharge(connection_id, message.platform_user_id)
+            if surcharge > 0:
+                adapter.open_conversation_window(connection_id, message.platform_user_id)
+                extra_credits = surcharge
 
         # Create task with callback
         callback_url = f"{GATEWAY_URL}/internal/task-callback/{connection_id}/{message.chat_id}"
@@ -137,8 +297,14 @@ async def process_message(platform: str, connection_id: str, message):
 
         if not task:
             logger.error("Failed to create task for connection %s", connection_id)
-            if platform == "telegram":
-                await adapter.send_message(bot_token, message.chat_id, "Sorry, I couldn't process your request right now.")
+            error_msg = "Sorry, I couldn't process your request right now."
+            if platform == "whatsapp":
+                phone_number_id = conn.get("config", {}).get("phone_number_id", "")
+                await adapter.send_message(bot_token, message.chat_id, error_msg, phone_number_id=phone_number_id)
+            elif platform == "discord" and interaction_token and application_id:
+                await adapter.send_followup(application_id, interaction_token, error_msg)
+            else:
+                await adapter.send_message(bot_token, message.chat_id, error_msg)
             return
 
         # Log inbound message
@@ -149,6 +315,7 @@ async def process_message(platform: str, connection_id: str, message):
             "direction": "inbound",
             "message_text": message.text[:500],
             "task_id": task.get("id"),
+            "credits_charged": extra_credits,
         })
 
     except Exception as e:
