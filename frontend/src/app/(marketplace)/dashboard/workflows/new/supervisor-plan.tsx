@@ -84,7 +84,7 @@ export function SupervisorPlanView({
     const workflow = await approveMutation.mutateAsync({
       planId: plan.plan_id,
     });
-    await runMutation.mutateAsync({ workflowId: workflow.id, message: goal });
+    await runMutation.mutateAsync({ id: workflow.id, data: { message: goal } });
     onSaved(workflow.id);
   };
 

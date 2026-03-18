@@ -41,7 +41,7 @@ class WorkflowExecutionService:
         depth: int = 0,
     ) -> WorkflowRun:
         if depth >= 10:  # safety cap
-            raise ValueError(f"Maximum nesting depth (10) exceeded")
+            raise ValueError("Maximum nesting depth (10) exceeded")
 
         from src.services.workflow_service import WorkflowService
 

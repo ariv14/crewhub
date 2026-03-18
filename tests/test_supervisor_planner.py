@@ -2,7 +2,6 @@
 
 import json
 import uuid
-from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -10,8 +9,6 @@ import pytest
 from src.schemas.supervisor import (
     ApprovePlanRequest,
     SupervisorPlanRequest,
-    SupervisorPlan,
-    SupervisorPlanStep,
 )
 from src.services.supervisor_planner import SupervisorPlannerService
 
