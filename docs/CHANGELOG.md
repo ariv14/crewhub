@@ -7,6 +7,88 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [v0.5.0] — 2026-03-18
+
+Major platform expansion: no-code agent builder, multi-agent workflows, developer payouts, marketing agents, PWA, and comprehensive UX overhaul.
+
+### Added
+
+- **No-Code Agent Builder** — Langflow-based visual builder at `/dashboard/builder` with iframe integration, auto-login session, and Cloudflare Worker proxy for cookie handling
+- **Custom Langflow Components** — Knowledge Base, Guard, Publish, and CrewHub Agent components for building marketplace-connected flows
+- **Langflow Pool Infrastructure** — deploy script, GitHub Actions workflow, HF Spaces monitoring for builder instances
+- **Builder Tab in Settings** — LLM provider configuration guides and HuggingFace key setup
+- **Multi-Agent Workflows** — chaining agents with per-step instructions, configurable timeouts, per-step cancellation, and detailed error messages
+- **Workflow Scheduling** — cron-based workflow execution with `croniter`
+- **Developer Payouts** — Stripe Connect Express integration for agent developers to receive earnings
+- **AI Agency Suite** — 56 agent personalities across 9 divisions (engineering, design, marketing, product, PM, testing, support, spatial, specialized) deployed as HF Spaces
+- **6 Premium Marketing Agents** — deployed on HF Spaces with Groq LLM backend
+- **Team Mode** — multi-agent parallel dispatch with consolidated report generation and agent toggle with cost estimation
+- **AgentCrew Feature** — save team configurations as reusable crews (later deprecated in favor of Workflows)
+- **Custom Agent Creation** — community-created agents via LLM meta-prompting ("Create an Agent")
+- **Auto-Delegation** — semantic search + keyword fallback for agent/skill suggestions, manual delegation with guardrail badges
+- **PWA Support** — installable progressive web app from browser
+- **Explore Page** — interactive platform guide at `/explore`
+- **Magic Box** — AI-powered agent discovery on landing page with keyword fallback
+- **pgvector Integration** — DB-side cosine similarity search with HNSW indexing
+- **Platform-Owned Embedding Key** — for search and suggestions without user BYOK
+- **Multi-Provider LLM Fallback** — LiteLLM Router for automatic provider failover
+- **Circuit Breaker & Spending Limits** — production-readiness guardrails
+- **Content Moderation** — automatic content filtering on task creation and guest trials
+- **Eval System** — LLM-as-judge with AI/User eval split, subscores, and trend charts
+- **3-Tier Agent Verification** — new → verified → certified with auto-promotion via reputation
+- **Guest Trial Endpoint** — try agents without account creation
+- **Agent Activity Tab** — public stats and owner-only task log
+- **Agent Analytics Dashboard** — performance metrics for agent owners on My Agents page
+- **Webhook Logs Viewer** — with 90-day retention policy
+- **Version Bumper UI** — patch/minor/major buttons for agents
+- **Tiered Credit Packs** — with Stripe integration (removed premium subscription)
+- **A2A Compliance Validator** — endpoint for testing agent protocol compliance
+- **Delegation Accuracy Analytics** — endpoint for tracking delegation quality
+- **Admin Endpoints** — bulk pricing, credit grant, verification override, re-embed skills, bootstrap admin
+- **HF Spaces Health Monitor** — with auto-recovery and Discord alerts
+- **GitHub OAuth Login** — alongside Google sign-in
+- **PostHog Analytics** — with feedback widget and community links
+- **Feedback to Discord** — user feedback forwarded via webhook
+- **Social Proof Section** — on homepage
+- **Pricing Page** — simplified credits-only billing
+- **Comprehensive Docs Page** — expandable API reference with 30+ endpoints across 6 groups
+- **Legal Pages** — Terms of Service, Developer Agreement, Privacy Policy
+- **Branding** — OG image, favicons, SEO metadata, custom domain (`crewhubai.com`)
+
+### Changed
+
+- **Sidebar Consolidation** — 3 grouped sections (Core, Orchestration, Account); Crews deprecated in favor of Workflows
+- **Landing Page** — multiple redesigns: two-persona entry points, hero with action cards, stats, how-it-works, CRO optimizations
+- **Credits-Only Billing** — removed premium subscriptions, simplified to credit packs
+- **Demo Agents** — switched from Gemini to Groq (Llama 3.3 70B) for better free-tier support
+- **Navigation** — logo links to dashboard for logged-in users, client-side auth guards, scrollable mobile menu
+- **Embedding Model** — Gemini `text-embedding-004` → `gemini-embedding-001`
+- **GitHub Actions** — bumped `actions/checkout`, `actions/setup-node` to v5, `actions/setup-python` to v6 for Node.js 24 compatibility
+- **Query Performance** — deferred embedding column loading (~98% less Supabase egress), stopped cascading skill loads
+
+### Fixed
+
+- Mobile hamburger menu scrollable on short viewports
+- Duplicate Build Agent entry in mobile menu
+- Horizontal overflow on mobile layouts
+- Cloudflare Pages dynamic routes with `__fallback` pattern and proper `_redirects`
+- `<Link>`/`router.push` replaced with `<a>` tags for static export compatibility
+- Alembic migration moved from Dockerfile CMD to Python lifespan (prevents HF Spaces boot loop)
+- Credit settlement for both A2A and user-initiated tasks
+- Firebase auth race conditions and nav flash during auth resolution
+- Stripe Connect error handling (user-friendly 503 instead of raw errors)
+- Rate limiter crash on Firebase UID (not a valid UUID)
+- HTTPS redirect disabled on HF Spaces (reverse proxy handles SSL)
+- MissingGreenlet errors in admin and workflow endpoints
+
+### Removed
+
+- Premium subscription tier (replaced by credits-only)
+- Redundant hero logo (reclaimed vertical space)
+- GitHub link from footer (repo made private)
+
+---
+
 ## [v0.4.0] — 2026-03-01
 
 Documentation, architecture updates, and BYOK tiered embedding system.
@@ -121,6 +203,7 @@ Initial release of CrewHub — AI Agent Marketplace.
 - Pydantic V2.11 deprecation warnings for `__get_pydantic_core_schema__` (no functional impact)
 - In-memory rate limiter does not share state across multiple process instances
 
+[v0.5.0]: https://github.com/ariv14/crewhub/releases/tag/v0.5.0
 [v0.4.0]: https://github.com/ariv14/crewhub/releases/tag/v0.4.0
 [v0.3.0]: https://github.com/ariv14/crewhub/releases/tag/v0.3.0
 [v0.2.0]: https://github.com/ariv14/crewhub/releases/tag/v0.2.0
