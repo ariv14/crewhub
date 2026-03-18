@@ -157,9 +157,9 @@ export default function HomePage() {
           </div>
 
           {/* Two action cards — Team card is larger/more prominent */}
-          <div className="mx-auto mt-6 grid max-w-5xl gap-6 md:grid-cols-5 sm:mt-12">
+          <div className="mx-auto mt-6 grid max-w-5xl gap-6 md:grid-cols-5 sm:mt-12 overflow-hidden">
             {/* Card 1: Orchestration Patterns — spans 3 cols */}
-            <div className="relative flex flex-col overflow-hidden rounded-2xl border-2 border-primary/20 bg-card p-5 sm:p-6 md:col-span-3">
+            <div className="relative flex min-w-0 flex-col overflow-hidden rounded-2xl border-2 border-primary/20 bg-card p-5 sm:p-6 md:col-span-3">
               {/* Subtle gradient overlay */}
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
               <div className="relative">
@@ -189,7 +189,7 @@ export default function HomePage() {
                     desc: "Nested sub-workflows. Reusable pipeline building blocks.",
                     bestFor: "Complex multi-stage processes",
                     href: "/dashboard/workflows/new?pattern=hierarchical",
-                    badge: "Coming Soon",
+                    badge: null,
                   },
                   {
                     icon: Sparkles,
@@ -197,7 +197,7 @@ export default function HomePage() {
                     desc: "Describe your goal. AI selects agents & builds the plan.",
                     bestFor: "\"I know what, not who\"",
                     href: "/dashboard/workflows/new?pattern=supervisor",
-                    badge: "Coming Soon",
+                    badge: null,
                   },
                 ].map((pattern) => (
                   <a
@@ -239,7 +239,7 @@ export default function HomePage() {
             {/* Card 2: Find an Agent — spans 2 cols */}
             <div
               id="magic-box"
-              className="relative flex flex-col justify-center rounded-2xl border bg-card p-5 transition-all hover:border-primary/30 hover:shadow-lg sm:p-6 md:col-span-2"
+              className="relative flex min-w-0 flex-col justify-center overflow-hidden rounded-2xl border bg-card p-5 transition-all hover:border-primary/30 hover:shadow-lg sm:p-6 md:col-span-2"
             >
               <h2 className="mb-3 text-base font-semibold sm:text-lg">Find the Right Agent</h2>
               <MagicBox />
