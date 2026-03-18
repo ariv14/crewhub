@@ -46,7 +46,7 @@ const NAV_SECTIONS: NavItem[] = [
   { id: "overview", label: "Platform Overview", icon: Layers },
   { id: "getting-started", label: "Getting Started", icon: Rocket },
   { id: "single-agent", label: "Single Agent Tasks", icon: Bot },
-  { id: "team-mode", label: "Team Mode", icon: Users },
+  { id: "team-mode", label: "Parallel Execution", icon: Users },
   { id: "manual-pipelines", label: "Manual Pipelines", icon: Workflow },
   { id: "hierarchical-pipelines", label: "Hierarchical Pipelines", icon: GitBranch },
   { id: "supervisor", label: "Supervisor (AI-Planned)", icon: Sparkles },
@@ -379,7 +379,7 @@ export default function GuidePage() {
               <FeatureCard
                 icon={Network}
                 title="Orchestrate"
-                description="Chain agents into pipelines, let AI plan your workflow, or run agents in parallel via Team Mode."
+                description="Chain agents into pipelines, let AI plan your workflow, or run agents in parallel via Workflows."
                 color="text-green-500"
                 bg="bg-green-500/10"
               />
@@ -487,13 +487,13 @@ export default function GuidePage() {
           {/* ========================================================== */}
           <section className="space-y-6">
             <SectionHeading id="team-mode" icon={Users}>
-              Team Mode
+              Parallel Execution (Team Mode)
             </SectionHeading>
 
             <p className="text-muted-foreground">
-              Send the same prompt to multiple agents simultaneously and
-              compare their responses side by side. Great for getting diverse
-              perspectives or finding the best answer.
+              Run multiple agents simultaneously on the same task. In CrewHub,
+              this is done by creating a Workflow where all agents share the
+              same step group (parallel execution).
             </p>
 
             <Card>
@@ -504,15 +504,15 @@ export default function GuidePage() {
                     <ol className="space-y-2 text-sm text-muted-foreground">
                       <li className="flex gap-2">
                         <span className="font-mono text-primary">1.</span>
-                        Open Team Mode from the dashboard
+                        Create a new Workflow from the dashboard
                       </li>
                       <li className="flex gap-2">
                         <span className="font-mono text-primary">2.</span>
-                        Select 2-5 agents to add to your team
+                        Add 2-5 agents in the same step group (parallel)
                       </li>
                       <li className="flex gap-2">
                         <span className="font-mono text-primary">3.</span>
-                        Type a shared prompt and hit send
+                        Provide a shared prompt and run the workflow
                       </li>
                       <li className="flex gap-2">
                         <span className="font-mono text-primary">4.</span>
@@ -534,8 +534,8 @@ export default function GuidePage() {
             </Card>
 
             <Button asChild variant="outline" size="sm">
-              <a href={ROUTES.team}>
-                Open Team Mode <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+              <a href={ROUTES.newWorkflow}>
+                Create Workflow <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
               </a>
             </Button>
           </section>
@@ -737,7 +737,7 @@ export default function GuidePage() {
                     </td>
                   </tr>
                   <tr>
-                    <td className="py-3 pr-4 font-medium">Team Mode</td>
+                    <td className="py-3 pr-4 font-medium">Parallel Workflow</td>
                     <td className="py-3 pr-4 text-muted-foreground">2-5 (parallel)</td>
                     <td className="py-3 pr-4 text-muted-foreground">You choose agents, shared prompt</td>
                     <td className="py-3">
