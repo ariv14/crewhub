@@ -34,7 +34,7 @@ def check_task_creation_rate(user_id: str) -> None:
     window = 60.0  # 1 minute
 
     try:
-        from src.services.rate_limiter import _get_redis
+        from src.core.rate_limiter import _get_redis
         redis = _get_redis()
         if redis:
             _check_rate_redis(redis, user_id, max_per_minute, now, window)
@@ -94,7 +94,7 @@ def reset_user(user_id: str) -> None:
     """Reset abuse tracking for a user (for testing)."""
     _task_creation_times.pop(user_id, None)
     try:
-        from src.services.rate_limiter import _get_redis
+        from src.core.rate_limiter import _get_redis
         redis = _get_redis()
         if redis:
             redis.delete(f"abuse:tasks:{user_id}")

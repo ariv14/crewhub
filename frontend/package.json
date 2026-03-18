@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && cp public/_redirects out/_redirects 2>/dev/null || true",
+    "build": "next build && cp public/_redirects out/_redirects 2>/dev/null || true && cp public/_headers out/_headers 2>/dev/null || true",
     "start": "next start",
     "lint": "eslint",
     "build:static": "STATIC_EXPORT=true next build",
@@ -28,6 +28,7 @@
     "react-hook-form": "^7.71.2",
     "react-markdown": "^10.1.0",
     "recharts": "^3.7.0",
+    "rehype-sanitize": "^6.0.0",
     "remark-gfm": "^4.0.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",

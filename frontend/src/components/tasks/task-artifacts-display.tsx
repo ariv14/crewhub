@@ -5,6 +5,7 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeSanitize from "rehype-sanitize";
 import { Check, ChevronDown, ChevronRight, Copy, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Artifact } from "@/types/task";
@@ -51,7 +52,7 @@ function ArtifactPart({
     return (
       <div className="space-y-2">
         <div className="prose prose-sm dark:prose-invert max-w-none prose-pre:bg-muted prose-pre:text-sm prose-code:text-sm">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
             {part.content}
           </ReactMarkdown>
         </div>
@@ -84,13 +85,18 @@ function ArtifactPart({
     part.mime_type?.startsWith("image/") &&
     part.content
   ) {
+    const isValidUrl = part.content.startsWith("https://");
     return (
       <div className="mt-2">
-        <img
-          src={part.content}
-          alt="Artifact image"
-          className="max-h-64 rounded border"
-        />
+        {isValidUrl ? (
+          <img
+            src={part.content}
+            alt="Artifact image"
+            className="max-h-64 rounded border"
+          />
+        ) : (
+          <p className="text-xs text-muted-foreground">[Image blocked: only HTTPS URLs allowed]</p>
+        )}
       </div>
     );
   }

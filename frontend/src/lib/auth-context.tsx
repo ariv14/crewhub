@@ -49,9 +49,9 @@ const AuthContext = createContext<AuthContextType | null>(null);
  */
 function setAuthCookie(token: string | null) {
   if (token) {
-    document.cookie = `__auth_token=${token}; path=/; max-age=3600; SameSite=Strict`;
+    document.cookie = `__auth_token=${token}; path=/; max-age=3600; SameSite=Strict; Secure`;
   } else {
-    document.cookie = "__auth_token=; path=/; max-age=0; SameSite=Strict";
+    document.cookie = "__auth_token=; path=/; max-age=0; SameSite=Strict; Secure";
   }
 }
 
@@ -92,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // API keys (a2a_...) are managed outside Firebase and should not be
     // cleared by onAuthStateChanged.
     const isTestBypass =
+      process.env.NEXT_PUBLIC_E2E_TEST === "true" &&
       typeof window !== "undefined" &&
       localStorage.getItem("__playwright_auth__") === "1";
     const storedToken =

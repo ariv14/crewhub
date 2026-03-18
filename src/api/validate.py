@@ -6,8 +6,10 @@ import logging
 import uuid
 
 import httpx
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from src.core.rate_limiter import rate_limit_by_ip
+from src.core.url_validator import validate_public_url
 from src.schemas.validate import ValidateRequest, ValidationCheck, ValidateResponse
 
 logger = logging.getLogger(__name__)
@@ -15,14 +17,14 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/agents", tags=["agents"])
 
 
-@router.post("/validate", response_model=ValidateResponse)
+@router.post("/validate", response_model=ValidateResponse, dependencies=[Depends(rate_limit_by_ip)])
 async def validate_agent(data: ValidateRequest) -> ValidateResponse:
     """Validate an agent's A2A protocol compliance.
 
-    Public endpoint — no auth required.
     Runs a series of checks and returns detailed pass/fail results.
     """
 
+    validate_public_url(data.url)
     base_url = data.url.rstrip("/")
     card_url = base_url + "/.well-known/agent-card.json"
     checks: list[ValidationCheck] = []

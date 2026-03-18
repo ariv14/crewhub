@@ -147,21 +147,26 @@ async def list_workflow_runs(
 async def get_workflow_run_output(
     run_id: UUID,
     db: AsyncSession = Depends(get_db),
+    user_id: UUID = Depends(resolve_db_user_id),
 ) -> dict:
     """Get workflow run output in a clean format for external consumption."""
     from sqlalchemy import select
     from sqlalchemy.orm import selectinload
-    from src.models.workflow import WorkflowRun
+    from src.models.workflow import WorkflowRun, Workflow
 
     result = await db.execute(
         select(WorkflowRun)
         .where(WorkflowRun.id == run_id)
-        .options(selectinload(WorkflowRun.step_runs))
+        .options(selectinload(WorkflowRun.step_runs), selectinload(WorkflowRun.workflow))
     )
     run = result.scalar_one_or_none()
     if not run:
         from src.core.exceptions import NotFoundError
         raise NotFoundError("Workflow run not found")
+    # Allow access if owner or workflow is public
+    if run.user_id != user_id and not (run.workflow and run.workflow.is_public):
+        from src.core.exceptions import ForbiddenError
+        raise ForbiddenError("Not authorized to view this workflow run")
 
     snapshot = run.workflow_snapshot or {}
     snapshot_steps = snapshot.get("steps", [])
@@ -214,6 +219,7 @@ async def get_workflow_run_output(
 async def get_workflow_run(
     run_id: UUID,
     db: AsyncSession = Depends(get_db),
+    user_id: UUID = Depends(resolve_db_user_id),
 ) -> WorkflowRunResponse:
     from sqlalchemy import select
     from sqlalchemy.orm import selectinload
@@ -222,12 +228,15 @@ async def get_workflow_run(
     result = await db.execute(
         select(WorkflowRun)
         .where(WorkflowRun.id == run_id)
-        .options(selectinload(WorkflowRun.step_runs))
+        .options(selectinload(WorkflowRun.step_runs), selectinload(WorkflowRun.workflow))
     )
     run = result.scalar_one_or_none()
     if not run:
         from src.core.exceptions import NotFoundError
         raise NotFoundError("Workflow run not found")
+    if run.user_id != user_id and not (run.workflow and run.workflow.is_public):
+        from src.core.exceptions import ForbiddenError
+        raise ForbiddenError("Not authorized to view this workflow run")
     return run
 
 
