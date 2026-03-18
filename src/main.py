@@ -109,8 +109,15 @@ async def lifespan(app: FastAPI):
     if sentry_dsn:
         try:
             import sentry_sdk
+            from sentry_sdk.scrubber import EventScrubber, DEFAULT_DENYLIST
             sentry_sdk.init(
                 dsn=sentry_dsn,
+                send_default_pii=False,
+                event_scrubber=EventScrubber(denylist=DEFAULT_DENYLIST + [
+                    "api_key", "llm_api_keys", "firebase_credentials_json",
+                    "stripe_secret_key", "stripe_webhook_secret", "email",
+                    "hashed_password", "authorization", "x-api-key",
+                ]),
                 traces_sample_rate=0.1 if not settings.debug else 1.0,
                 environment="staging" if settings.debug else "production",
             )

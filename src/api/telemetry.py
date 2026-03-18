@@ -5,9 +5,10 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.rate_limiter import rate_limit_by_ip
 from src.database import get_db
 from src.services.telemetry import TelemetryService
 
@@ -15,15 +16,15 @@ router = APIRouter(prefix="/telemetry", tags=["telemetry"])
 
 
 class TelemetryEventCreate(BaseModel):
-    name: str
+    name: str = Field(..., max_length=100)
     properties: Optional[dict] = None
 
 
 class TelemetryBatchCreate(BaseModel):
-    events: list[TelemetryEventCreate]
+    events: list[TelemetryEventCreate] = Field(..., max_length=100)
 
 
-@router.post("/events", status_code=202)
+@router.post("/events", status_code=202, dependencies=[Depends(rate_limit_by_ip)])
 async def log_events(
     data: TelemetryBatchCreate,
     db: AsyncSession = Depends(get_db),

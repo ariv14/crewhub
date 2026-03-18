@@ -5,8 +5,10 @@
 import logging
 
 import httpx
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
+
+from src.core.rate_limiter import rate_limit_by_ip
 
 from src.config import settings
 
@@ -20,7 +22,7 @@ class FeedbackCreate(BaseModel):
     email: str = Field(default="", max_length=200)
 
 
-@router.post("", status_code=202)
+@router.post("", status_code=202, dependencies=[Depends(rate_limit_by_ip)])
 async def submit_feedback(data: FeedbackCreate):
     """Accept user feedback and forward to Discord webhook."""
     webhook_url = settings.discord_feedback_webhook
