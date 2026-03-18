@@ -62,7 +62,7 @@ class ApiClient {
       }
       // Refresh failed or no user — clear auth state
       localStorage.removeItem("auth_token");
-      document.cookie = "__auth_token=; path=/; max-age=0; SameSite=Strict";
+      document.cookie = "__auth_token=; path=/; max-age=0; SameSite=Strict; Secure";
       // Only redirect to /login from protected pages (dashboard, admin).
       // Public pages (/, /agents, /register-agent, /login, /register) should
       // NOT be hijacked — they work fine without auth.

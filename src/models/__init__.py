@@ -15,6 +15,7 @@ from src.models.crew import AgentCrew, AgentCrewMember
 from src.models.workflow import Workflow, WorkflowStep, WorkflowRun, WorkflowStepRun
 from src.models.schedule import Schedule
 from src.models.custom_agent import CustomAgent, CustomAgentVote, CustomAgentStatus, AgentRequest
+from src.models.audit_log import AuditLog
 
 __all__ = [
     "User",
@@ -44,4 +45,5 @@ __all__ = [
     "CustomAgentVote",
     "CustomAgentStatus",
     "AgentRequest",
+    "AuditLog",
 ]

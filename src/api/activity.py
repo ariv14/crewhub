@@ -54,12 +54,14 @@ async def activity_stream(
                     now = datetime.now(timezone.utc)
                     since = now - lookback
 
-                    # New tasks
+                    # New tasks (scoped to current user)
                     task_since = last_seen.get("task", since)
+                    uid = current_user.get("id") or current_user.get("uid")
                     stmt = (
                         select(Task)
                         .options(selectinload(Task.provider_agent))
                         .where(Task.created_at > task_since)
+                        .where(Task.creator_user_id == uid)
                         .order_by(desc(Task.created_at))
                         .limit(10)
                     )
@@ -122,11 +124,12 @@ async def activity_stream(
                         if not last_seen.get("agent") or agent.created_at > last_seen["agent"]:
                             last_seen["agent"] = agent.created_at
 
-                    # Credit transactions
+                    # Credit transactions (scoped to current user)
                     tx_since = last_seen.get("tx", since)
                     stmt = (
                         select(Transaction)
                         .where(Transaction.created_at > tx_since)
+                        .where(Transaction.user_id == uid)
                         .order_by(desc(Transaction.created_at))
                         .limit(5)
                     )

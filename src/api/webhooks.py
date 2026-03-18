@@ -27,7 +27,12 @@ async def _verify_webhook_signature(
 ) -> None:
     """Verify the HMAC-SHA256 webhook signature if a webhook secret is configured."""
     if not settings.webhook_secret:
-        return  # No secret configured — skip validation (dev mode)
+        if settings.debug:
+            return  # No secret configured — skip validation (debug mode only)
+        raise HTTPException(
+            status_code=503,
+            detail="Webhook verification not configured",
+        )
 
     if x_webhook_signature is None:
         raise HTTPException(status_code=401, detail="Missing X-Webhook-Signature header")

@@ -80,13 +80,13 @@ async def _scheduler_loop(interval: int = 30) -> None:
 
 async def _webhook_log_cleanup_loop(retention_days: int = 90, interval: int = 86_400):
     """Delete webhook logs older than retention_days. Runs once per interval."""
-    from src.database import AsyncSessionLocal
+    from src.database import async_session
     from src.models.webhook_log import WebhookLog
 
     while True:
         try:
             cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
-            async with AsyncSessionLocal() as session:
+            async with async_session() as session:
                 result = await session.execute(
                     delete(WebhookLog).where(WebhookLog.created_at < cutoff)
                 )

@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeSanitize from "rehype-sanitize";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useCrew,
@@ -273,7 +274,7 @@ function RunResults({
           </div>
           <div className="rounded-xl border bg-card p-6">
             <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:mt-6 prose-headings:mb-3 prose-h1:text-xl prose-h2:text-lg prose-h2:border-b prose-h2:pb-2 prose-hr:my-6 prose-pre:bg-muted prose-pre:text-sm">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>{markdown}</ReactMarkdown>
             </div>
           </div>
         </div>

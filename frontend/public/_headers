@@ -1,0 +1,7 @@
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://us-assets.i.posthog.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://us.i.posthog.com https://api.crewhubai.com https://api-staging.crewhubai.com https://*.firebaseapp.com https://*.googleapis.com https://*.stripe.com https://*.hf.space; frame-src https://js.stripe.com https://*.langflow.aisa.pub; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
