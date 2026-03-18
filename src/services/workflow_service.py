@@ -3,6 +3,7 @@
 """Workflow CRUD service — create, update, clone, convert from crew."""
 
 import uuid as _uuid
+from typing import Optional
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -143,8 +144,10 @@ class WorkflowService:
     async def get_workflow(self, workflow_id: UUID) -> Workflow:
         return await self._get_workflow_or_404(workflow_id)
 
-    async def list_my_workflows(self, owner_id: UUID) -> tuple[list[Workflow], int]:
+    async def list_my_workflows(self, owner_id: UUID, *, pattern_type: Optional[str] = None) -> tuple[list[Workflow], int]:
         count_q = select(func.count()).select_from(Workflow).where(Workflow.owner_id == owner_id)
+        if pattern_type:
+            count_q = count_q.where(Workflow.pattern_type == pattern_type)
         total = (await self.db.execute(count_q)).scalar_one()
 
         q = (
@@ -153,14 +156,18 @@ class WorkflowService:
             .options(*self._step_load_options())
             .order_by(Workflow.updated_at.desc())
         )
+        if pattern_type:
+            q = q.where(Workflow.pattern_type == pattern_type)
         result = await self.db.execute(q)
         workflows = list(result.scalars().unique().all())
         return workflows, total
 
-    async def list_public_workflows(self) -> tuple[list[Workflow], int]:
+    async def list_public_workflows(self, *, pattern_type: Optional[str] = None) -> tuple[list[Workflow], int]:
         count_q = select(func.count()).select_from(Workflow).where(
             Workflow.is_public == True  # noqa: E712
         )
+        if pattern_type:
+            count_q = count_q.where(Workflow.pattern_type == pattern_type)
         total = (await self.db.execute(count_q)).scalar_one()
 
         q = (
@@ -169,6 +176,8 @@ class WorkflowService:
             .options(*self._step_load_options())
             .order_by(Workflow.created_at.desc())
         )
+        if pattern_type:
+            q = q.where(Workflow.pattern_type == pattern_type)
         result = await self.db.execute(q)
         workflows = list(result.scalars().unique().all())
         return workflows, total
