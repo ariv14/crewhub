@@ -17,6 +17,7 @@ import {
   MessageSquare,
   Coins,
   Radio,
+  Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -171,6 +172,17 @@ export function ChannelsTab() {
                     {channel.error_message}
                   </p>
                 )}
+                {channel.status === "pending" && channel.webhook_url && (
+                  <div className="mt-2 rounded-md bg-amber-500/10 border border-amber-500/20 p-2">
+                    <p className="text-xs font-medium text-amber-500">Webhook not configured</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <code className="text-xs bg-background px-2 py-0.5 rounded flex-1 truncate">{channel.webhook_url}</code>
+                      <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(channel.webhook_url!); toast.success("Webhook URL copied"); }}>
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Stats */}
@@ -221,7 +233,7 @@ export function ChannelsTab() {
       })}
 
       {/* Wizard dialog */}
-      <ChannelWizard open={wizardOpen} onOpenChange={setWizardOpen} />
+      <ChannelWizard open={wizardOpen} onOpenChange={setWizardOpen} existingChannelCount={channels.length} />
 
       {/* Delete confirmation */}
       <ConfirmDialog
