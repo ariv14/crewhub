@@ -5,7 +5,7 @@
 import json
 import logging
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -38,7 +38,7 @@ class SupervisorPlannerService:
         try:
             await self.db.execute(
                 delete(SupervisorPlanRecord).where(
-                    SupervisorPlanRecord.expires_at < datetime.now(timezone.utc)
+                    SupervisorPlanRecord.expires_at < datetime.utcnow()
                 )
             )
         except Exception:
@@ -177,7 +177,7 @@ Output exactly this JSON schema:
             },
             llm_provider=request.llm_provider or "groq",
             status="draft",
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            expires_at=datetime.utcnow() + timedelta(hours=1),
         )
         self.db.add(plan_record)
         await self.db.flush()
