@@ -10,7 +10,6 @@ import {
   CreditCard,
   Wallet,
   Settings,
-  Users,
   GitBranch,
   Clock,
   MessageCircle,
@@ -39,7 +38,6 @@ const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
   {
     label: "Orchestration",
     items: [
-      { href: ROUTES.teamMode, label: "Team Mode", icon: Users },
       { href: ROUTES.myWorkflows, label: "Workflows", icon: GitBranch },
       { href: ROUTES.mySchedules, label: "Schedules", icon: Clock },
       { href: "/dashboard/builder", label: "Build Agent", icon: Sparkles },

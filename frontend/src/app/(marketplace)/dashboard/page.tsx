@@ -10,7 +10,7 @@ import {
   Search,
   TrendingUp,
   Rocket,
-  Users,
+  Workflow,
   Zap,
   ArrowRight,
 } from "lucide-react";
@@ -27,12 +27,12 @@ import { api } from "@/lib/api-client";
 
 const ACTION_CARDS = [
   {
-    icon: Users,
-    title: "Assemble Your AI Team",
-    description: "One goal, multiple specialists, one combined result.",
-    cta: "Try Team Mode",
-    href: ROUTES.teamMode,
-    track: "dashboard_card_team",
+    icon: Workflow,
+    title: "Create Workflow",
+    description: "Chain agents together — sequential, parallel, or AI-orchestrated.",
+    cta: "Create Workflow",
+    href: "/dashboard/workflows/new",
+    track: "dashboard_card_workflow",
     border: "border-2 border-primary/20 bg-card",
     hover: "hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5",
     gradient: true,
@@ -142,7 +142,7 @@ export default function DashboardPage() {
       {/* Quick Action Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {ACTION_CARDS.map((card) => (
-          <Link
+          <a
             key={card.href}
             href={card.href}
             onClick={() => trackCardClick(card.track)}
@@ -164,7 +164,7 @@ export default function DashboardPage() {
               {card.cta}
               <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
             </div>
-          </Link>
+          </a>
         ))}
       </div>
 

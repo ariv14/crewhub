@@ -224,13 +224,13 @@ export default function HomePage() {
                 ))}
               </div>
 
-              {/* Try Team Mode CTA */}
+              {/* Try Workflows CTA */}
               <div className="relative mt-5 flex justify-center">
                 <a
-                  href="/team"
+                  href="/dashboard/workflows/new"
                   className="group/cta inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90"
                 >
-                  Try Team Mode
+                  Try Workflows
                   <ArrowRight className="h-4 w-4 transition-transform group-hover/cta:translate-x-0.5" />
                 </a>
               </div>
@@ -342,17 +342,17 @@ export default function HomePage() {
               href: "#magic-box",
             },
             {
-              title: "Assemble a Team",
+              title: "Create a Workflow",
               color: "text-amber-400",
               border: "border-amber-500/20",
               bg: "bg-amber-500/5",
               steps: [
-                { n: "1", label: "Set one goal" },
-                { n: "2", label: "AI picks 4-8 specialists" },
-                { n: "3", label: "Get a combined report" },
+                { n: "1", label: "Choose your pattern" },
+                { n: "2", label: "Pick agents for each step" },
+                { n: "3", label: "Run and get combined results" },
               ],
-              cta: "Try Team Mode",
-              href: "/team",
+              cta: "Create Workflow",
+              href: "/dashboard/workflows/new?pattern=manual",
             },
             {
               title: "Build & Earn",

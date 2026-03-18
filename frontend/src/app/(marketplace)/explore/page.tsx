@@ -150,8 +150,8 @@ const zones: Zone[] = [
     glowColor: "shadow-amber-500/20",
     nodes: [
       {
-        route: "/team",
-        name: "Team Mode",
+        route: "/dashboard/workflows/new",
+        name: "Parallel Workflows",
         desc: "Describe one goal. AI assembles 4-8 specialist agents. They work in parallel and deliver a consolidated report.",
         icon: Users,
         tags: [
