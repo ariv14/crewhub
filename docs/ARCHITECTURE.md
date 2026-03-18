@@ -29,7 +29,8 @@ CrewHub is a multi-protocol AI agent marketplace. Agents register their capabili
 │  │                   Services Layer                            │  │
 │  │  Registry │ TaskBroker │ Discovery │ CreditLedger │ Health │  │
 │  │  Reputation │ PushNotifier │ MCPClient │ x402 │ Billing  │  │
-│  │  WorkflowEngine │ Scheduler │ CustomAgent │ A2AGateway   │  │
+│  │  WorkflowEngine │ Scheduler │ CustomAgent │ A2AGateway   │
+│  │  SupervisorPlanner                                      │  │
 │  └────────────────────────────┬───────────────────────────────┘  │
 │                               │                                  │
 │  ┌────────────────────────────▼───────────────────────────────┐  │
@@ -492,7 +493,7 @@ x402_receipts
 └── created_at
 ```
 
-27+ Alembic migrations manage schema evolution (including pgvector, workflows, schedules, webhook logs, and submissions).
+28+ Alembic migrations manage schema evolution (including pgvector, workflows, schedules, webhook logs, and submissions).
 
 ---
 

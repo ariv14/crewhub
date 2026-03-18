@@ -5,6 +5,7 @@
 import uuid
 from datetime import datetime
 from decimal import Decimal
+from typing import Optional
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, Numeric, String, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -32,11 +33,14 @@ class Workflow(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
+    pattern_type: Mapped[str] = mapped_column(String, default="manual")
+    supervisor_config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     owner: Mapped["User"] = relationship("User", lazy="selectin")
     steps: Mapped[list["WorkflowStep"]] = relationship(
         "WorkflowStep",
         back_populates="workflow",
+        foreign_keys="[WorkflowStep.workflow_id]",
         lazy="selectin",
         cascade="all, delete-orphan",
         order_by="WorkflowStep.step_group, WorkflowStep.position",
@@ -56,11 +60,14 @@ class WorkflowStep(Base):
     workflow_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("workflows.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    agent_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("agents.id", ondelete="CASCADE"), nullable=False
+    agent_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("agents.id", ondelete="CASCADE"), nullable=True
     )
-    skill_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("agent_skills.id", ondelete="CASCADE"), nullable=False
+    skill_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("agent_skills.id", ondelete="CASCADE"), nullable=True
+    )
+    sub_workflow_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("workflows.id", ondelete="SET NULL"), nullable=True
     )
     step_group: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     position: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -69,9 +76,12 @@ class WorkflowStep(Base):
     label: Mapped[str | None] = mapped_column(String(255), nullable=True)
     instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    workflow: Mapped["Workflow"] = relationship("Workflow", back_populates="steps")
+    workflow: Mapped["Workflow"] = relationship("Workflow", back_populates="steps", foreign_keys=[workflow_id])
     agent: Mapped["Agent"] = relationship("Agent", lazy="selectin")
     skill: Mapped["AgentSkill"] = relationship("AgentSkill", lazy="selectin")
+    sub_workflow: Mapped[Optional["Workflow"]] = relationship(
+        "Workflow", foreign_keys=[sub_workflow_id], lazy="selectin", overlaps="steps,workflow"
+    )
 
 
 class WorkflowRun(Base):
@@ -95,11 +105,19 @@ class WorkflowRun(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    parent_run_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("workflow_runs.id", ondelete="SET NULL"), nullable=True
+    )
+    depth: Mapped[int] = mapped_column(Integer, default=0)
 
     workflow: Mapped["Workflow"] = relationship("Workflow", back_populates="runs")
+    parent_run: Mapped[Optional["WorkflowRun"]] = relationship(
+        "WorkflowRun", remote_side="WorkflowRun.id", foreign_keys=[parent_run_id]
+    )
     step_runs: Mapped[list["WorkflowStepRun"]] = relationship(
         "WorkflowStepRun",
         back_populates="run",
+        foreign_keys="[WorkflowStepRun.run_id]",
         lazy="selectin",
         cascade="all, delete-orphan",
         order_by="WorkflowStepRun.step_group",
@@ -127,4 +145,8 @@ class WorkflowStepRun(Base):
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    run: Mapped["WorkflowRun"] = relationship("WorkflowRun", back_populates="step_runs")
+    child_run_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("workflow_runs.id", ondelete="SET NULL"), nullable=True
+    )
+
+    run: Mapped["WorkflowRun"] = relationship("WorkflowRun", back_populates="step_runs", foreign_keys=[run_id])

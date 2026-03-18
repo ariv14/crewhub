@@ -4,7 +4,9 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.auth import resolve_db_user_id
@@ -28,10 +30,11 @@ router = APIRouter(prefix="/workflows", tags=["workflows"])
 
 @router.get("/public", response_model=WorkflowListResponse)
 async def list_public_workflows(
+    pattern_type: Optional[str] = Query(None, pattern=r"^(manual|hierarchical|supervisor)$"),
     db: AsyncSession = Depends(get_db),
 ) -> WorkflowListResponse:
     service = WorkflowService(db)
-    workflows, total = await service.list_public_workflows()
+    workflows, total = await service.list_public_workflows(pattern_type=pattern_type)
     return WorkflowListResponse(workflows=workflows, total=total)
 
 
@@ -39,11 +42,12 @@ async def list_public_workflows(
 
 @router.get("/", response_model=WorkflowListResponse)
 async def list_my_workflows(
+    pattern_type: Optional[str] = Query(None, pattern=r"^(manual|hierarchical|supervisor)$"),
     db: AsyncSession = Depends(get_db),
     owner_id: UUID = Depends(resolve_db_user_id),
 ) -> WorkflowListResponse:
     service = WorkflowService(db)
-    workflows, total = await service.list_my_workflows(owner_id)
+    workflows, total = await service.list_my_workflows(owner_id, pattern_type=pattern_type)
     return WorkflowListResponse(workflows=workflows, total=total)
 
 

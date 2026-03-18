@@ -36,6 +36,7 @@ import {
   useRunWorkflow,
   useWorkflowRuns,
   useCancelStepRun,
+  useMyWorkflows,
 } from "@/lib/hooks/use-workflows";
 import { useAgents } from "@/lib/hooks/use-agents";
 import { ROUTES } from "@/lib/constants";
@@ -64,6 +65,10 @@ interface EditStep {
   // Populated for display
   agent_name: string;
   skill_name: string;
+  // Sub-workflow support
+  sub_workflow_id?: string | null;
+  sub_workflow_name?: string;
+  sub_workflow_step_count?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -213,18 +218,28 @@ function StepCard({
   groupNum,
   steps,
   editing,
+  patternType,
+  myWorkflows,
+  currentWorkflowId,
   onRemoveStep,
   onAddAgentToStep,
   onChangeInputMode,
   onChangeInstructions,
+  onStepTypeChange,
+  onSubWorkflowChange,
 }: {
   groupNum: number;
   steps: EditStep[];
   editing: boolean;
+  patternType?: string;
+  myWorkflows?: { id: string; name: string; icon: string; steps?: unknown[] }[];
+  currentWorkflowId?: string;
   onRemoveStep?: (tempId: string) => void;
   onAddAgentToStep?: (groupNum: number) => void;
   onChangeInputMode?: (tempId: string, mode: string) => void;
   onChangeInstructions?: (tempId: string, val: string) => void;
+  onStepTypeChange?: (tempId: string, type: "agent" | "sub-workflow") => void;
+  onSubWorkflowChange?: (tempId: string, workflowId: string) => void;
 }) {
   const isParallel = steps.length > 1;
 
@@ -254,62 +269,123 @@ function StepCard({
       </div>
 
       <div className="mt-3 space-y-2">
-        {steps.map((step) => (
-          <div key={step.tempId} className="rounded-lg border bg-muted/50 px-3 py-2">
-            <div className="flex items-center gap-2 text-sm">
-              <span className="font-medium">{step.agent_name}</span>
-              <span className="text-muted-foreground">·</span>
-              <span className="text-muted-foreground">{step.skill_name}</span>
-              {editing && groupNum > 0 && onChangeInputMode && (
-                <select
-                  value={step.input_mode}
-                  onChange={(e) => onChangeInputMode(step.tempId, e.target.value)}
-                  className="ml-1 rounded border bg-background px-1 py-0.5 text-[10px]"
-                >
-                  <option value="chain">chain</option>
-                  <option value="original">original</option>
-                  <option value="custom">custom</option>
-                </select>
+        {steps.map((step) => {
+          const isSubWorkflow = step.sub_workflow_id !== undefined && step.sub_workflow_id !== null;
+          const supportsSubWorkflows = patternType === "hierarchical" || patternType === "supervisor";
+
+          return (
+            <div key={step.tempId} className="rounded-lg border bg-muted/50 px-3 py-2">
+              {/* Agent / Sub-Workflow toggle (edit mode, hierarchical/supervisor only) */}
+              {editing && supportsSubWorkflows && onStepTypeChange && (
+                <div className="flex gap-2 mb-3">
+                  <Button
+                    size="sm"
+                    variant={!isSubWorkflow ? "default" : "outline"}
+                    onClick={() => onStepTypeChange(step.tempId, "agent")}
+                  >
+                    <Search className="mr-1 h-3 w-3" /> Agent
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={isSubWorkflow ? "default" : "outline"}
+                    onClick={() => onStepTypeChange(step.tempId, "sub-workflow")}
+                  >
+                    <GitBranch className="mr-1 h-3 w-3" /> Sub-Workflow
+                  </Button>
+                </div>
               )}
-              {!editing && step.input_mode !== "chain" && (
-                <Badge variant="outline" className="ml-1 text-[10px]">
-                  {step.input_mode === "original" ? "original input" : "custom"}
-                </Badge>
-              )}
-              {editing && onRemoveStep && (
-                <button
-                  onClick={() => onRemoveStep(step.tempId)}
-                  className="ml-auto text-muted-foreground hover:text-destructive"
-                >
-                  <X className="h-3 w-3" />
-                </button>
+
+              {/* Sub-workflow picker (edit mode) */}
+              {editing && isSubWorkflow && onSubWorkflowChange ? (
+                <div>
+                  <label className="text-sm font-medium">Sub-Workflow</label>
+                  <select
+                    className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                    value={step.sub_workflow_id || ""}
+                    onChange={(e) => onSubWorkflowChange(step.tempId, e.target.value)}
+                  >
+                    <option value="">Select a workflow...</option>
+                    {myWorkflows
+                      ?.filter((w) => w.id !== currentWorkflowId)
+                      .map((w) => (
+                        <option key={w.id} value={w.id}>
+                          {w.icon} {w.name} ({w.steps?.length || 0} steps)
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              ) : (
+                /* Agent display / controls */
+                <>
+                  <div className="flex items-center gap-2 text-sm">
+                    {!editing && isSubWorkflow ? (
+                      <>
+                        <GitBranch className="h-4 w-4 text-primary" />
+                        <span className="font-medium">{step.sub_workflow_name || "Sub-Workflow"}</span>
+                        <Badge variant="secondary" className="text-xs">
+                          {step.sub_workflow_step_count ?? "?"} steps
+                        </Badge>
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-medium">{step.agent_name}</span>
+                        <span className="text-muted-foreground">·</span>
+                        <span className="text-muted-foreground">{step.skill_name}</span>
+                      </>
+                    )}
+                    {editing && groupNum > 0 && onChangeInputMode && (
+                      <select
+                        value={step.input_mode}
+                        onChange={(e) => onChangeInputMode(step.tempId, e.target.value)}
+                        className="ml-1 rounded border bg-background px-1 py-0.5 text-[10px]"
+                      >
+                        <option value="chain">chain</option>
+                        <option value="original">original</option>
+                        <option value="custom">custom</option>
+                      </select>
+                    )}
+                    {!editing && step.input_mode !== "chain" && (
+                      <Badge variant="outline" className="ml-1 text-[10px]">
+                        {step.input_mode === "original" ? "original input" : "custom"}
+                      </Badge>
+                    )}
+                    {editing && onRemoveStep && (
+                      <button
+                        onClick={() => onRemoveStep(step.tempId)}
+                        className="ml-auto text-muted-foreground hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                  {editing && onChangeInstructions && (
+                    <div className="mt-2">
+                      <Textarea
+                        placeholder='Instructions for this agent (optional) — e.g. "Summarize in 3 bullet points" or "Translate to Spanish"'
+                        value={step.instructions || ""}
+                        onChange={(e) => onChangeInstructions(step.tempId, e.target.value)}
+                        rows={2}
+                        maxLength={1000}
+                        className="text-xs"
+                      />
+                      <div className="mt-0.5 text-right text-[10px] text-muted-foreground">
+                        {(step.instructions || "").length} / 1000
+                      </div>
+                    </div>
+                  )}
+                  {!editing && step.instructions && (
+                    <p
+                      className="mt-1 text-[10px] text-muted-foreground italic truncate"
+                      title={step.instructions}
+                    >
+                      {step.instructions}
+                    </p>
+                  )}
+                </>
               )}
             </div>
-            {editing && onChangeInstructions && (
-              <div className="mt-2">
-                <Textarea
-                  placeholder='Instructions for this agent (optional) — e.g. "Summarize in 3 bullet points" or "Translate to Spanish"'
-                  value={step.instructions || ""}
-                  onChange={(e) => onChangeInstructions(step.tempId, e.target.value)}
-                  rows={2}
-                  maxLength={1000}
-                  className="text-xs"
-                />
-                <div className="mt-0.5 text-right text-[10px] text-muted-foreground">
-                  {(step.instructions || "").length} / 1000
-                </div>
-              </div>
-            )}
-            {!editing && step.instructions && (
-              <p
-                className="mt-1 text-[10px] text-muted-foreground italic truncate"
-                title={step.instructions}
-              >
-                {step.instructions}
-              </p>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -543,6 +619,9 @@ function workflowStepsToEditSteps(steps: WorkflowStep[]): EditStep[] {
     instructions: s.instructions || undefined,
     agent_name: s.agent?.name || "Unknown",
     skill_name: s.skill?.name || "Unknown",
+    sub_workflow_id: s.sub_workflow_id || undefined,
+    sub_workflow_name: s.sub_workflow?.name || undefined,
+    sub_workflow_step_count: s.sub_workflow?.steps?.length,
   }));
 }
 
@@ -584,6 +663,7 @@ export function WorkflowDetailClient({ serverId }: { serverId: string }) {
   const cloneWorkflow = useCloneWorkflow();
   const runWorkflow = useRunWorkflow();
   const cancelStep = useCancelStepRun();
+  const { data: myWorkflowsData } = useMyWorkflows();
 
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
@@ -636,6 +716,7 @@ export function WorkflowDetailClient({ serverId }: { serverId: string }) {
         input_mode: s.input_mode,
         input_template: s.input_template,
         instructions: s.instructions,
+        ...(s.sub_workflow_id ? { sub_workflow_id: s.sub_workflow_id } : {}),
       })),
     });
     await queryClient.refetchQueries({ queryKey: ["workflows", realId] });
@@ -704,6 +785,33 @@ export function WorkflowDetailClient({ serverId }: { serverId: string }) {
       prev.map((s) =>
         s.tempId === tempId ? { ...s, instructions: val || undefined } : s
       )
+    );
+  }
+
+  function handleStepTypeChange(tempId: string, type: "agent" | "sub-workflow") {
+    setEditSteps((prev) =>
+      prev.map((s) => {
+        if (s.tempId !== tempId) return s;
+        if (type === "sub-workflow") {
+          return { ...s, agent_id: "", skill_id: "", agent_name: "", skill_name: "", sub_workflow_id: "" };
+        }
+        return { ...s, sub_workflow_id: undefined, sub_workflow_name: undefined, sub_workflow_step_count: undefined };
+      })
+    );
+  }
+
+  function handleSubWorkflowChange(tempId: string, workflowId: string) {
+    const selected = myWorkflowsData?.workflows?.find((w) => w.id === workflowId);
+    setEditSteps((prev) =>
+      prev.map((s) => {
+        if (s.tempId !== tempId) return s;
+        return {
+          ...s,
+          sub_workflow_id: workflowId || undefined,
+          sub_workflow_name: selected?.name || undefined,
+          sub_workflow_step_count: selected?.steps?.length,
+        };
+      })
     );
   }
 
@@ -942,6 +1050,9 @@ export function WorkflowDetailClient({ serverId }: { serverId: string }) {
                   groupNum={group}
                   steps={displaySteps.filter((s) => s.step_group === group)}
                   editing={editing}
+                  patternType={workflow.pattern_type}
+                  myWorkflows={myWorkflowsData?.workflows}
+                  currentWorkflowId={workflow.id}
                   onRemoveStep={editing ? handleRemoveStep : undefined}
                   onAddAgentToStep={
                     editing
@@ -954,6 +1065,12 @@ export function WorkflowDetailClient({ serverId }: { serverId: string }) {
                   }
                   onChangeInstructions={
                     editing ? handleChangeInstructions : undefined
+                  }
+                  onStepTypeChange={
+                    editing ? handleStepTypeChange : undefined
+                  }
+                  onSubWorkflowChange={
+                    editing ? handleSubWorkflowChange : undefined
                   }
                 />
                 {i < sortedGroups.length - 1 && (

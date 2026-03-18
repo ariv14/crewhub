@@ -6,7 +6,13 @@ without any external services (PostgreSQL, Redis, Qdrant, etc.).
 
 import asyncio
 import os
+import sys
 import uuid
+
+# FastApiMCP schema resolution hits infinite recursion on self-referencing
+# Pydantic schemas (SupervisorPlanStep.sub_steps). Prevent the import
+# during tests by removing the spec finder result.
+sys.modules.setdefault("fastapi_mcp", None)  # type: ignore[arg-type]
 from typing import AsyncGenerator
 
 import pytest

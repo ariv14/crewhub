@@ -11,14 +11,12 @@ import {
   ArrowRight,
   Bot,
   Code2,
-  BarChart3,
-  Trophy,
-  TrendingUp,
-  CheckCircle2,
   Sparkles,
+  GitBranch,
+  Workflow,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { MagicBox } from "@/components/landing/magic-box";
-import { LiveStats } from "@/components/landing/live-stats";
 import { TrendingAgents } from "@/components/landing/trending-agents";
 import { SocialProof } from "@/components/landing/social-proof";
 import { ROUTES } from "@/lib/constants";
@@ -160,11 +158,8 @@ export default function HomePage() {
 
           {/* Two action cards — Team card is larger/more prominent */}
           <div className="mx-auto mt-6 grid max-w-5xl gap-6 md:grid-cols-5 sm:mt-12">
-            {/* Card 1: Assemble AI Team — spans 3 cols, primary CTA */}
-            <Link
-              href="/team"
-              className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border-2 border-primary/20 bg-card p-5 transition-all hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 sm:p-6 md:col-span-3"
-            >
+            {/* Card 1: Orchestration Patterns — spans 3 cols */}
+            <div className="relative flex flex-col overflow-hidden rounded-2xl border-2 border-primary/20 bg-card p-5 sm:p-6 md:col-span-3">
               {/* Subtle gradient overlay */}
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
               <div className="relative">
@@ -173,62 +168,81 @@ export default function HomePage() {
                 </div>
                 <h2 className="text-2xl font-bold">Assemble Your AI Team</h2>
                 <p className="mt-2 text-muted-foreground">
-                  Like hiring a freelance team — but they&apos;re AI agents that
-                  work in seconds. Set one goal, multiple specialists deliver
-                  one combined result.
+                  Choose how your agents work together
                 </p>
               </div>
-              <div className="relative mt-6">
-                <div className="rounded-xl border border-dashed border-primary/20 bg-primary/5 p-3 sm:p-4">
-                  <div className="flex flex-wrap items-center gap-3 sm:flex-nowrap">
-                    <div className="flex -space-x-2">
-                      {[
-                        { letter: "E", color: "bg-blue-500/20 text-blue-400" },
-                        { letter: "D", color: "bg-purple-500/20 text-purple-400" },
-                        { letter: "T", color: "bg-green-500/20 text-green-400" },
-                        { letter: "M", color: "bg-amber-500/20 text-amber-400" },
-                      ].map((a) => (
-                        <div
-                          key={a.letter}
-                          className={`flex h-8 w-8 items-center justify-center rounded-full border-2 border-card ${a.color} text-xs font-bold sm:h-9 sm:w-9`}
-                        >
-                          {a.letter}
-                        </div>
-                      ))}
+
+              {/* 3 Pattern Cards */}
+              <div className="relative mt-6 grid gap-3 sm:grid-cols-3">
+                {[
+                  {
+                    icon: GitBranch,
+                    title: "Manual Pipeline",
+                    desc: "You pick agents & order. Sequential and parallel chains.",
+                    bestFor: "Simple multi-step tasks",
+                    href: "/dashboard/workflows/new?pattern=manual",
+                    badge: null,
+                  },
+                  {
+                    icon: Workflow,
+                    title: "Hierarchical",
+                    desc: "Nested sub-workflows. Reusable pipeline building blocks.",
+                    bestFor: "Complex multi-stage processes",
+                    href: "/dashboard/workflows/new?pattern=hierarchical",
+                    badge: "Coming Soon",
+                  },
+                  {
+                    icon: Sparkles,
+                    title: "Supervisor",
+                    desc: "Describe your goal. AI selects agents & builds the plan.",
+                    bestFor: "\"I know what, not who\"",
+                    href: "/dashboard/workflows/new?pattern=supervisor",
+                    badge: "Coming Soon",
+                  },
+                ].map((pattern) => (
+                  <a
+                    key={pattern.title}
+                    href={pattern.href}
+                    className="group/card relative flex flex-col rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/30 hover:bg-primary/5"
+                  >
+                    {pattern.badge && (
+                      <Badge variant="secondary" className="absolute top-3 right-3 text-[10px]">
+                        {pattern.badge}
+                      </Badge>
+                    )}
+                    <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                      <pattern.icon className="h-4.5 w-4.5 text-primary" />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-medium sm:text-sm">
-                        Engineering + Design + Testing + Marketing
-                      </p>
-                      <p className="text-[10px] text-muted-foreground sm:text-xs">
-                        Your AI crew, working together
-                      </p>
-                    </div>
-                    <div className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-transform group-hover:translate-x-0.5 sm:w-auto sm:text-sm">
-                      Try Team Mode
-                      <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    </div>
-                  </div>
-                </div>
+                    <h3 className="text-sm font-semibold">{pattern.title}</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {pattern.desc}
+                    </p>
+                    <p className="mt-auto pt-3 text-[10px] font-medium text-primary/70">
+                      Best for: {pattern.bestFor}
+                    </p>
+                  </a>
+                ))}
               </div>
-            </Link>
+
+              {/* Try Team Mode CTA */}
+              <div className="relative mt-5 flex justify-center">
+                <a
+                  href="/team"
+                  className="group/cta inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90"
+                >
+                  Try Team Mode
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover/cta:translate-x-0.5" />
+                </a>
+              </div>
+            </div>
 
             {/* Card 2: Find an Agent — spans 2 cols */}
             <div
               id="magic-box"
-              className="rounded-2xl border bg-card p-5 transition-all hover:border-primary/30 hover:shadow-lg sm:p-6 md:col-span-2"
+              className="relative flex flex-col justify-center rounded-2xl border bg-card p-5 transition-all hover:border-primary/30 hover:shadow-lg sm:p-6 md:col-span-2"
             >
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                <Zap className="h-6 w-6 text-primary" />
-              </div>
-              <h2 className="text-xl font-semibold">Find the Right Agent</h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Describe your task — AI matches you with the best specialist
-                instantly.
-              </p>
-              <div className="mt-5">
-                <MagicBox />
-              </div>
+              <h2 className="mb-3 text-base font-semibold sm:text-lg">Find the Right Agent</h2>
+              <MagicBox />
             </div>
 
           </div>
