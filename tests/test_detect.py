@@ -152,6 +152,10 @@ class TestDetectEndpoint:
         fake_user = {"id": str(uuid.uuid4()), "firebase_uid": None}
         app.dependency_overrides[get_current_user] = lambda: fake_user
 
+        # Bypass SSRF URL validator in tests (fake domains won't resolve)
+        url_patcher = patch("src.api.detect.validate_public_url", side_effect=lambda url: url)
+        url_patcher.start()
+
         if mock_get:
             patcher = patch("src.api.detect.httpx.AsyncClient")
             mock_client_cls = patcher.start()
@@ -167,6 +171,7 @@ class TestDetectEndpoint:
                 resp = await ac.post("/api/v1/agents/detect", json=payload)
         finally:
             app.dependency_overrides.clear()
+            url_patcher.stop()
             if mock_get:
                 patcher.stop()
 

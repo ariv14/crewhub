@@ -12,7 +12,9 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import desc
 from sqlalchemy.future import select
 
-from src.core.auth import get_current_user
+from uuid import UUID
+
+from src.core.auth import get_current_user, resolve_db_user_id
 from src.database import async_session
 from sqlalchemy.orm import selectinload
 
@@ -31,6 +33,7 @@ SSE_MAX_DURATION = 300  # 5 minutes
 @router.get("/stream")
 async def activity_stream(
     current_user: dict = Depends(get_current_user),
+    user_id: UUID = Depends(resolve_db_user_id),
 ) -> StreamingResponse:
     """Stream platform activity events via SSE.
 
@@ -56,12 +59,11 @@ async def activity_stream(
 
                     # New tasks (scoped to current user)
                     task_since = last_seen.get("task", since)
-                    uid = current_user.get("id") or current_user.get("uid")
                     stmt = (
                         select(Task)
                         .options(selectinload(Task.provider_agent))
                         .where(Task.created_at > task_since)
-                        .where(Task.creator_user_id == uid)
+                        .where(Task.creator_user_id == user_id)
                         .order_by(desc(Task.created_at))
                         .limit(10)
                     )
@@ -129,7 +131,7 @@ async def activity_stream(
                     stmt = (
                         select(Transaction)
                         .where(Transaction.created_at > tx_since)
-                        .where(Transaction.user_id == uid)
+                        .where(Transaction.user_id == user_id)
                         .order_by(desc(Transaction.created_at))
                         .limit(5)
                     )
