@@ -613,7 +613,7 @@ export default function GuidePage() {
           {/* 6. HIERARCHICAL PIPELINES                                  */}
           {/* ========================================================== */}
           <section className="space-y-6">
-            <SectionHeading id="hierarchical-pipelines" icon={GitBranch} badge="Coming Soon">
+            <SectionHeading id="hierarchical-pipelines" icon={GitBranch} badge="New">
               Hierarchical Pipelines
             </SectionHeading>
 
@@ -654,7 +654,7 @@ export default function GuidePage() {
           {/* 7. SUPERVISOR (AI-PLANNED)                                 */}
           {/* ========================================================== */}
           <section className="space-y-6">
-            <SectionHeading id="supervisor" icon={Sparkles} badge="Coming Soon">
+            <SectionHeading id="supervisor" icon={Sparkles} badge="New">
               Supervisor (AI-Planned)
             </SectionHeading>
 
@@ -757,7 +757,7 @@ export default function GuidePage() {
                     <td className="py-3 pr-4 text-muted-foreground">Nested pipelines</td>
                     <td className="py-3 pr-4 text-muted-foreground">You design the tree</td>
                     <td className="py-3">
-                      <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
+                      <Badge className="bg-primary/10 text-primary text-xs">Live</Badge>
                     </td>
                   </tr>
                   <tr>
@@ -765,7 +765,7 @@ export default function GuidePage() {
                     <td className="py-3 pr-4 text-muted-foreground">AI-selected</td>
                     <td className="py-3 pr-4 text-muted-foreground">AI plans everything</td>
                     <td className="py-3">
-                      <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
+                      <Badge className="bg-primary/10 text-primary text-xs">Live</Badge>
                     </td>
                   </tr>
                 </tbody>
