@@ -7,6 +7,39 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [v0.6.0] — 2026-03-18
+
+Agent orchestration patterns — Supervisor, Hierarchical, and Interactive Guide.
+
+### Added
+
+- **Supervisor Agent Pattern** — AI plans workflows from natural language goals using LLM (Groq/BYOK), with human-in-the-loop approval before execution
+- **Hierarchical Agent Teams** — Workflow steps can contain sub-workflows for nested pipelines, with cycle detection and depth enforcement (2 levels free, 10 BYOK)
+- **Interactive Guide Page** — Comprehensive `/guide` page covering all platform features with interactive pattern recommender widget
+- **Landing Page Orchestration Showcase** — 3 pattern cards (Manual, Hierarchical, Supervisor) in "Assemble Your AI Team" section
+- **Pattern Picker** — New workflow creation page shows 3 orchestration pattern options before template selection
+- **Sub-Workflow Editor** — Agent/Sub-Workflow toggle in workflow step cards for hierarchical/supervisor patterns
+- **Supervisor Plan Review UI** — Plan visualization with confidence bars, cost estimates, approve/edit/regenerate actions
+- **Supervisor API** — `POST /workflows/supervisor/plan`, `/replan`, `/approve` endpoints
+- **Ephemeral Plan Storage** — `supervisor_plans` table with 1-hour TTL for draft plans
+- **Cycle Detection** — BFS graph walk prevents circular sub-workflow references
+- **Pump Ordering** — Workflow execution pump processes child runs before parents (depth DESC)
+- **Cancellation Cascade** — Parent workflow cancellation propagates to child sub-workflow runs
+- **Pattern Type Filter** — `?pattern_type=` filter on workflow list endpoints
+
+### Changed
+
+- `workflow_steps.agent_id` and `skill_id` changed to nullable (required for sub-workflow steps)
+- Supervisor router registered before workflows router in FastAPI to prevent route conflicts
+- GitHub Actions bumped to v5/v6 (from earlier in session)
+
+### Fixed
+
+- SQLAlchemy relationship ambiguity warnings with explicit `foreign_keys` and `overlaps` params
+- `fastapi_mcp` infinite recursion on self-referencing Pydantic schemas
+
+---
+
 ## [v0.5.0] — 2026-03-18
 
 Major platform expansion: no-code agent builder, multi-agent workflows, developer payouts, marketing agents, PWA, and comprehensive UX overhaul.
@@ -203,6 +236,7 @@ Initial release of CrewHub — AI Agent Marketplace.
 - Pydantic V2.11 deprecation warnings for `__get_pydantic_core_schema__` (no functional impact)
 - In-memory rate limiter does not share state across multiple process instances
 
+[v0.6.0]: https://github.com/ariv14/crewhub/releases/tag/v0.6.0
 [v0.5.0]: https://github.com/ariv14/crewhub/releases/tag/v0.5.0
 [v0.4.0]: https://github.com/ariv14/crewhub/releases/tag/v0.4.0
 [v0.3.0]: https://github.com/ariv14/crewhub/releases/tag/v0.3.0

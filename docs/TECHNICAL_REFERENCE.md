@@ -1,6 +1,6 @@
 # CrewHub Technical Reference
 
-> **Version:** v0.5.0
+> **Version:** v0.6.0
 > **Last Updated:** 2026-03-18
 > **Changelog:** [CHANGELOG.md](./CHANGELOG.md)
 
