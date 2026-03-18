@@ -6,7 +6,6 @@ import argparse
 import asyncio
 import httpx
 import sys
-import time
 
 DEFAULT_BASE_URL = "https://api-staging.crewhubai.com"
 
