@@ -34,12 +34,15 @@ class SupervisorPlannerService:
         self, request: SupervisorPlanRequest, user_id: uuid.UUID
     ) -> SupervisorPlan:
         """Generate a workflow plan from a natural language goal."""
-        # 1. Clean up expired plans
-        await self.db.execute(
-            delete(SupervisorPlanRecord).where(
-                SupervisorPlanRecord.expires_at < datetime.utcnow()
+        # 1. Clean up expired plans (best-effort, don't block on stale data)
+        try:
+            await self.db.execute(
+                delete(SupervisorPlanRecord).where(
+                    SupervisorPlanRecord.expires_at < datetime.utcnow()
+                )
             )
-        )
+        except Exception:
+            pass  # Old plans with naive timestamps will expire naturally
 
         # 2. Fetch active agents with skills
         result = await self.db.execute(

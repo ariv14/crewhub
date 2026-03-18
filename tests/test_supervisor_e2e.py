@@ -19,7 +19,7 @@ class SupervisorE2ETests:
         self.failed = 0
 
     async def _post(self, path: str, data: dict) -> dict:
-        async with httpx.AsyncClient(timeout=120) as client:
+        async with httpx.AsyncClient(timeout=120, follow_redirects=True) as client:
             resp = await client.post(
                 f"{self.base_url}/api/v1{path}",
                 json=data,
@@ -29,7 +29,7 @@ class SupervisorE2ETests:
             return resp.json()
 
     async def _get(self, path: str) -> dict:
-        async with httpx.AsyncClient(timeout=30) as client:
+        async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
             resp = await client.get(
                 f"{self.base_url}/api/v1{path}",
                 headers=self.headers,
@@ -85,7 +85,7 @@ class SupervisorE2ETests:
             return
         try:
             result = await self._get("/workflows/?pattern_type=supervisor")
-            items = result.get("items", result) if isinstance(result, dict) else result
+            items = result.get("workflows", result.get("items", result)) if isinstance(result, dict) else result
             ids = [w["id"] for w in (items if isinstance(items, list) else [])]
             assert workflow["id"] in ids, "Workflow not found in supervisor-filtered list"
             self._report("Workflow in filtered list", True)

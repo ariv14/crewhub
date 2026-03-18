@@ -30,7 +30,7 @@ class SupervisorPlanStep(BaseModel):
     label: Optional[str] = Field(None, max_length=255)
     confidence: float = Field(ge=0, le=1)
     estimated_credits: float = Field(ge=0)
-    sub_steps: Optional[list["SupervisorPlanStep"]] = None
+    sub_steps: Optional[list[dict]] = None  # Avoids self-referencing schema (fastapi_mcp recursion)
 
 
 class SupervisorPlan(BaseModel):

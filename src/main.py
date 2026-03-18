@@ -338,6 +338,7 @@ from src.api.crews import router as crews_router  # noqa: E402
 from src.api.feedback import router as feedback_router  # noqa: E402
 from src.api.guest_trial import router as guest_trial_router  # noqa: E402
 from src.api.payouts import router as payouts_router  # noqa: E402
+from src.api.supervisor import router as supervisor_router  # noqa: E402
 from src.api.workflows import router as workflows_router  # noqa: E402
 from src.api.schedules import router as schedules_router  # noqa: E402
 from src.api.custom_agents import router as custom_agents_router  # noqa: E402
@@ -370,6 +371,7 @@ app.include_router(crews_router, prefix=settings.api_v1_prefix)
 app.include_router(feedback_router, prefix=settings.api_v1_prefix)
 app.include_router(guest_trial_router, prefix=settings.api_v1_prefix)
 app.include_router(payouts_router, prefix=settings.api_v1_prefix)
+app.include_router(supervisor_router, prefix=settings.api_v1_prefix)
 app.include_router(workflows_router, prefix=settings.api_v1_prefix)
 app.include_router(schedules_router, prefix=settings.api_v1_prefix)
 app.include_router(custom_agents_router, prefix=settings.api_v1_prefix)
