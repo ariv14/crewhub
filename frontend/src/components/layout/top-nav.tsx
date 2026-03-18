@@ -19,7 +19,6 @@ import {
   Shield,
   Sparkles,
   User,
-  Users,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useHotkeys } from "@/lib/hooks/use-hotkeys";
@@ -97,7 +96,6 @@ export function TopNav() {
                   ))}
                   <div className="my-2 border-t" />
                   {[
-                    { href: ROUTES.teamMode, label: "Team Mode", icon: Users },
                     { href: ROUTES.myWorkflows, label: "Workflows", icon: GitBranch },
                     { href: ROUTES.mySchedules, label: "Schedules", icon: Clock },
                   ].map((item) => (
@@ -192,9 +190,6 @@ export function TopNav() {
               </Button>
               <Button variant="ghost" size="sm" asChild className={pathname.startsWith("/agents") ? "bg-accent" : ""}>
                 <a href="/agents">Agents</a>
-              </Button>
-              <Button variant="ghost" size="sm" asChild className={pathname === ROUTES.teamMode ? "bg-accent" : ""}>
-                <a href={ROUTES.teamMode}>Team Mode</a>
               </Button>
               <Button variant="ghost" size="sm" asChild className={pathname.startsWith("/dashboard/tasks") ? "bg-accent" : ""}>
                 <a href={ROUTES.myTasks}>Tasks</a>
