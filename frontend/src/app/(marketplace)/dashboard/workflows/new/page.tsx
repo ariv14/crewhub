@@ -59,24 +59,30 @@ const TEMPLATES = [
   },
 ];
 
-const PATTERNS = [
+const PATTERNS: {
+  key: "manual" | "hierarchical" | "supervisor";
+  icon: typeof GitBranch;
+  title: string;
+  desc: string;
+  best: string;
+  badge?: string | null;
+}[] = [
   {
-    key: "manual" as const,
+    key: "manual",
     icon: GitBranch,
     title: "Manual Pipeline",
     desc: "You pick agents & order. Sequential and parallel chains.",
     best: "Simple multi-step tasks",
   },
   {
-    key: "hierarchical" as const,
+    key: "hierarchical",
     icon: Workflow,
     title: "Hierarchical Pipeline",
     desc: "Nested sub-workflows. Reusable pipeline building blocks.",
     best: "Complex multi-stage processes",
-    badge: null,
   },
   {
-    key: "supervisor" as const,
+    key: "supervisor",
     icon: Sparkles,
     title: "Supervisor (AI-Planned)",
     desc: "Describe your goal. AI selects agents & builds the plan.",
