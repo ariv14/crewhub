@@ -1,8 +1,9 @@
 # CrewHub Development Roadmap
 
-**Last updated:** 2026-03-12
+**Last updated:** 2026-03-18
 **Staging:** marketplace-staging.aidigitalcrew.com | arimatch1-crewhub-staging.hf.space
-**Production:** marketplace.aidigitalcrew.com | arimatch1/crewhub (HF Space)
+**Production:** crewhubai.com | arimatch1/crewhub (HF Space)
+**API:** api.crewhubai.com (prod) | api-staging.crewhubai.com (staging)
 
 ---
 
@@ -114,6 +115,75 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 - [x] Webhook cleanup: removed non-existent `transfer.paid`/`transfer.failed` handlers
 - [x] Fix: Firebase auth race condition (duplicate user INSERT → IntegrityError)
 
+### Sidebar Consolidation (Mar 13) — LIVE
+- [x] 3 grouped sections: Core (Overview, My Agents, My Tasks), Orchestration (Team Mode, Workflows, Schedules), Account (Credits, Payouts, Settings)
+- [x] Crews deprecated in favor of Workflows; deprecation banner on crews page
+- [x] Team page "Save as Workflow" replaces "Save as Crew"
+
+### Multi-Agent Workflows (Mar 13) — LIVE
+- [x] Workflow engine: sequential chaining with step_group parallelization
+- [x] Input modes: chain (previous output), original (user input), custom (template with {{prev_output}})
+- [x] Per-step instructions, configurable timeouts, per-step cancel
+- [x] Workflow run output display + API endpoint for external access
+- [x] Credit settlement for user-initiated workflow tasks
+- [x] Scheduling: cron-based workflow execution with croniter
+
+### CRO & Landing Page Overhaul (Mar 14-15) — LIVE
+- [x] New headline, CTAs, stats, free credits messaging
+- [x] Social proof section on homepage
+- [x] Mobile UX: hero spacing, touch targets, carousel, contrast
+- [x] PWA support — installable from browser
+- [x] Sign In always visible on mobile, Get Started Free in menu
+
+### Marketing Agents (Mar 15) — LIVE
+- [x] 6 premium marketing AI agents deployed on HF Spaces with Groq LLM
+- [x] Added to HF monitoring (23 total monitored spaces)
+- [x] Admin bulk-pricing endpoint + pricing update script
+
+### No-Code Agent Builder (Mar 16-17) — LIVE
+- [x] Langflow-based visual builder at `/dashboard/builder`
+- [x] Cloudflare Worker proxy for iframe cookie handling
+- [x] Custom Langflow components: Knowledge Base, Guard, Publish, CrewHub Agent
+- [x] Langflow pool infrastructure: deploy script + GitHub Actions workflow
+- [x] Builder Tab in Settings — LLM provider guides + HF key setup
+- [x] Build Agent link in nav + mobile hamburger menu
+
+### Branding & Domain (Mar 15-16) — LIVE
+- [x] Custom domain: `crewhubai.com` (frontend), `api.crewhubai.com` (backend)
+- [x] OG image, favicons, SEO metadata, brand guidelines
+- [x] Legal pages: Terms of Service, Developer Agreement, Privacy Policy
+- [x] Refined logo with orbiting particles, deep indigo color palette
+
+### Agent Orchestration Patterns v0.6.0 (Mar 18) — LIVE
+- [x] **Supervisor Agent Pattern** — AI plans workflows from natural language goals (Groq LLM + BYOK)
+  - `POST /workflows/supervisor/plan` — generate plan
+  - `POST /workflows/supervisor/replan` — regenerate with feedback
+  - `POST /workflows/supervisor/approve` — convert to workflow
+  - Human-in-the-loop: user reviews, edits, approves before execution
+  - Ephemeral plan storage with 1h TTL
+  - Rate limiting: 5/hr free, 20/hr BYOK
+- [x] **Hierarchical Agent Teams** — workflow steps can contain sub-workflows
+  - Cycle detection (BFS graph walk)
+  - Depth enforcement (2 levels free, 10 BYOK)
+  - Pump ordering: children processed before parents (depth DESC)
+  - Cancellation cascade: parent cancel propagates to child runs
+  - Timeout inheritance: child respects parent step timeout
+- [x] **Interactive Guide Page** (`/guide`) — 12 sections + pattern recommender widget
+- [x] **Landing Page Orchestration Showcase** — 3 pattern cards in "Assemble Your AI Team"
+- [x] **Pattern Picker** on `/workflows/new` — Manual, Hierarchical, Supervisor
+- [x] **Sub-Workflow Editor** — Agent/Sub-Workflow toggle in step cards
+- [x] **Supervisor Plan Review UI** — confidence bars, cost estimates, approve/edit/regenerate
+- [x] `?pattern_type=` filter on workflow list endpoints
+- [x] Migration 028: orchestration patterns schema changes
+- [x] 33 new tests (27 unit + 6 E2E)
+- [x] Docs page updated with Orchestration API group (4 endpoints)
+
+### Infrastructure Fixes (Mar 18) — LIVE
+- [x] GitHub Actions bumped: checkout/setup-node v5, setup-python v6 (Node.js 24 compat)
+- [x] Mobile hamburger menu scrollable on short viewports
+- [x] Duplicate Build Agent entry removed from mobile menu
+- [x] Swagger UI link hidden on production guide page
+
 ### Stripe Dashboard Manual Steps (Pending)
 - [ ] **Staging**: Enable Stripe Connect (test mode), add `account.updated` webhook event
 - [ ] **Staging**: Remove 4 stale subscription webhook events
@@ -125,7 +195,8 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 ## Current Sprint
 
 ### Near-Term
-- [ ] Magic box onboarding for end users (Approach B from simplified-onboarding-design)
+- [ ] Agent submissions/review flow (models + schemas created, UI in progress)
+- [ ] Run E2E tests for orchestration patterns on staging
 - [ ] Delegation accuracy analytics query (data captured, no reporting endpoint)
 - [ ] Redis-backed embedding rate limiter (current: in-memory, single-process only)
 
@@ -133,7 +204,9 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 - [ ] x402/OpenClaw payment integration (design: `2026-02-27-x402-openclaw-design.md`)
 - [ ] Task lifecycle UX enhancement (design: `2026-03-05-task-lifecycle-ux-design.md`)
 - [ ] Inline skill editor
-- [ ] Multi-agent workflows / chaining
+- [ ] Promptfoo evaluation integration (demo_agents/promptfoo/)
+- [ ] Agent marketplace growth — developer onboarding funnel optimization
+- [ ] Performance monitoring / analytics dashboard
 
 ---
 
@@ -161,3 +234,10 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 | 2026-03-10 | Production launch + Stripe + Promptfoo agent | Complete |
 | 2026-03-11 | Production hardening + live payments | Complete |
 | 2026-03-12 | Developer payouts + payout safety | Complete |
+| 2026-03-13 | Sidebar consolidation + workflows + schedules | Complete |
+| 2026-03-17 | No-code agent builder design | Complete |
+| 2026-03-17 | Langflow pool infrastructure plan | Complete |
+| 2026-03-17 | Langflow iframe auth plan | Complete |
+| 2026-03-17 | Publish/review flow plan | In progress |
+| 2026-03-18 | Agent orchestration patterns design | Complete |
+| 2026-03-18 | Agent orchestration patterns implementation plan | Complete |
