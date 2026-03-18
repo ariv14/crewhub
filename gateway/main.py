@@ -56,11 +56,11 @@ async def telegram_webhook(connection_id: str, request: Request):
         return Response(status_code=200)
 
     # Dedup
-    if dedup.is_duplicate(connection_id, message["platform_message_id"]):
+    if dedup.is_duplicate(connection_id, message.platform_message_id):
         return Response(status_code=200)
 
     # Rate limit end-user (10 msg/min)
-    user_key = f"user:{connection_id}:{message['platform_user_id']}"
+    user_key = f"user:{connection_id}:{message.platform_user_id}"
     if rate_limiter.is_rate_limited(user_key, max_requests=10, window_seconds=60):
         return Response(status_code=200)
 
@@ -100,7 +100,7 @@ async def task_callback(connection_id: str, chat_id: str, request: Request):
     return Response(status_code=200)
 
 
-async def process_message(platform: str, connection_id: str, message: dict):
+async def process_message(platform: str, connection_id: str, message):
     """Background task: check credits, create task, send typing."""
     try:
         conn = await get_connection_cached(connection_id)
@@ -122,32 +122,32 @@ async def process_message(platform: str, connection_id: str, message: dict):
             from gateway.adapters.telegram import TelegramAdapter
             adapter = TelegramAdapter()
             bot_token = conn.get("bot_token_decrypted", "")
-            await adapter.send_typing(bot_token, message["chat_id"])
+            await adapter.send_typing(bot_token, message.chat_id)
 
         # Create task with callback
-        callback_url = f"{GATEWAY_URL}/internal/task-callback/{connection_id}/{message['chat_id']}"
+        callback_url = f"{GATEWAY_URL}/internal/task-callback/{connection_id}/{message.chat_id}"
         task = await billing.create_task(
             agent_id=agent_id,
             skill_id=skill_id,
-            message=message["text"],
+            message=message.text,
             owner_id=owner_id,
             callback_url=callback_url,
-            idempotency_key=message["platform_message_id"],
+            idempotency_key=message.platform_message_id,
         )
 
         if not task:
             logger.error("Failed to create task for connection %s", connection_id)
             if platform == "telegram":
-                await adapter.send_message(bot_token, message["chat_id"], "Sorry, I couldn't process your request right now.")
+                await adapter.send_message(bot_token, message.chat_id, "Sorry, I couldn't process your request right now.")
             return
 
         # Log inbound message
         await billing.log_message(connection_id, {
-            "platform_user_id": message["platform_user_id"],
-            "platform_message_id": message["platform_message_id"],
-            "platform_chat_id": message["chat_id"],
+            "platform_user_id": message.platform_user_id,
+            "platform_message_id": message.platform_message_id,
+            "platform_chat_id": message.chat_id,
             "direction": "inbound",
-            "message_text": message["text"][:500],
+            "message_text": message.text[:500],
             "task_id": task.get("id"),
         })
 
