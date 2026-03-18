@@ -161,12 +161,6 @@ export function TopNav() {
                   Explore Platform
                 </a>
               </Button>
-              <Button variant="ghost" className="justify-start" asChild>
-                <a href="/dashboard/builder" onClick={() => setMobileOpen(false)}>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Build Agent <span className="ml-1 text-[10px] text-muted-foreground">(Desktop)</span>
-                </a>
-              </Button>
               {!user && (
                 <Button variant="ghost" className="justify-start text-primary" asChild>
                   <a href={ROUTES.register} onClick={() => setMobileOpen(false)}>
