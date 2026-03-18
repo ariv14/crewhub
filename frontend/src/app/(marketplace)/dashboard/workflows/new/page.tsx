@@ -13,8 +13,10 @@ import {
   ArrowLeft,
   Workflow,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import { useCreateWorkflow } from "@/lib/hooks/use-workflows";
+import { useSupervisorPlan } from "@/lib/hooks/use-supervisor";
 import { ROUTES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +25,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { WorkflowCreate } from "@/types/workflow";
+import type { WorkflowCreate, SupervisorPlan } from "@/types/workflow";
+import { SupervisorPlanView } from "./supervisor-plan";
 
 const TEMPLATES = [
   {
@@ -78,7 +81,6 @@ const PATTERNS = [
     title: "Supervisor (AI-Planned)",
     desc: "Describe your goal. AI selects agents & builds the plan.",
     best: "\"I know what, not who\"",
-    badge: "Coming Soon",
   },
 ];
 
@@ -88,6 +90,7 @@ function NewWorkflowContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const createWorkflow = useCreateWorkflow();
+  const planMutation = useSupervisorPlan();
 
   const [selectedPattern, setSelectedPattern] = useState<PatternType | null>(
     (searchParams.get("pattern") as PatternType) || null
@@ -96,6 +99,7 @@ function NewWorkflowContent() {
   const [description, setDescription] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [supervisorGoal, setSupervisorGoal] = useState("");
+  const [currentPlan, setCurrentPlan] = useState<SupervisorPlan | null>(null);
 
   async function handleCreate() {
     if (!name.trim()) return;
@@ -242,37 +246,77 @@ function NewWorkflowContent() {
         </>
       )}
 
-      {/* Supervisor: goal textarea + disabled generate button */}
+      {/* Supervisor: goal textarea + generate plan */}
       {selectedPattern === "supervisor" && (
         <>
           <div className="mt-4">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setSelectedPattern(null)}
+              onClick={() => {
+                setSelectedPattern(null);
+                setCurrentPlan(null);
+              }}
             >
               <ArrowLeft className="mr-1 h-3 w-3" />
               Back to patterns
             </Button>
           </div>
 
-          <div className="mt-4 max-w-lg space-y-4">
-            <div>
-              <Label htmlFor="goal">Describe your goal</Label>
-              <Textarea
-                id="goal"
-                value={supervisorGoal}
-                onChange={(e) => setSupervisorGoal(e.target.value)}
-                placeholder="e.g. Research competitors, summarize findings, then draft a report"
-                className="mt-1"
-                rows={4}
+          {!currentPlan && (
+            <div className="mt-4 max-w-lg space-y-4">
+              <div>
+                <Label htmlFor="goal">Describe your goal</Label>
+                <Textarea
+                  id="goal"
+                  value={supervisorGoal}
+                  onChange={(e) => setSupervisorGoal(e.target.value)}
+                  placeholder="Describe your goal... (e.g., Research competitor pricing and write a Spanish executive summary)"
+                  className="mt-1"
+                  rows={4}
+                />
+              </div>
+              <Button
+                onClick={async () => {
+                  const plan = await planMutation.mutateAsync({
+                    goal: supervisorGoal,
+                  });
+                  setCurrentPlan(plan);
+                }}
+                disabled={
+                  supervisorGoal.length < 10 || planMutation.isPending
+                }
+              >
+                {planMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-2 h-4 w-4" />
+                )}
+                Generate Plan
+              </Button>
+              {planMutation.error && (
+                <p className="text-sm text-destructive">
+                  {planMutation.error.message || "Failed to generate plan"}
+                </p>
+              )}
+            </div>
+          )}
+
+          {currentPlan && (
+            <div className="mt-4 max-w-2xl">
+              <SupervisorPlanView
+                plan={currentPlan}
+                goal={supervisorGoal}
+                onEdit={(id) =>
+                  (window.location.href = `/dashboard/workflows/${id}/`)
+                }
+                onReplan={(newPlan) => setCurrentPlan(newPlan)}
+                onSaved={(id) =>
+                  (window.location.href = `/dashboard/workflows/${id}/`)
+                }
               />
             </div>
-            <Button disabled>
-              <Sparkles className="mr-2 h-4 w-4" />
-              Generate Plan (Coming Soon)
-            </Button>
-          </div>
+          )}
         </>
       )}
     </div>
