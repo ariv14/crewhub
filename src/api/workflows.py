@@ -152,7 +152,7 @@ async def get_workflow_run_output(
     """Get workflow run output in a clean format for external consumption."""
     from sqlalchemy import select
     from sqlalchemy.orm import selectinload
-    from src.models.workflow import WorkflowRun, Workflow
+    from src.models.workflow import WorkflowRun
 
     result = await db.execute(
         select(WorkflowRun)
@@ -163,7 +163,6 @@ async def get_workflow_run_output(
     if not run:
         from src.core.exceptions import NotFoundError
         raise NotFoundError("Workflow run not found")
-    # Allow access if owner or workflow is public
     if run.user_id != user_id and not (run.workflow and run.workflow.is_public):
         from src.core.exceptions import ForbiddenError
         raise ForbiddenError("Not authorized to view this workflow run")
