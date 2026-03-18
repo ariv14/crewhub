@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import PORT, GATEWAY_URL
 from dedup import dedup
 from rate_limiter import rate_limiter
-from gateway import billing
+import billing
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 logger = logging.getLogger("gateway")
