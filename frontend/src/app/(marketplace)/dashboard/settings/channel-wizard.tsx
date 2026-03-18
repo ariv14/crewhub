@@ -10,7 +10,6 @@ import {
   Users,
   MessageCircle,
   ExternalLink,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Loader2,
@@ -18,6 +17,7 @@ import {
   EyeOff,
   AlertTriangle,
   CheckCircle2,
+  Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,12 +25,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import {
   Select,
   SelectContent,
@@ -38,12 +38,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { useCreateChannel } from "@/lib/hooks/use-channels";
 import { useAgents } from "@/lib/hooks/use-agents";
 import { useAuth } from "@/lib/auth-context";
 import { PLATFORM_GUIDES, type PlatformKey } from "./platform-guides";
-import type { ChannelPlatform } from "@/types/channel";
+import type { Channel, ChannelPlatform } from "@/types/channel";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   Send,
@@ -53,14 +59,72 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   MessageCircle,
 };
 
-const STEPS = ["Platform", "Credentials", "Agent & Budget", "Confirm"];
+const SETUP_TIMES: Record<string, { time: string; difficulty: string; color: string }> = {
+  telegram: { time: "~2 min", difficulty: "Easiest", color: "text-green-500" },
+  slack: { time: "~10 min", difficulty: "Moderate", color: "text-yellow-500" },
+  discord: { time: "~5 min", difficulty: "Moderate", color: "text-yellow-500" },
+  teams: { time: "~15 min", difficulty: "Advanced", color: "text-orange-500" },
+  whatsapp: { time: "~30 min", difficulty: "Advanced", color: "text-orange-500" },
+};
+
+const FORMAT_HINTS: Record<string, Record<string, string>> = {
+  telegram: {
+    bot_token: "Format: numbers:letters, 47+ characters",
+  },
+  slack: {
+    bot_token: "Format: starts with xoxb-",
+    signing_secret: "Format: 32-character hex string",
+  },
+  discord: {
+    bot_token: "Format: starts with MTk or similar, 70+ characters",
+    application_id: "Format: numeric, 17-20 digits",
+  },
+  teams: {
+    app_id: "Format: UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)",
+    app_password: "Format: 34+ character secret",
+  },
+  whatsapp: {
+    phone_number_id: "Format: numeric ID",
+    access_token: "Format: starts with EAA, 50+ characters",
+    verify_token: "Format: any string you choose",
+  },
+};
+
+function validateTokenFormat(platform: string, key: string, value: string): "valid" | "warning" | "empty" {
+  if (!value) return "empty";
+  if (platform === "telegram" && key === "bot_token") {
+    return /^\d+:[A-Za-z0-9_-]{35,}$/.test(value) ? "valid" : "warning";
+  }
+  if (platform === "slack" && key === "bot_token") {
+    return value.startsWith("xoxb-") ? "valid" : "warning";
+  }
+  if (platform === "slack" && key === "signing_secret") {
+    return /^[a-f0-9]{32}$/.test(value) ? "valid" : "warning";
+  }
+  if (platform === "discord" && key === "bot_token") {
+    return value.length > 60 ? "valid" : "warning";
+  }
+  if (platform === "discord" && key === "application_id") {
+    return /^\d{17,20}$/.test(value) ? "valid" : "warning";
+  }
+  if (platform === "teams" && key === "app_id") {
+    return /^[a-f0-9-]{36}$/i.test(value) ? "valid" : "warning";
+  }
+  if (platform === "whatsapp" && key === "access_token") {
+    return value.startsWith("EAA") && value.length > 50 ? "valid" : "warning";
+  }
+  return value.length > 10 ? "valid" : "warning";
+}
+
+const STEPS = ["Platform", "Setup & Credentials", "Agent", "Done"];
 
 interface ChannelWizardProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  existingChannelCount?: number;
 }
 
-export function ChannelWizard({ open, onOpenChange }: ChannelWizardProps) {
+export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }: ChannelWizardProps) {
   const { user } = useAuth();
   const createChannel = useCreateChannel();
 
@@ -72,10 +136,8 @@ export function ChannelWizard({ open, onOpenChange }: ChannelWizardProps) {
   const [botName, setBotName] = useState("");
   const [agentId, setAgentId] = useState("");
   const [skillId, setSkillId] = useState("");
-  const [dailyCreditLimit, setDailyCreditLimit] = useState("");
-  const [lowBalanceThreshold, setLowBalanceThreshold] = useState("10");
-  const [pauseOnLimit, setPauseOnLimit] = useState(true);
   const [whatsappAck, setWhatsappAck] = useState(false);
+  const [createdChannel, setCreatedChannel] = useState<Channel | null>(null);
 
   // Fetch user's agents for step 3
   const { data: agentsData } = useAgents({
@@ -94,10 +156,8 @@ export function ChannelWizard({ open, onOpenChange }: ChannelWizardProps) {
     setBotName("");
     setAgentId("");
     setSkillId("");
-    setDailyCreditLimit("");
-    setLowBalanceThreshold("10");
-    setPauseOnLimit(true);
     setWhatsappAck(false);
+    setCreatedChannel(null);
   }
 
   function handleClose(open: boolean) {
@@ -125,32 +185,37 @@ export function ChannelWizard({ open, onOpenChange }: ChannelWizardProps) {
   async function handleSubmit() {
     if (!platform || !guide) return;
     try {
-      await createChannel.mutateAsync({
+      const channel = await createChannel.mutateAsync({
         platform: platform as ChannelPlatform,
         credentials,
         bot_name: botName.trim(),
         agent_id: agentId,
         skill_id: skillId || undefined,
-        daily_credit_limit: dailyCreditLimit ? parseFloat(dailyCreditLimit) : undefined,
-        low_balance_threshold: parseFloat(lowBalanceThreshold) || 10,
-        pause_on_limit: pauseOnLimit,
+        daily_credit_limit: 100,
+        low_balance_threshold: 20,
+        pause_on_limit: true,
       });
-      toast.success(`${guide.name} channel created! Status: Pending verification.`);
-      handleClose(false);
+      setCreatedChannel(channel);
+      setStep(3);
     } catch {
       toast.error("Failed to create channel. Please check your credentials and try again.");
     }
   }
 
+  // Extract bot username from Telegram bot name or credentials
+  const telegramBotUsername = platform === "telegram"
+    ? botName.replace(/\s+/g, "").replace(/@/g, "")
+    : "";
+
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-xl">
-        <DialogHeader>
-          <DialogTitle>Connect a Channel</DialogTitle>
-          <DialogDescription>
+    <Sheet open={open} onOpenChange={handleClose}>
+      <SheetContent side="right" className="w-full sm:w-[540px] overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>Connect a Channel</SheetTitle>
+          <SheetDescription>
             {STEPS[step]} (Step {step + 1} of {STEPS.length})
-          </DialogDescription>
-        </DialogHeader>
+          </SheetDescription>
+        </SheetHeader>
 
         {/* Progress dots */}
         <div className="flex items-center justify-center gap-2">
@@ -170,37 +235,78 @@ export function ChannelWizard({ open, onOpenChange }: ChannelWizardProps) {
 
         {/* Step 1: Platform Selection */}
         {step === 0 && (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {(Object.entries(PLATFORM_GUIDES) as [PlatformKey, typeof PLATFORM_GUIDES[PlatformKey]][]).map(
-              ([key, guide]) => {
-                const Icon = ICONS[guide.icon];
-                return (
-                  <Card
-                    key={key}
-                    className={`cursor-pointer transition-colors hover:border-primary/50 ${
-                      platform === key ? "border-primary bg-primary/5" : ""
-                    }`}
-                    onClick={() => setPlatform(key)}
-                  >
-                    <CardContent className="flex flex-col items-center gap-2 p-4">
-                      {Icon && <Icon className="h-6 w-6" />}
-                      <span className="text-sm font-medium">{guide.name}</span>
-                      {guide.creditCost > 0 && (
-                        <Badge variant="outline" className="text-[10px]">
-                          +{guide.creditCost} credits/msg
-                        </Badge>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              }
+          <div className="space-y-3">
+            {existingChannelCount === 0 && (
+              <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-3">
+                <p className="text-xs text-blue-700 dark:text-blue-400">
+                  New to this? Start with Telegram -- it takes about 2 minutes.
+                </p>
+              </div>
             )}
+            <div className="grid grid-cols-2 gap-3">
+              {(Object.entries(PLATFORM_GUIDES) as [PlatformKey, typeof PLATFORM_GUIDES[PlatformKey]][]).map(
+                ([key, g]) => {
+                  const Icon = ICONS[g.icon];
+                  const setupTime = SETUP_TIMES[key];
+                  return (
+                    <Card
+                      key={key}
+                      className={`cursor-pointer transition-colors hover:border-primary/50 ${
+                        platform === key ? "border-primary bg-primary/5" : ""
+                      }`}
+                      onClick={() => setPlatform(key)}
+                    >
+                      <CardContent className="flex flex-col items-center gap-1.5 p-4">
+                        {Icon && <Icon className="h-6 w-6" />}
+                        <span className="text-sm font-medium">{g.name}</span>
+                        {setupTime && (
+                          <p className="text-xs text-muted-foreground">{setupTime.time}</p>
+                        )}
+                        {setupTime && (
+                          <Badge variant="outline" className={`text-[10px] ${setupTime.color}`}>
+                            {setupTime.difficulty}
+                          </Badge>
+                        )}
+                        {g.creditCost > 0 && (
+                          <Badge variant="outline" className="text-[10px]">
+                            +{g.creditCost} credits/msg
+                          </Badge>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                }
+              )}
+            </div>
           </div>
         )}
 
-        {/* Step 2: Credentials */}
-        {step === 1 && guide && (
-          <div className="space-y-4">
+        {/* Step 2: Setup Instructions + Credentials */}
+        {step === 1 && guide && platform && (
+          <div className="space-y-5">
+            {/* Setup instructions — PRIMARY content */}
+            <div className="space-y-3">
+              <p className="text-sm font-medium">Setup Instructions</p>
+              <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
+                {guide.steps.map((s, i) => (
+                  <li key={i}>{s}</li>
+                ))}
+              </ol>
+              <Button variant="outline" size="sm" asChild>
+                <a
+                  href={guide.externalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2"
+                >
+                  {guide.externalLabel}
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              </Button>
+            </div>
+
+            <div className="border-t" />
+
             {/* Bot name */}
             <div className="space-y-2">
               <Label>Bot Display Name</Label>
@@ -212,45 +318,70 @@ export function ChannelWizard({ open, onOpenChange }: ChannelWizardProps) {
             </div>
 
             {/* Credential fields */}
-            {guide.credentials.map((cred) => (
-              <div key={cred.key} className="space-y-2">
-                <Label>{cred.label}</Label>
-                <div className="relative">
-                  <Input
-                    type={
-                      cred.type === "password" && !showPasswords[cred.key]
-                        ? "password"
-                        : "text"
-                    }
-                    placeholder={cred.placeholder}
-                    value={credentials[cred.key] ?? ""}
-                    onChange={(e) =>
-                      setCredentials((prev) => ({ ...prev, [cred.key]: e.target.value }))
-                    }
-                  />
-                  {cred.type === "password" && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
-                      onClick={() =>
-                        setShowPasswords((prev) => ({
-                          ...prev,
-                          [cred.key]: !prev[cred.key],
-                        }))
-                      }
-                    >
-                      {showPasswords[cred.key] ? (
-                        <EyeOff className="h-3.5 w-3.5" />
-                      ) : (
-                        <Eye className="h-3.5 w-3.5" />
+            <TooltipProvider>
+              {guide.credentials.map((cred) => {
+                const validation = validateTokenFormat(platform, cred.key, credentials[cred.key] ?? "");
+                const hint = FORMAT_HINTS[platform]?.[cred.key];
+                return (
+                  <div key={cred.key} className="space-y-2">
+                    <Label>{cred.label}</Label>
+                    <div className="relative flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <Input
+                          type={
+                            cred.type === "password" && !showPasswords[cred.key]
+                              ? "password"
+                              : "text"
+                          }
+                          placeholder={cred.placeholder}
+                          value={credentials[cred.key] ?? ""}
+                          onChange={(e) =>
+                            setCredentials((prev) => ({ ...prev, [cred.key]: e.target.value }))
+                          }
+                        />
+                        {cred.type === "password" && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
+                            onClick={() =>
+                              setShowPasswords((prev) => ({
+                                ...prev,
+                                [cred.key]: !prev[cred.key],
+                              }))
+                            }
+                          >
+                            {showPasswords[cred.key] ? (
+                              <EyeOff className="h-3.5 w-3.5" />
+                            ) : (
+                              <Eye className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                      {/* Validation indicator */}
+                      {validation === "valid" && (
+                        <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
                       )}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
+                      {validation === "warning" && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500 cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs">Token format doesn&apos;t match expected pattern.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                    {hint && (
+                      <p className="text-xs text-muted-foreground">{hint}</p>
+                    )}
+                  </div>
+                );
+              })}
+            </TooltipProvider>
 
             {/* WhatsApp premium note */}
             {platform === "whatsapp" && "premiumNote" in guide && (
@@ -274,34 +405,10 @@ export function ChannelWizard({ open, onOpenChange }: ChannelWizardProps) {
                 </div>
               </div>
             )}
-
-            {/* Setup instructions (collapsible) */}
-            <details className="rounded-lg border bg-card">
-              <summary className="flex cursor-pointer items-center justify-between px-4 py-2.5 text-sm font-medium hover:bg-accent/50">
-                Setup Instructions
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-              </summary>
-              <div className="border-t px-4 py-3 text-xs text-muted-foreground">
-                <ol className="mb-3 list-decimal space-y-1 pl-4">
-                  {guide.steps.map((s, i) => (
-                    <li key={i}>{s}</li>
-                  ))}
-                </ol>
-                <a
-                  href={guide.externalUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-primary hover:underline"
-                >
-                  {guide.externalLabel}
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-              </div>
-            </details>
           </div>
         )}
 
-        {/* Step 3: Agent & Budget */}
+        {/* Step 3: Agent selection */}
         {step === 2 && (
           <div className="space-y-4">
             {/* Agent selection */}
@@ -349,128 +456,149 @@ export function ChannelWizard({ open, onOpenChange }: ChannelWizardProps) {
               </div>
             )}
 
-            {/* Budget controls */}
-            <div className="space-y-3 rounded-lg border p-3">
-              <p className="text-sm font-medium">Budget Controls</p>
-              <div className="space-y-2">
-                <Label className="text-xs">Daily Credit Limit</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="10"
-                  placeholder="No limit"
-                  value={dailyCreditLimit}
-                  onChange={(e) => setDailyCreditLimit(e.target.value)}
-                  className="max-w-[200px]"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Low Balance Alert Threshold</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="5"
-                  placeholder="10"
-                  value={lowBalanceThreshold}
-                  onChange={(e) => setLowBalanceThreshold(e.target.value)}
-                  className="max-w-[200px]"
-                />
-              </div>
-              <label className="flex items-center gap-2 text-xs">
-                <input
-                  type="checkbox"
-                  checked={pauseOnLimit}
-                  onChange={(e) => setPauseOnLimit(e.target.checked)}
-                  className="rounded"
-                />
-                Pause channel when daily credit limit is reached
-              </label>
+            {/* Budget defaults note */}
+            <div className="rounded-lg border border-muted-foreground/20 bg-muted/20 p-3">
+              <p className="text-xs text-muted-foreground">
+                You can adjust spending limits later in channel settings.
+              </p>
             </div>
           </div>
         )}
 
-        {/* Step 4: Confirmation */}
-        {step === 3 && guide && (
-          <div className="space-y-4">
-            <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
-                <span className="text-sm font-medium">Ready to connect</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <span className="text-muted-foreground">Platform</span>
-                <span className="font-medium">{guide.name}</span>
-                <span className="text-muted-foreground">Bot Name</span>
-                <span className="font-medium">{botName}</span>
-                <span className="text-muted-foreground">Agent</span>
-                <span className="font-medium">{selectedAgent?.name ?? "—"}</span>
-                {skillId && (
-                  <>
-                    <span className="text-muted-foreground">Skill</span>
-                    <span className="font-medium">
-                      {skills.find((s) => s.id === skillId)?.name ?? "—"}
-                    </span>
-                  </>
+        {/* Step 4: Post-creation success screen */}
+        {step === 3 && createdChannel && guide && (
+          <div className="space-y-5">
+            {guide.webhookManagement === "automatic" ? (
+              /* Auto-managed (Telegram, Discord) */
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-6 w-6 text-green-500" />
+                  <span className="text-base font-semibold">
+                    Your {guide.name} bot is live!
+                  </span>
+                </div>
+                <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Bot: <span className="font-medium text-foreground">{createdChannel.bot_name}</span>
+                  </p>
+                  {platform === "telegram" && telegramBotUsername && (
+                    <p className="text-sm text-muted-foreground">
+                      Send it a message right now:
+                    </p>
+                  )}
+                </div>
+                {platform === "telegram" && telegramBotUsername && (
+                  <Button variant="outline" asChild>
+                    <a
+                      href={`https://t.me/${telegramBotUsername}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2"
+                    >
+                      Open in Telegram
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </Button>
                 )}
-                <span className="text-muted-foreground">Daily Limit</span>
-                <span className="font-medium">
-                  {dailyCreditLimit ? `${dailyCreditLimit} credits` : "No limit"}
-                </span>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
+                  </span>
+                  Waiting for first message...
+                </div>
               </div>
-            </div>
-
-            {/* Webhook URL note */}
-            <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-3">
-              <p className="text-xs text-blue-700 dark:text-blue-400">
-                {guide.webhookManagement === "automatic" ? (
-                  <>Webhook URL will be configured automatically after channel creation.</>
-                ) : (
-                  <>
-                    After creation, you will need to configure the webhook URL in your{" "}
-                    {guide.name} app settings. The URL will be shown on the channel card.
-                  </>
+            ) : (
+              /* Manual webhook (Slack, Teams, WhatsApp) */
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-6 w-6 text-green-500" />
+                  <span className="text-base font-semibold">
+                    Channel created -- one more step!
+                  </span>
+                </div>
+                {createdChannel.webhook_url && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      Paste this webhook URL in your {guide.name} settings:
+                    </p>
+                    <div className="flex items-center gap-2 rounded-lg border bg-muted/30 p-3">
+                      <code className="flex-1 truncate text-xs">{createdChannel.webhook_url}</code>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0"
+                        onClick={() => {
+                          navigator.clipboard.writeText(createdChannel.webhook_url!);
+                          toast.success("Webhook URL copied to clipboard");
+                        }}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
                 )}
-              </p>
-            </div>
-
-            <div className="rounded-lg border border-muted-foreground/20 bg-muted/20 p-3">
-              <p className="text-xs text-muted-foreground">
-                Your channel will start in <Badge variant="secondary" className="text-[10px]">Pending</Badge>{" "}
-                status while we verify the credentials and set up the connection.
-                This usually takes a few seconds.
-              </p>
-            </div>
+                <Button variant="outline" size="sm" asChild>
+                  <a
+                    href={guide.externalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2"
+                  >
+                    Open {guide.name} Dashboard
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </Button>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-yellow-400 opacity-75" />
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-yellow-500" />
+                  </span>
+                  Waiting for webhook verification...
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {/* Navigation buttons */}
         <div className="flex items-center justify-between pt-2">
-          <Button
-            variant="ghost"
-            onClick={() => setStep((s) => Math.max(0, s - 1))}
-            disabled={step === 0}
-          >
-            <ChevronLeft className="mr-1 h-4 w-4" />
-            Back
-          </Button>
-          {step < STEPS.length - 1 ? (
-            <Button onClick={() => setStep((s) => s + 1)} disabled={!canProceed()}>
-              Next
-              <ChevronRight className="ml-1 h-4 w-4" />
-            </Button>
-          ) : (
-            <Button
-              onClick={handleSubmit}
-              disabled={createChannel.isPending}
-            >
-              {createChannel.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          {step < 3 ? (
+            <>
+              <Button
+                variant="ghost"
+                onClick={() => setStep((s) => Math.max(0, s - 1))}
+                disabled={step === 0}
+              >
+                <ChevronLeft className="mr-1 h-4 w-4" />
+                Back
+              </Button>
+              {step < 2 ? (
+                <Button onClick={() => setStep((s) => s + 1)} disabled={!canProceed()}>
+                  Next
+                  <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleSubmit}
+                  disabled={!canProceed() || createChannel.isPending}
+                >
+                  {createChannel.isPending && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Create Channel
+                </Button>
               )}
-              Create Channel
-            </Button>
+            </>
+          ) : (
+            <div className="flex w-full justify-end">
+              <Button onClick={() => handleClose(false)}>
+                Done
+              </Button>
+            </div>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }

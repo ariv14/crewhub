@@ -1,9 +1,11 @@
 """CrewHub Multi-Channel Gateway — FastAPI app."""
 import asyncio
+import json
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response, Query
 from fastapi.middleware.cors import CORSMiddleware
+import httpx
 
 from config import PORT, GATEWAY_URL
 from dedup import dedup
@@ -12,6 +14,8 @@ import billing
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 logger = logging.getLogger("gateway")
+
+http_client: httpx.AsyncClient | None = None
 
 
 def get_adapter(platform: str):
@@ -34,18 +38,31 @@ def get_adapter(platform: str):
     raise ValueError(f"Unknown platform: {platform}")
 
 
+async def _cleanup_loop():
+    """Periodically clean stale rate limiter entries."""
+    while True:
+        await asyncio.sleep(300)
+        rate_limiter.cleanup_stale()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global http_client
+    http_client = httpx.AsyncClient(timeout=30, limits=httpx.Limits(max_connections=100))
+    billing.set_http_client(http_client)
     logger.info("Gateway starting — URL: %s", GATEWAY_URL)
+    asyncio.create_task(_cleanup_loop())
     yield
+    await http_client.aclose()
     logger.info("Gateway shutting down")
 
 app = FastAPI(title="CrewHub Gateway", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-# Connection config cache (TTL 60s)
+# Connection config cache (TTL 60s, max 500 entries)
 _connection_cache: dict[str, tuple[dict, float]] = {}
 CACHE_TTL = 60
+MAX_CACHE_SIZE = 500
 
 async def get_connection_cached(connection_id: str) -> dict | None:
     import time
@@ -55,6 +72,10 @@ async def get_connection_cached(connection_id: str) -> dict | None:
     conn = await billing.get_connection(connection_id)
     if conn:
         _connection_cache[connection_id] = (conn, time.time())
+        # Evict oldest if over limit
+        if len(_connection_cache) > MAX_CACHE_SIZE:
+            oldest = min(_connection_cache, key=lambda k: _connection_cache[k][1])
+            del _connection_cache[oldest]
     return conn
 
 
@@ -82,6 +103,14 @@ async def handle_platform_webhook(platform: str, connection_id: str, message):
 
 @app.post("/webhook/telegram/{connection_id}")
 async def telegram_webhook(connection_id: str, request: Request):
+    # Verify webhook signature if secret is configured
+    conn = await get_connection_cached(connection_id)
+    if conn and conn.get("webhook_secret_decrypted"):
+        expected = conn["webhook_secret_decrypted"]
+        actual = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
+        if actual != expected:
+            return Response(status_code=401)
+
     body = await request.json()
     adapter = get_adapter("telegram")
     message = adapter.parse_inbound(body)
@@ -94,8 +123,24 @@ async def telegram_webhook(connection_id: str, request: Request):
 
 @app.post("/webhook/slack/{connection_id}")
 async def slack_webhook(connection_id: str, request: Request):
-    body = await request.json()
+    raw_body = await request.body()
     adapter = get_adapter("slack")
+
+    # Verify Slack webhook signature
+    conn = await get_connection_cached(connection_id)
+    signing_secret = conn.get("config", {}).get("signing_secret", "") if conn else ""
+    if signing_secret:
+        timestamp = request.headers.get("X-Slack-Request-Timestamp", "")
+        signature = request.headers.get("X-Slack-Signature", "")
+        verified = adapter.verify_webhook(
+            {"_slack_timestamp": timestamp, "_slack_signature": signature,
+             "_raw_body": raw_body.decode()},
+            secret=signing_secret,
+        )
+        if not verified:
+            return Response(status_code=401)
+
+    body = json.loads(raw_body)
 
     # Handle Slack URL verification challenge
     challenge = adapter.handle_url_verification(body)
@@ -112,8 +157,23 @@ async def slack_webhook(connection_id: str, request: Request):
 
 @app.post("/webhook/discord/{connection_id}")
 async def discord_webhook(connection_id: str, request: Request):
-    body = await request.json()
+    raw_body = await request.body()
     adapter = get_adapter("discord")
+
+    # Verify Discord Ed25519 signature
+    conn = await get_connection_cached(connection_id)
+    public_key = conn.get("config", {}).get("public_key", "") if conn else ""
+    if public_key:
+        signature = request.headers.get("X-Signature-Ed25519", "")
+        timestamp = request.headers.get("X-Signature-Timestamp", "")
+        verified = adapter.verify_webhook(
+            {"_signature": signature, "_timestamp": timestamp, "_body": raw_body},
+            secret=public_key,
+        )
+        if not verified:
+            return Response(status_code=401)
+
+    body = json.loads(raw_body)
 
     # Handle Discord PING verification
     pong = adapter.handle_ping(body)
@@ -186,8 +246,21 @@ async def whatsapp_verify(connection_id: str,
 
 @app.post("/webhook/whatsapp/{connection_id}")
 async def whatsapp_webhook(connection_id: str, request: Request):
-    body = await request.json()
+    raw_body = await request.body()
     adapter = get_adapter("whatsapp")
+
+    # Verify WhatsApp webhook signature
+    conn = await get_connection_cached(connection_id)
+    app_secret = conn.get("config", {}).get("app_secret", "") if conn else ""
+    if app_secret:
+        hub_signature = request.headers.get("X-Hub-Signature-256", "")
+        verified = adapter.verify_webhook(
+            {}, secret=app_secret, signature=hub_signature, body=raw_body,
+        )
+        if not verified:
+            return Response(status_code=401)
+
+    body = json.loads(raw_body)
     message = adapter.parse_inbound(body)
     if not message:
         return Response(status_code=200)
@@ -263,6 +336,16 @@ async def process_message(platform: str, connection_id: str, message,
         agent_id = conn.get("agent_id", "")
         skill_id = conn.get("skill_id")
         bot_token = conn.get("bot_token_decrypted", "")
+
+        # Check daily credit limit
+        if conn.get("daily_credit_limit"):
+            today_usage = await billing.get_today_usage(connection_id)
+            if today_usage >= conn["daily_credit_limit"]:
+                if conn.get("pause_on_limit"):
+                    await billing.update_connection_status(connection_id, "paused", "daily_limit")
+                adapter = get_adapter(platform)
+                await adapter.send_message(bot_token, message.chat_id, "Service paused — daily limit reached.")
+                return
 
         # Send typing indicator
         adapter = get_adapter(platform)

@@ -2,6 +2,7 @@
 # Proprietary and confidential. See LICENSE for details.
 """Channel service — CRUD and analytics for multi-channel gateway connections."""
 
+import os
 import uuid
 from datetime import datetime
 
@@ -32,6 +33,84 @@ class ChannelService:
         if ch.owner_id != owner_id:
             raise ForbiddenError("You do not own this channel")
 
+    async def _validate_token(self, platform: str, credentials: dict) -> dict:
+        """Validate bot token by calling platform API. Returns bot info or raises BadRequestError."""
+        import httpx
+
+        token = credentials.get("bot_token") or credentials.get("access_token", "")
+
+        try:
+            if platform == "telegram":
+                async with httpx.AsyncClient(timeout=10) as client:
+                    resp = await client.get(f"https://api.telegram.org/bot{token}/getMe")
+                    if resp.status_code != 200:
+                        raise BadRequestError("Invalid Telegram bot token. Create one via @BotFather on Telegram.")
+                    data = resp.json().get("result", {})
+                    return {"platform_bot_id": str(data.get("id", "")), "bot_name": data.get("username", "")}
+
+            elif platform == "slack":
+                async with httpx.AsyncClient(timeout=10) as client:
+                    resp = await client.post(
+                        "https://slack.com/api/auth.test",
+                        headers={"Authorization": f"Bearer {token}"},
+                    )
+                    data = resp.json()
+                    if not data.get("ok"):
+                        error = data.get("error", "unknown")
+                        if "invalid_auth" in error:
+                            raise BadRequestError("Invalid Slack token. Make sure you're using the Bot User OAuth Token (starts with xoxb-).")
+                        raise BadRequestError(f"Slack token validation failed: {error}")
+                    return {"platform_bot_id": data.get("bot_id", ""), "bot_name": data.get("bot_user_id", "")}
+
+            elif platform == "discord":
+                async with httpx.AsyncClient(timeout=10) as client:
+                    resp = await client.get(
+                        "https://discord.com/api/v10/users/@me",
+                        headers={"Authorization": f"Bot {token}"},
+                    )
+                    if resp.status_code != 200:
+                        raise BadRequestError("Invalid Discord bot token. Check your token in the Discord Developer Portal.")
+                    data = resp.json()
+                    return {"platform_bot_id": data.get("id", ""), "bot_name": data.get("username", "")}
+
+            elif platform == "teams":
+                app_id = credentials.get("app_id", "")
+                app_password = credentials.get("app_password", "")
+                if not app_id or not app_password:
+                    raise BadRequestError("Teams requires both App ID and App Password.")
+                async with httpx.AsyncClient(timeout=10) as client:
+                    resp = await client.post(
+                        "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
+                        data={
+                            "grant_type": "client_credentials",
+                            "client_id": app_id,
+                            "client_secret": app_password,
+                            "scope": "https://api.botframework.com/.default",
+                        },
+                    )
+                    if resp.status_code != 200:
+                        raise BadRequestError("Invalid Teams credentials. Check App ID and App Password in Azure Portal.")
+                    return {"platform_bot_id": app_id}
+
+            elif platform == "whatsapp":
+                phone_id = credentials.get("phone_number_id", "")
+                if not phone_id:
+                    raise BadRequestError("WhatsApp requires a Phone Number ID.")
+                async with httpx.AsyncClient(timeout=10) as client:
+                    resp = await client.get(
+                        f"https://graph.facebook.com/v21.0/{phone_id}",
+                        headers={"Authorization": f"Bearer {token}"},
+                    )
+                    if resp.status_code != 200:
+                        raise BadRequestError("Invalid WhatsApp credentials. Check Phone Number ID and Access Token.")
+                    return {"platform_bot_id": phone_id}
+        except BadRequestError:
+            raise
+        except Exception as e:
+            raise BadRequestError(f"Token validation failed: {str(e)}")
+
+        return {}
+
     async def create_channel(self, data, owner_id: uuid.UUID) -> ChannelConnection:
         # Verify agent exists and is owned by this developer
         agent = await self.db.get(Agent, data.agent_id)
@@ -45,19 +124,26 @@ class ChannelService:
                 raise BadRequestError("Skill not found on this agent")
 
         # Encrypt bot token from credentials
-        bot_token = data.credentials.get("bot_token") or data.credentials.get("access_token", "")
+        credentials = data.credentials
+        bot_token = credentials.get("bot_token") or credentials.get("access_token", "")
         if not bot_token:
             raise BadRequestError("Bot token is required")
 
+        # Validate token against platform API before saving
+        validation = await self._validate_token(data.platform, credentials)
+        platform_bot_id = validation.get("platform_bot_id", "")
+        validated_bot_name = validation.get("bot_name")
+
         # Build webhook_secret from platform-specific fields
-        webhook_secret = data.credentials.get("signing_secret") or data.credentials.get("verify_token")
+        webhook_secret = credentials.get("signing_secret") or credentials.get("verify_token")
 
         ch = ChannelConnection(
             owner_id=owner_id,
             platform=data.platform,
             bot_token=encrypt_value(bot_token),
             webhook_secret=encrypt_value(webhook_secret) if webhook_secret else None,
-            bot_name=data.bot_name,
+            bot_name=validated_bot_name or data.bot_name,
+            platform_bot_id=platform_bot_id,
             agent_id=data.agent_id,
             skill_id=data.skill_id,
             status="pending",
@@ -66,11 +152,41 @@ class ChannelService:
             pause_on_limit=data.pause_on_limit,
             config={
                 k: v
-                for k, v in data.credentials.items()
+                for k, v in credentials.items()
                 if k not in ("bot_token", "access_token", "signing_secret", "verify_token")
             },
         )
         self.db.add(ch)
+        await self.db.flush()
+
+        # Generate webhook URL
+        gateway_url = os.environ.get("GATEWAY_URL", "https://arimatch1-crewhub-gateway.hf.space")
+        webhook_url = f"{gateway_url}/webhook/{data.platform}/{str(ch.id)}"
+        ch.webhook_url = webhook_url
+
+        # For auto-managed platforms (Telegram), register webhook
+        if data.platform in ("telegram",):
+            import httpx
+
+            bot_token_raw = credentials.get("bot_token", "")
+            async with httpx.AsyncClient(timeout=15) as client:
+                resp = await client.post(
+                    f"https://api.telegram.org/bot{bot_token_raw}/setWebhook",
+                    json={
+                        "url": webhook_url,
+                        "allowed_updates": ["message", "edited_message"],
+                        "drop_pending_updates": True,
+                    },
+                )
+                if resp.status_code == 200 and resp.json().get("ok"):
+                    ch.status = "active"
+                else:
+                    ch.status = "error"
+                    ch.error_message = "Failed to register Telegram webhook"
+        else:
+            # Manual platforms: stay pending until webhook is verified
+            ch.status = "pending"
+
         await self.db.flush()
         return ch
 

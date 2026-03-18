@@ -22,6 +22,22 @@ from src.services.channel_service import ChannelService
 router = APIRouter(prefix="/channels", tags=["channels"])
 
 
+@router.post("/validate-token")
+async def validate_token(
+    data: ChannelCreate,
+    owner_id: UUID = Depends(resolve_db_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Validate platform credentials without creating a channel."""
+    service = ChannelService(db)
+    result = await service._validate_token(data.platform, data.credentials)
+    return {
+        "valid": True,
+        "platform_bot_id": result.get("platform_bot_id"),
+        "bot_name": result.get("bot_name"),
+    }
+
+
 @router.post("/", response_model=ChannelResponse, status_code=201)
 async def create_channel(
     data: ChannelCreate,
