@@ -28,7 +28,7 @@ import { SpinningLogo } from "@/components/shared/spinning-logo";
 export const metadata: Metadata = {
   title: "Explore CrewHub — Platform Map",
   description:
-    "Interactive guide to every feature in CrewHub. Discover agents, team mode, workflows, credits, and more.",
+    "Interactive guide to every feature in CrewHub. Discover agents, orchestration patterns, workflows, credits, and more.",
 };
 
 interface Zone {
@@ -70,7 +70,7 @@ const zones: Zone[] = [
       {
         route: "/",
         name: "Homepage",
-        desc: "AI-powered agent search, team mode preview, and one-click agent matching.",
+        desc: "AI-powered agent search, workflow pattern picker, and one-click agent matching.",
         icon: Globe,
         tags: [
           { label: "MagicBox", color: "text-indigo-400 border-indigo-500/30" },
@@ -101,6 +101,17 @@ const zones: Zone[] = [
         desc: "Full API reference, SDK examples for LangChain, CrewAI, and Python. Webhook and MCP guides.",
         icon: FileText,
         tags: [{ label: "API Reference", color: "text-indigo-400 border-indigo-500/30" }],
+      },
+      {
+        route: "/guide",
+        name: "Platform Guide",
+        desc: "Interactive guide covering all orchestration patterns with a decision-tree recommender. From single agent to supervisor.",
+        icon: FileText,
+        tags: [
+          { label: "Pattern Recommender", color: "text-amber-400 border-amber-500/30" },
+          { label: "12 Sections", color: "text-cyan-400 border-cyan-500/30" },
+        ],
+        live: true,
       },
     ],
   },
@@ -150,21 +161,32 @@ const zones: Zone[] = [
     glowColor: "shadow-amber-500/20",
     nodes: [
       {
-        route: "/dashboard/workflows/new",
-        name: "Parallel Workflows",
-        desc: "Describe one goal. AI assembles 4-8 specialist agents. They work in parallel and deliver a consolidated report.",
-        icon: Users,
+        route: "/dashboard/workflows/new?pattern=supervisor",
+        name: "Supervisor (AI-Planned)",
+        desc: "Describe your goal in plain English. AI selects the best agents, builds the plan. You review and approve before execution.",
+        icon: Sparkles,
         tags: [
-          { label: "Flagship", color: "text-amber-400 border-amber-500/30" },
-          { label: "Parallel Agents", color: "text-cyan-400 border-cyan-500/30" },
-          { label: "Combined Report", color: "text-indigo-400 border-indigo-500/30" },
+          { label: "New", color: "text-emerald-400 border-emerald-500/30" },
+          { label: "AI Planning", color: "text-amber-400 border-amber-500/30" },
+          { label: "Human-in-the-Loop", color: "text-cyan-400 border-cyan-500/30" },
         ],
         flagship: true,
         live: true,
       },
       {
+        route: "/dashboard/workflows/new?pattern=hierarchical",
+        name: "Hierarchical Pipelines",
+        desc: "Workflow steps can contain sub-workflows. Build reusable pipeline building blocks with cycle detection and depth control.",
+        icon: Workflow,
+        tags: [
+          { label: "New", color: "text-emerald-400 border-emerald-500/30" },
+          { label: "Sub-Workflows", color: "text-purple-400 border-purple-500/30" },
+        ],
+        live: true,
+      },
+      {
         route: "/dashboard/workflows",
-        name: "Workflows",
+        name: "Manual Pipelines",
         desc: "Build multi-step pipelines: sequential or parallel agent chains. Set timeouts, chain outputs, run on demand or schedule.",
         icon: Workflow,
         tags: [
@@ -172,6 +194,7 @@ const zones: Zone[] = [
           { label: "Run History", color: "text-purple-400 border-purple-500/30" },
         ],
         flagship: true,
+        live: true,
       },
       {
         route: "/dashboard/schedules",
@@ -179,6 +202,17 @@ const zones: Zone[] = [
         desc: "Automate workflows with cron-based recurring runs. Hourly, daily, weekly, or custom cron expressions.",
         icon: Clock,
         tags: [{ label: "Cron", color: "text-amber-400 border-amber-500/30" }],
+      },
+      {
+        route: "/dashboard/builder",
+        name: "No-Code Builder",
+        desc: "Visual agent builder powered by Langflow. Create agents without writing code, configure LLM providers, and publish to the marketplace.",
+        icon: Zap,
+        tags: [
+          { label: "Langflow", color: "text-cyan-400 border-cyan-500/30" },
+          { label: "Visual Builder", color: "text-purple-400 border-purple-500/30" },
+        ],
+        live: true,
       },
     ],
   },
@@ -296,12 +330,12 @@ const flows: FlowItem[] = [
     ],
   },
   {
-    title: "Assemble a Team",
+    title: "Create a Workflow",
     steps: [
-      { label: "Set Goal", sub: "One sentence" },
-      { label: "AI Picks Team", sub: "4-8 specialists" },
-      { label: "Parallel Work", sub: "All agents at once" },
-      { label: "Report", sub: "Combined result" },
+      { label: "Choose Pattern", sub: "Manual, Hierarchical, or Supervisor" },
+      { label: "Configure", sub: "Pick agents or describe goal" },
+      { label: "Execute", sub: "Sequential or parallel" },
+      { label: "Results", sub: "Combined output" },
     ],
   },
   {
