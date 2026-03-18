@@ -5,9 +5,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
-from gateway.config import PORT, GATEWAY_URL
-from gateway.dedup import dedup
-from gateway.rate_limiter import rate_limiter
+from config import PORT, GATEWAY_URL
+from dedup import dedup
+from rate_limiter import rate_limiter
 from gateway import billing
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
@@ -45,7 +45,7 @@ async def health():
 # Telegram webhook
 @app.post("/webhook/telegram/{connection_id}")
 async def telegram_webhook(connection_id: str, request: Request):
-    from gateway.adapters.telegram import TelegramAdapter
+    from adapters.telegram import TelegramAdapter
 
     body = await request.json()
     adapter = TelegramAdapter()
@@ -80,7 +80,7 @@ async def task_callback(connection_id: str, chat_id: str, request: Request):
     # Get adapter and send response
     platform = conn.get("platform", "telegram")
     if platform == "telegram":
-        from gateway.adapters.telegram import TelegramAdapter
+        from adapters.telegram import TelegramAdapter
         adapter = TelegramAdapter()
         text = body.get("result", body.get("artifacts", [{}])[0].get("content", "No response"))
         bot_token = conn.get("bot_token_decrypted", "")
@@ -119,7 +119,7 @@ async def process_message(platform: str, connection_id: str, message):
 
         # Send typing indicator
         if platform == "telegram":
-            from gateway.adapters.telegram import TelegramAdapter
+            from adapters.telegram import TelegramAdapter
             adapter = TelegramAdapter()
             bot_token = conn.get("bot_token_decrypted", "")
             await adapter.send_typing(bot_token, message.chat_id)

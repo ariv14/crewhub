@@ -14,4 +14,4 @@ ENV PORT=7860
 
 EXPOSE ${PORT}
 
-CMD exec uvicorn gateway.main:app --host 0.0.0.0 --port ${PORT} --workers 1
+CMD exec uvicorn main:app --host 0.0.0.0 --port ${PORT} --workers 1

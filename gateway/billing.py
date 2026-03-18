@@ -1,6 +1,6 @@
 """Credit billing via CrewHub API."""
 import httpx
-from gateway.config import CREWHUB_API_URL, CREWHUB_SERVICE_KEY
+from config import CREWHUB_API_URL, CREWHUB_SERVICE_KEY
 
 async def get_developer_balance(owner_id: str) -> float:
     """Get developer's credit balance."""

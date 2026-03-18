@@ -4,7 +4,7 @@ from typing import Optional
 
 import httpx
 
-from gateway.adapters.base import BasePlatformAdapter, NormalizedMessage
+from adapters.base import BasePlatformAdapter, NormalizedMessage
 
 logger = logging.getLogger(__name__)
 
