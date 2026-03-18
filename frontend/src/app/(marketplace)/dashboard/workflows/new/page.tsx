@@ -2,8 +2,8 @@
 // Proprietary and confidential. See LICENSE for details.
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   GitBranch,
   Languages,
@@ -11,6 +11,8 @@ import {
   Code2,
   FileText,
   ArrowLeft,
+  Workflow,
+  Sparkles,
 } from "lucide-react";
 import { useCreateWorkflow } from "@/lib/hooks/use-workflows";
 import { ROUTES } from "@/lib/constants";
@@ -18,6 +20,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import type { WorkflowCreate } from "@/types/workflow";
 
 const TEMPLATES = [
@@ -51,12 +56,46 @@ const TEMPLATES = [
   },
 ];
 
-export default function NewWorkflowPage() {
+const PATTERNS = [
+  {
+    key: "manual" as const,
+    icon: GitBranch,
+    title: "Manual Pipeline",
+    desc: "You pick agents & order. Sequential and parallel chains.",
+    best: "Simple multi-step tasks",
+  },
+  {
+    key: "hierarchical" as const,
+    icon: Workflow,
+    title: "Hierarchical Pipeline",
+    desc: "Nested sub-workflows. Reusable pipeline building blocks.",
+    best: "Complex multi-stage processes",
+    badge: "Coming Soon",
+  },
+  {
+    key: "supervisor" as const,
+    icon: Sparkles,
+    title: "Supervisor (AI-Planned)",
+    desc: "Describe your goal. AI selects agents & builds the plan.",
+    best: "\"I know what, not who\"",
+    badge: "Coming Soon",
+  },
+];
+
+type PatternType = "manual" | "hierarchical" | "supervisor";
+
+function NewWorkflowContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const createWorkflow = useCreateWorkflow();
+
+  const [selectedPattern, setSelectedPattern] = useState<PatternType | null>(
+    (searchParams.get("pattern") as PatternType) || null
+  );
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [supervisorGoal, setSupervisorGoal] = useState("");
 
   async function handleCreate() {
     if (!name.trim()) return;
@@ -64,6 +103,7 @@ export default function NewWorkflowPage() {
     const data: WorkflowCreate = {
       name: name.trim(),
       description: description.trim() || undefined,
+      pattern_type: selectedPattern || "manual",
       steps: [],
     };
 
@@ -85,68 +125,164 @@ export default function NewWorkflowPage() {
         </div>
       </div>
 
-      {/* Template selection */}
-      <div className="mt-6">
-        <Label className="text-sm font-medium">
-          Start from a template (optional)
-        </Label>
-        <div className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {TEMPLATES.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => {
-                setSelectedTemplate(t.id);
-                if (!name) setName(t.name === "Blank Workflow" ? "" : t.name);
-              }}
-              className={`rounded-xl border p-4 text-left transition-all hover:border-primary/50 ${
-                selectedTemplate === t.id
-                  ? "border-primary bg-primary/5"
-                  : "bg-card"
-              }`}
-            >
-              <div className="flex items-center gap-2 text-sm font-medium">
-                {t.icon}
-                {t.name}
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {t.description}
-              </p>
-            </button>
-          ))}
+      {/* Pattern selection */}
+      {!selectedPattern && (
+        <div className="mt-6">
+          <Label className="text-sm font-medium">Choose a pattern</Label>
+          <div className="mt-2 grid gap-4 sm:grid-cols-3">
+            {PATTERNS.map((p) => (
+              <Card
+                key={p.key}
+                className={cn(
+                  "cursor-pointer transition-all hover:border-primary/50",
+                  selectedPattern === p.key && "border-primary"
+                )}
+                onClick={() => setSelectedPattern(p.key)}
+              >
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-2">
+                    <p.icon className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-base">{p.title}</CardTitle>
+                  </div>
+                  {p.badge && (
+                    <Badge variant="secondary" className="w-fit text-xs">
+                      {p.badge}
+                    </Badge>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">{p.desc}</p>
+                  <p className="mt-2 text-xs font-medium text-primary/70">
+                    Best for: {p.best}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Workflow details */}
-      <div className="mt-6 max-w-lg space-y-4">
-        <div>
-          <Label htmlFor="name">Name</Label>
-          <Input
-            id="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="My Pipeline"
-            className="mt-1"
-          />
-        </div>
-        <div>
-          <Label htmlFor="description">Description (optional)</Label>
-          <Textarea
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="What does this workflow do?"
-            className="mt-1"
-            rows={3}
-          />
-        </div>
-        <Button
-          onClick={handleCreate}
-          disabled={!name.trim() || createWorkflow.isPending}
-        >
-          <GitBranch className="mr-2 h-4 w-4" />
-          {createWorkflow.isPending ? "Creating..." : "Create Workflow"}
-        </Button>
-      </div>
+      {/* Manual / Hierarchical: template picker + name/description form */}
+      {selectedPattern && selectedPattern !== "supervisor" && (
+        <>
+          <div className="mt-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedPattern(null)}
+            >
+              <ArrowLeft className="mr-1 h-3 w-3" />
+              Back to patterns
+            </Button>
+          </div>
+
+          {/* Template selection */}
+          <div className="mt-4">
+            <Label className="text-sm font-medium">
+              Start from a template (optional)
+            </Label>
+            <div className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {TEMPLATES.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    setSelectedTemplate(t.id);
+                    if (!name)
+                      setName(t.name === "Blank Workflow" ? "" : t.name);
+                  }}
+                  className={`rounded-xl border p-4 text-left transition-all hover:border-primary/50 ${
+                    selectedTemplate === t.id
+                      ? "border-primary bg-primary/5"
+                      : "bg-card"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    {t.icon}
+                    {t.name}
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t.description}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Workflow details */}
+          <div className="mt-6 max-w-lg space-y-4">
+            <div>
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="My Pipeline"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="description">Description (optional)</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="What does this workflow do?"
+                className="mt-1"
+                rows={3}
+              />
+            </div>
+            <Button
+              onClick={handleCreate}
+              disabled={!name.trim() || createWorkflow.isPending}
+            >
+              <GitBranch className="mr-2 h-4 w-4" />
+              {createWorkflow.isPending ? "Creating..." : "Create Workflow"}
+            </Button>
+          </div>
+        </>
+      )}
+
+      {/* Supervisor: goal textarea + disabled generate button */}
+      {selectedPattern === "supervisor" && (
+        <>
+          <div className="mt-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedPattern(null)}
+            >
+              <ArrowLeft className="mr-1 h-3 w-3" />
+              Back to patterns
+            </Button>
+          </div>
+
+          <div className="mt-4 max-w-lg space-y-4">
+            <div>
+              <Label htmlFor="goal">Describe your goal</Label>
+              <Textarea
+                id="goal"
+                value={supervisorGoal}
+                onChange={(e) => setSupervisorGoal(e.target.value)}
+                placeholder="e.g. Research competitors, summarize findings, then draft a report"
+                className="mt-1"
+                rows={4}
+              />
+            </div>
+            <Button disabled>
+              <Sparkles className="mr-2 h-4 w-4" />
+              Generate Plan (Coming Soon)
+            </Button>
+          </div>
+        </>
+      )}
     </div>
+  );
+}
+
+export default function NewWorkflowPage() {
+  return (
+    <Suspense fallback={<div className="p-8">Loading...</div>}>
+      <NewWorkflowContent />
+    </Suspense>
   );
 }

@@ -48,6 +48,7 @@ export interface WorkflowCreate {
   max_total_credits?: number;
   timeout_seconds?: number;
   step_timeout_seconds?: number;
+  pattern_type?: "manual" | "hierarchical" | "supervisor";
   steps: {
     agent_id: string;
     skill_id: string;
@@ -57,6 +58,7 @@ export interface WorkflowCreate {
     input_template?: string;
     instructions?: string;
     label?: string;
+    sub_workflow_id?: string;
   }[];
 }
 
