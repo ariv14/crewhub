@@ -7,7 +7,7 @@ from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from src.schemas.agent import AgentResponse, SkillResponse
 
@@ -15,8 +15,9 @@ from src.schemas.agent import AgentResponse, SkillResponse
 # --- Steps ---
 
 class WorkflowStepCreate(BaseModel):
-    agent_id: UUID
-    skill_id: UUID
+    agent_id: Optional[UUID] = None
+    skill_id: Optional[UUID] = None
+    sub_workflow_id: Optional[UUID] = None
     step_group: int = Field(0, ge=0)
     position: int = Field(0, ge=0)
     input_mode: str = Field("chain", pattern=r"^(chain|original|custom)$")
@@ -24,22 +25,33 @@ class WorkflowStepCreate(BaseModel):
     label: Optional[str] = Field(None, max_length=255)
     instructions: Optional[str] = Field(None, max_length=1000)
 
+    @model_validator(mode="after")
+    def validate_step_target(self):
+        has_agent = self.agent_id is not None and self.skill_id is not None
+        has_sub = self.sub_workflow_id is not None
+        if has_agent == has_sub:
+            raise ValueError(
+                "Step must have either (agent_id + skill_id) or sub_workflow_id, not both or neither"
+            )
+        return self
+
 
 class WorkflowStepResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
     workflow_id: UUID
-    agent_id: UUID
-    skill_id: UUID
+    agent_id: Optional[UUID]
+    skill_id: Optional[UUID]
+    sub_workflow_id: Optional[UUID] = None
     step_group: int
     position: int
     input_mode: str
     input_template: Optional[str]
     label: Optional[str]
     instructions: Optional[str]
-    agent: AgentResponse
-    skill: SkillResponse
+    agent: Optional[AgentResponse] = None
+    skill: Optional[SkillResponse] = None
 
 
 # --- Workflow CRUD ---
@@ -52,6 +64,8 @@ class WorkflowCreate(BaseModel):
     max_total_credits: Optional[int] = Field(None, ge=1)
     timeout_seconds: Optional[int] = Field(1800, ge=60, le=7200)
     step_timeout_seconds: Optional[int] = Field(120, ge=30, le=3600)
+    pattern_type: str = Field("manual", pattern=r"^(manual|hierarchical|supervisor)$")
+    supervisor_config: Optional[dict] = None
     steps: list[WorkflowStepCreate] = Field(default=[], max_length=50)
 
 
@@ -78,6 +92,8 @@ class WorkflowResponse(BaseModel):
     max_total_credits: Optional[int]
     timeout_seconds: Optional[int]
     step_timeout_seconds: Optional[int]
+    pattern_type: str
+    supervisor_config: Optional[dict] = None
     steps: list[WorkflowStepResponse]
     created_at: datetime
     updated_at: datetime
@@ -106,6 +122,7 @@ class WorkflowStepRunResponse(BaseModel):
     output_text: Optional[str]
     error: Optional[str]
     credits_charged: Optional[Decimal]
+    child_run_id: Optional[UUID] = None
     started_at: Optional[datetime]
     completed_at: Optional[datetime]
 
@@ -117,6 +134,8 @@ class WorkflowRunResponse(BaseModel):
     workflow_id: UUID
     user_id: UUID
     schedule_id: Optional[UUID]
+    parent_run_id: Optional[UUID] = None
+    depth: int = 0
     status: str
     current_step_group: int
     input_message: str
