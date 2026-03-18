@@ -40,6 +40,7 @@ class Workflow(Base):
     steps: Mapped[list["WorkflowStep"]] = relationship(
         "WorkflowStep",
         back_populates="workflow",
+        foreign_keys="[WorkflowStep.workflow_id]",
         lazy="selectin",
         cascade="all, delete-orphan",
         order_by="WorkflowStep.step_group, WorkflowStep.position",
@@ -75,7 +76,7 @@ class WorkflowStep(Base):
     label: Mapped[str | None] = mapped_column(String(255), nullable=True)
     instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    workflow: Mapped["Workflow"] = relationship("Workflow", back_populates="steps")
+    workflow: Mapped["Workflow"] = relationship("Workflow", back_populates="steps", foreign_keys=[workflow_id])
     agent: Mapped["Agent"] = relationship("Agent", lazy="selectin")
     skill: Mapped["AgentSkill"] = relationship("AgentSkill", lazy="selectin")
     sub_workflow: Mapped[Optional["Workflow"]] = relationship(
@@ -116,6 +117,7 @@ class WorkflowRun(Base):
     step_runs: Mapped[list["WorkflowStepRun"]] = relationship(
         "WorkflowStepRun",
         back_populates="run",
+        foreign_keys="[WorkflowStepRun.run_id]",
         lazy="selectin",
         cascade="all, delete-orphan",
         order_by="WorkflowStepRun.step_group",
@@ -147,4 +149,4 @@ class WorkflowStepRun(Base):
         Uuid, ForeignKey("workflow_runs.id", ondelete="SET NULL"), nullable=True
     )
 
-    run: Mapped["WorkflowRun"] = relationship("WorkflowRun", back_populates="step_runs")
+    run: Mapped["WorkflowRun"] = relationship("WorkflowRun", back_populates="step_runs", foreign_keys=[run_id])
