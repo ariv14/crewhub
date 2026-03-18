@@ -15,6 +15,8 @@ export interface WorkflowStep {
   label: string | null;
   agent: Agent;
   skill: Skill;
+  sub_workflow_id?: string;
+  sub_workflow?: Workflow;
 }
 
 export interface Workflow {
@@ -27,6 +29,12 @@ export interface Workflow {
   max_total_credits: number | null;
   timeout_seconds: number | null;
   step_timeout_seconds: number | null;
+  pattern_type: "manual" | "hierarchical" | "supervisor";
+  supervisor_config?: {
+    goal: string;
+    plan_status: "draft" | "approved" | "rejected";
+    llm_provider?: string;
+  };
   steps: WorkflowStep[];
   created_at: string;
   updated_at: string;
@@ -84,6 +92,7 @@ export interface WorkflowStepRun {
   credits_charged: number | null;
   started_at: string | null;
   completed_at: string | null;
+  child_run_id?: string;
 }
 
 export interface WorkflowRun {
@@ -94,6 +103,8 @@ export interface WorkflowRun {
   status: "running" | "completed" | "failed" | "canceled";
   current_step_group: number;
   input_message: string;
+  parent_run_id?: string;
+  depth: number;
   workflow_snapshot: Record<string, unknown> | null;
   total_credits_charged: number | null;
   error: string | null;
@@ -105,4 +116,28 @@ export interface WorkflowRun {
 export interface WorkflowRunListResponse {
   runs: WorkflowRun[];
   total: number;
+}
+
+export interface SupervisorPlanStep {
+  agent_id: string;
+  skill_id: string;
+  agent_name: string;
+  skill_name: string;
+  step_group: number;
+  input_mode: string;
+  input_template?: string;
+  instructions?: string;
+  label?: string;
+  confidence: number;
+  estimated_credits: number;
+  sub_steps?: SupervisorPlanStep[];
+}
+
+export interface SupervisorPlan {
+  name: string;
+  description: string;
+  steps: SupervisorPlanStep[];
+  total_estimated_credits: number;
+  llm_provider_used: string;
+  plan_id: string;
 }
