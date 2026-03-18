@@ -8,13 +8,15 @@ Includes: platform stats, user/agent management, credit grants, re-embedding.
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from src.core.audit import audit_log
 from src.core.auth import get_current_user
+from src.core.rate_limiter import rate_limit_by_ip
 from src.database import get_db
 from src.models.agent import Agent
 from src.models.task import Task
@@ -33,8 +35,9 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 # ---------------------------------------------------------------------------
 
 
-@router.post("/bootstrap")
+@router.post("/bootstrap", dependencies=[Depends(rate_limit_by_ip)])
 async def bootstrap_admin(
+    request: Request,
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -58,6 +61,7 @@ async def bootstrap_admin(
     if user is None:
         raise HTTPException(status_code=401, detail="User not found")
     user.is_admin = True
+    await audit_log(db, action="admin.bootstrap", actor_user_id=str(user.id), target_type="user", target_id=user.id, new_value={"is_admin": True}, request=request)
     await db.flush()
     return {"message": f"{user.email} is now admin"}
 
@@ -91,6 +95,145 @@ async def require_admin(
 
 
 # ---------------------------------------------------------------------------
+# Agent Submissions — review queue
+# ---------------------------------------------------------------------------
+
+
+@router.get("/submissions", tags=["admin"])
+async def list_pending_submissions(
+    status: str = Query("pending_review"),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    admin: "User" = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """List agent submissions for review."""
+    from src.models.submission import AgentSubmission
+    from src.schemas.submission import SubmissionResponse
+
+    total_q = select(func.count()).select_from(
+        select(AgentSubmission).where(AgentSubmission.status == status).subquery()
+    )
+    total = (await db.execute(total_q)).scalar_one()
+
+    stmt = (
+        select(AgentSubmission)
+        .where(AgentSubmission.status == status)
+        .order_by(AgentSubmission.created_at.asc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+    )
+    result = await db.execute(stmt)
+    submissions = result.scalars().all()
+
+    return {
+        "submissions": [SubmissionResponse.model_validate(s) for s in submissions],
+        "total": total,
+    }
+
+
+@router.post("/submissions/{submission_id}/approve", tags=["admin"])
+async def approve_submission(
+    submission_id: UUID,
+    request: Request,
+    admin: "User" = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Approve a submission — registers it as a marketplace agent."""
+    from datetime import datetime, timezone
+    from src.models.submission import AgentSubmission
+
+    submission = await db.get(AgentSubmission, submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    if submission.status != "pending_review":
+        raise HTTPException(status_code=400, detail=f"Cannot approve: status is {submission.status}")
+
+    # Create agent record
+    agent = Agent(
+        owner_id=submission.user_id,
+        name=submission.name,
+        description=submission.description or "",
+        endpoint="",  # Will be set when runtime proxy is implemented (Plan 5)
+        category=submission.category or "general",
+        tags=submission.tags or [],
+        pricing={"model": "per_task", "credits": submission.credits, "license_type": "commercial"},
+        status="active",
+    )
+    db.add(agent)
+    await db.flush()
+
+    # Update submission
+    submission.status = "approved"
+    submission.reviewed_by = admin.id
+    submission.reviewed_at = datetime.now(timezone.utc)
+    submission.agent_id = agent.id
+
+    await audit_log(db, action="admin.approve_submission", actor_user_id=str(admin.id), target_type="submission", target_id=submission_id, new_value={"agent_id": str(agent.id)}, request=request)
+    await db.commit()
+    return {"status": "approved", "agent_id": str(agent.id), "submission_id": str(submission_id)}
+
+
+@router.post("/submissions/{submission_id}/reject", tags=["admin"])
+async def reject_submission(
+    submission_id: UUID,
+    request: Request,
+    admin: "User" = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+    notes: str = Query(..., min_length=1, description="Reason for rejection"),
+):
+    """Reject a submission with reviewer notes."""
+    from datetime import datetime, timezone
+    from src.models.submission import AgentSubmission
+
+    submission = await db.get(AgentSubmission, submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    if submission.status != "pending_review":
+        raise HTTPException(status_code=400, detail=f"Cannot reject: status is {submission.status}")
+
+    submission.status = "rejected"
+    submission.reviewer_notes = notes
+    submission.reviewed_by = admin.id
+    submission.reviewed_at = datetime.now(timezone.utc)
+
+    await audit_log(db, action="admin.reject_submission", actor_user_id=str(admin.id), target_type="submission", target_id=submission_id, new_value={"notes": notes}, request=request)
+    await db.commit()
+    return {"status": "rejected", "submission_id": str(submission_id)}
+
+
+@router.post("/submissions/{submission_id}/revoke", tags=["admin"])
+async def revoke_submission(
+    submission_id: UUID,
+    request: Request,
+    admin: "User" = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Revoke a previously approved submission — takes agent offline."""
+    from datetime import datetime, timezone
+    from src.models.submission import AgentSubmission
+
+    submission = await db.get(AgentSubmission, submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    if submission.status != "approved":
+        raise HTTPException(status_code=400, detail=f"Cannot revoke: status is {submission.status}")
+
+    # Deactivate the agent
+    if submission.agent_id:
+        agent = await db.get(Agent, submission.agent_id)
+        if agent:
+            agent.status = "inactive"
+
+    submission.status = "revoked"
+    submission.reviewed_at = datetime.now(timezone.utc)
+
+    await audit_log(db, action="admin.revoke_submission", actor_user_id=str(admin.id), target_type="submission", target_id=submission_id, request=request)
+    await db.commit()
+    return {"status": "revoked", "submission_id": str(submission_id)}
+
+
+# ---------------------------------------------------------------------------
 # Bulk pricing update
 # ---------------------------------------------------------------------------
 
@@ -107,6 +250,7 @@ class BulkPricingRequest(BaseModel):
 @router.post("/bulk-pricing", tags=["admin"])
 async def bulk_update_pricing(
     data: BulkPricingRequest,
+    request: Request,
     admin: "User" = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
@@ -130,6 +274,7 @@ async def bulk_update_pricing(
             "new_credits": update.credits,
             "status": "updated",
         })
+    await audit_log(db, action="admin.bulk_pricing", actor_user_id=str(admin.id), target_type="agents", new_value={"count": len(data.updates)}, request=request)
     await db.commit()
     return {"updated": len([r for r in results if r["status"] == "updated"]), "results": results}
 
@@ -232,6 +377,7 @@ class UserStatusUpdate(BaseModel):
 async def update_user_status(
     user_id: UUID,
     data: UserStatusUpdate,
+    request: Request,
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ) -> UserResponse:
@@ -240,6 +386,7 @@ async def update_user_status(
     user = result.scalar_one_or_none()
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
+    await audit_log(db, action="admin.update_user_status", actor_user_id=str(admin.id), target_type="user", target_id=user_id, old_value={"is_active": user.is_active, "is_admin": user.is_admin}, new_value=data.model_dump(exclude_none=True), request=request)
     if data.is_active is not None:
         user.is_active = data.is_active
     if data.is_admin is not None:
@@ -325,6 +472,7 @@ class AgentStatusUpdate(BaseModel):
 async def update_agent_status(
     agent_id: UUID,
     data: AgentStatusUpdate,
+    request: Request,
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ) -> AgentResponse:
@@ -335,6 +483,7 @@ async def update_agent_status(
     agent = result.scalar_one_or_none()
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
+    await audit_log(db, action="admin.update_agent_status", actor_user_id=str(admin.id), target_type="agent", target_id=agent_id, old_value={"status": agent.status}, new_value={"status": data.status.value}, request=request)
     agent.status = data.status.value
     await db.flush()
     await db.refresh(agent)
@@ -349,6 +498,7 @@ class AgentPricingUpdate(BaseModel):
 async def update_agent_pricing(
     agent_id: UUID,
     data: AgentPricingUpdate,
+    request: Request,
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ) -> AgentResponse:
@@ -357,6 +507,7 @@ async def update_agent_pricing(
     agent = result.scalar_one_or_none()
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
+    await audit_log(db, action="admin.update_agent_pricing", actor_user_id=str(admin.id), target_type="agent", target_id=agent_id, old_value={"pricing": agent.pricing}, new_value={"pricing": data.pricing}, request=request)
     agent.pricing = data.pricing
     await db.commit()
     await db.refresh(agent)
@@ -371,6 +522,7 @@ class AgentVerificationUpdate(BaseModel):
 async def update_agent_verification(
     agent_id: UUID,
     data: AgentVerificationUpdate,
+    request: Request,
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ) -> AgentResponse:
@@ -379,6 +531,7 @@ async def update_agent_verification(
     agent = result.scalar_one_or_none()
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
+    await audit_log(db, action="admin.update_agent_verification", actor_user_id=str(admin.id), target_type="agent", target_id=agent_id, old_value={"verification_level": agent.verification_level}, new_value={"verification_level": data.verification_level.value}, request=request)
     agent.verification_level = data.verification_level.value
     await db.flush()
     return AgentResponse.model_validate(agent)
@@ -398,6 +551,7 @@ class AdminCreditGrant(BaseModel):
 @router.post("/credits/grant")
 async def grant_credits(
     data: AdminCreditGrant,
+    request: Request,
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
@@ -419,6 +573,7 @@ async def grant_credits(
         amount=data.amount,
         description=f"Admin grant: {data.reason}",
     )
+    await audit_log(db, action="admin.grant_credits", actor_user_id=str(admin.id), target_type="user", target_id=data.user_id, new_value={"amount": data.amount, "reason": data.reason}, request=request)
     return {
         "transaction_id": str(txn.id),
         "amount": data.amount,
@@ -434,6 +589,7 @@ async def grant_credits(
 
 @router.post("/re-embed-skills")
 async def re_embed_skills(
+    request: Request,
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
@@ -458,5 +614,6 @@ async def re_embed_skills(
     for skill, emb in zip(skills, embeddings):
         skill.embedding = emb
 
+    await audit_log(db, action="admin.re_embed_skills", actor_user_id=str(admin.id), new_value={"skills_count": len(skills)}, request=request)
     await db.commit()
     return {"message": f"Re-embedded {len(skills)} skills", "updated": len(skills)}

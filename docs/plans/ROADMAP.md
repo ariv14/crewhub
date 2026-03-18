@@ -193,6 +193,13 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 - [x] Sidebar simplified: Workflows, Schedules, Build Agent (3 items, was 4)
 - [x] Full production E2E verified — all 14 functional tests pass
 
+### Compact Landing Page + Security Hardening (Mar 19) — ON STAGING
+- [x] Compact "Find the Right Agent" card — textarea → input, 5 starters → 3, floating dropdown
+- [x] Security: 40 of 64 compliance findings resolved (see Compliance section below)
+- [x] AuditLog model + migration 030 + utility wired into all admin endpoints
+- [x] SSRF protection, rate limiting, Sentry PII scrubbing, CSP headers, cookie hardening
+- [x] Compliance plan v2 drafted with updated gap analysis (24 remaining)
+
 ### Stripe Dashboard Manual Steps (Pending)
 - [ ] **Staging**: Enable Stripe Connect (test mode), add `account.updated` webhook event
 - [ ] **Staging**: Remove 4 stale subscription webhook events
@@ -202,6 +209,29 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 ---
 
 ## Current Sprint
+
+### Compliance Certification (see `2026-03-19-compliance-certification-plan-v2.md`)
+
+**Week 1 — COMPLETE (Mar 19):** 40 of 64 findings resolved
+- [x] XSS prevention: rehype-sanitize on all markdown, image URL validation
+- [x] SSRF protection: URL validator blocking private IPs on detect/validate
+- [x] Auth: workflow run endpoints require ownership, E2E bypass gated
+- [x] Security headers: CSP, HSTS, X-Frame-Options via Cloudflare _headers
+- [x] Cookie hardening: Secure flag on all auth cookies
+- [x] Webhook enforcement: reject unsigned webhooks in production
+- [x] Audit logging: AuditLog model + migration + wired into all 11 admin endpoints
+- [x] Sentry PII scrubbing: EventScrubber denylist, send_default_pii=False
+- [x] Rate limiting: real IP extraction (CF-Connecting-IP), added to feedback/telemetry/supervisor/bootstrap
+- [x] Telemetry batch cap: max 100 events per request
+- [x] PostHog maskAllInputs: true
+- [x] global-error.tsx for root layout crashes
+- [x] Bug fixes: AsyncSessionLocal import, abuse_detector import path
+
+**Remaining: 24 findings (1 critical, 6 high, 12 medium, 5 low)**
+
+- [ ] **Week 2**: GDPR — data export/deletion endpoints, consent banner, privacy policy fixes, Settings UI
+- [ ] **Week 3**: SOC 2 controls — RBAC, key rotation, Redis enforcement, pip-audit, workflow/crew visibility
+- [ ] **Week 4**: Auth architecture (localStorage → httpOnly cookies), DPA, incident response, auditor
 
 ### Near-Term
 - [ ] Agent submissions/review flow (models + schemas created, UI in progress)
@@ -257,6 +287,95 @@ Unlocks privacy-first, regulated industry, and on-device AI use cases.
 - [ ] License-key billing (annual subscription) for enterprise enclaves
 - [ ] Provably private execution — nobody (developer, CrewHub, IT) can see data
 
+### Protocol Adoption Roadmap (Future)
+
+CrewHub currently implements A2A and a custom payments system. Adopting additional
+standard protocols increases interoperability with the broader AI agent ecosystem.
+
+**Current protocol status:**
+- ✅ A2A — fully implemented (JSON-RPC 2.0, agent-card.json discovery, task delegation)
+- ⚠️ AP2 — custom equivalent (credit system with reserves, guardrails, spending limits)
+- ❌ MCP, UCP, A2UI, AG-UI — not yet adopted
+
+**Phase 1: AG-UI — Real-Time Agent Streaming** (high impact, 1-2 weeks)
+- [ ] SSE/WebSocket streaming endpoint for task execution progress
+- [ ] "Try It" panel shows live streaming text instead of loading spinner
+- [ ] Partial result rendering — agents can emit chunks during processing
+- [ ] Progress events: `thinking`, `tool_call`, `partial_result`, `complete`
+- [ ] Streaming support in workflow execution (per-step progress)
+- [ ] Frontend: streaming message component with typing indicator
+
+**Phase 2: A2UI — Rich Agent UI Components** (2-3 weeks)
+- [ ] Agent response schema: structured `ui_components` array alongside text artifacts
+- [ ] Component types: `table`, `chart`, `diff`, `form`, `calendar`, `code_block`, `image`
+- [ ] Frontend renderer: maps A2UI component types to shadcn/ui components
+- [ ] Agent SDK helper: `emit_ui(type="table", data={...})` in agent response
+- [ ] Use cases: code review → diff viewer, data agent → charts, marketing → campaign calendar
+- [ ] Graceful fallback: agents without A2UI still return plain markdown
+
+**Phase 3: MCP — Tool & Data Access for Agents** (2-3 weeks)
+- [ ] MCP client in agent runtime — agents can discover and call external tools
+- [ ] Key for Hybrid Agents: local agents use MCP to access user's files, databases, APIs
+- [ ] MCP server registry in marketplace — users connect data sources, agents consume
+- [ ] Pre-built MCP servers: GitHub, Google Drive, Slack, databases
+- [ ] Permission model: user authorizes which MCP servers each agent can access
+
+**Phase 4: AP2 Standard Compliance** (1-2 weeks)
+- [ ] Align credit system with AP2 spec (cryptographic proof of payment intent)
+- [ ] AP2 payment receipts for agent-to-agent transactions
+- [ ] Configurable guardrails via AP2 standard format (spending limits, merchant allowlists)
+- [ ] Enables CrewHub agents to transact with agents outside the platform
+
+**Phase 5: UCP — Agent Commerce** (future)
+- [ ] Agents can purchase goods/services on behalf of users
+- [ ] UCP-standard order schema (what, from whom, delivery)
+- [ ] Integration with AP2 for payment authorization
+- [ ] Use cases: procurement agent, booking agent, supply chain agent
+- [ ] Merchant verification and dispute resolution
+
+### Resilience & Multi-Cloud Readiness (Future)
+
+Current backend is a single HF Space (1 container, 1 worker, 1 region). The CF Worker
+proxy at `api.crewhubai.com` already acts as the **API Gateway** — the key abstraction
+layer that makes backend failover and multi-cloud possible without any client changes.
+
+```
+Clients → CF Worker (gateway) → Primary (HF Space) / Secondary (Railway/Fly)
+                                         ↓
+                                  Supabase PostgreSQL
+```
+
+**Tier 1: Harden within HF** (1 day)
+- [ ] Bump to 4 uvicorn workers in `Dockerfile.hf` (4x throughput, crash isolation)
+- [ ] SQLAlchemy connection pooling (`pool_size=10, max_overflow=20`)
+- [ ] Move Alembic migrations from FastAPI lifespan to CI step (multi-instance safe)
+- [ ] Move in-memory rate limiter to Upstash Redis (shared across workers/instances)
+- [ ] CF Worker returns cached fallback during backend downtime (static status page)
+
+**Tier 2: Active-passive failover** (1-2 weeks)
+- [ ] Deploy standby backend on Railway (same Dockerfile, same env vars, $5/mo)
+- [ ] CF Worker health-check routing: try primary (5s timeout) → fallback to secondary
+- [ ] GitHub Actions parallel deploy: HF Space + Railway on push to main/staging
+- [ ] Move embedding cache from in-memory to Redis (shared across instances)
+- [ ] Zero-downtime deploys: deploy to standby, health-check, swap routing weight
+
+**Tier 3: Active-active multi-cloud** (future)
+- [ ] CF Worker weighted routing across HF + Railway + Fly.io (configurable weights)
+- [ ] Supabase read replica (EU region) for multi-region reads
+- [ ] Upstash Global Redis for distributed rate limiting + session data
+- [ ] Cloudflare R2 for file/artifact storage (multi-region by default)
+- [ ] Per-region agent routing: EU users → EU backend → EU DB replica
+
+**Migration readiness status:**
+- ✅ Compute: standard Dockerfile, portable to any Docker host
+- ✅ Database: Supabase PostgreSQL, any Postgres via `DATABASE_URL` env var
+- ✅ Auth: Firebase (cloud-agnostic SDK)
+- ✅ Payments: Stripe (cloud-agnostic)
+- ✅ DNS/Gateway: CF Worker — backend URL is a config var, clients never change
+- ⚠️ Rate limiter: in-memory (must move to Redis for multi-instance)
+- ⚠️ Alembic: runs in lifespan (must move to CI for multi-instance)
+- ⚠️ Embedding cache: in-memory (must move to Redis)
+
 ---
 
 ## Testing Mandate
@@ -291,3 +410,6 @@ Unlocks privacy-first, regulated industry, and on-device AI use cases.
 | 2026-03-18 | Agent orchestration patterns design | Complete |
 | 2026-03-18 | Agent orchestration patterns implementation plan | Complete |
 | 2026-03-18 | Hybrid agents — local/on-device execution roadmap | Planned (5 phases) |
+| 2026-03-18 | Resilience & multi-cloud readiness | Planned (3 tiers) |
+| 2026-03-19 | Protocol adoption roadmap (AG-UI, A2UI, MCP, AP2, UCP) | Planned (5 phases) |
+| 2026-03-19 | Compliance certification plan (SOC 2, GDPR, HIPAA) | In progress (64 findings) |

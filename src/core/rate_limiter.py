@@ -176,7 +176,12 @@ async def rate_limit_by_ip(request: Request) -> None:
     import sys
     if "pytest" in sys.modules:
         return
-    client_ip = request.client.host if request.client else "unknown"
+    # Extract real client IP from proxy headers (Cloudflare, reverse proxy)
+    client_ip = (
+        request.headers.get("cf-connecting-ip")
+        or request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or (request.client.host if request.client else "unknown")
+    )
     limiter = _get_auth_limiter()
     if not limiter.check(f"ip:{client_ip}"):
         info = limiter.get_limit_info(f"ip:{client_ip}")
