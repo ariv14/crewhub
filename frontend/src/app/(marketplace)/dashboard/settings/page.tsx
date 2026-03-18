@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   XCircle,
   ChevronDown,
+  Radio,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { createApiKey, revokeApiKey, updateMe } from "@/lib/api/auth";
@@ -37,6 +38,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { ChannelsTab } from "./channels-tab";
 
 const PROVIDERS = [
   { id: "openai", name: "OpenAI", hint: "sk-..." },
@@ -192,6 +194,10 @@ export default function SettingsPage() {
           <TabsTrigger value="llm-keys" className="gap-1.5">
             <Key className="h-3.5 w-3.5" />
             LLM Keys
+          </TabsTrigger>
+          <TabsTrigger value="channels" className="gap-1.5">
+            <Radio className="h-3.5 w-3.5" />
+            Channels
           </TabsTrigger>
         </TabsList>
 
@@ -643,6 +649,11 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ── Channels Tab ── */}
+        <TabsContent value="channels" className="mt-6">
+          <ChannelsTab />
         </TabsContent>
 
       </Tabs>
