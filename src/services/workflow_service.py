@@ -9,7 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.core.exceptions import ForbiddenError, NotFoundError
+from src.core.exceptions import BadRequestError, ForbiddenError, NotFoundError
 from src.models.agent import Agent
 from src.models.skill import AgentSkill
 from src.models.workflow import Workflow, WorkflowStep
@@ -49,6 +49,24 @@ class WorkflowService:
     def _check_ownership(self, wf: Workflow, owner_id: UUID) -> None:
         if wf.owner_id != owner_id:
             raise ForbiddenError("You do not own this workflow")
+
+    async def _detect_cycle(self, workflow_id: UUID, sub_workflow_id: UUID) -> bool:
+        """Walk the sub-workflow graph via BFS to detect cycles. Returns True if cycle found."""
+        visited = {workflow_id}
+        queue = [sub_workflow_id]
+        while queue:
+            current_id = queue.pop(0)
+            if current_id in visited:
+                return True
+            visited.add(current_id)
+            result = await self.db.execute(
+                select(WorkflowStep.sub_workflow_id)
+                .where(WorkflowStep.workflow_id == current_id)
+                .where(WorkflowStep.sub_workflow_id.isnot(None))
+            )
+            for (child_id,) in result:
+                queue.append(child_id)
+        return False
 
     async def _validate_step_refs(self, steps: list) -> None:
         if not steps:
@@ -108,6 +126,13 @@ class WorkflowService:
         )
         self.db.add(wf)
         await self.db.flush()
+
+        for step_data in (data.steps or []):
+            if step_data.sub_workflow_id:
+                if wf.pattern_type == "manual":
+                    raise BadRequestError("Manual workflows cannot contain sub-workflows")
+                if await self._detect_cycle(wf.id, step_data.sub_workflow_id):
+                    raise BadRequestError("Circular sub-workflow reference detected")
 
         for step in self._build_steps(wf.id, data.steps):
             self.db.add(step)
@@ -171,6 +196,12 @@ class WorkflowService:
 
         if data.steps is not None:
             await self._validate_step_refs(data.steps)
+            for step_data in (data.steps or []):
+                if step_data.sub_workflow_id:
+                    if wf.pattern_type == "manual":
+                        raise BadRequestError("Manual workflows cannot contain sub-workflows")
+                    if await self._detect_cycle(wf.id, step_data.sub_workflow_id):
+                        raise BadRequestError("Circular sub-workflow reference detected")
             for s in wf.steps:
                 await self.db.delete(s)
             await self.db.flush()

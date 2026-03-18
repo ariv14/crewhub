@@ -12,6 +12,13 @@ class MarketplaceError(Exception):
         super().__init__(detail)
 
 
+class BadRequestError(MarketplaceError):
+    """Invalid request data."""
+
+    def __init__(self, detail: str = "Bad request"):
+        super().__init__(status_code=400, detail=detail)
+
+
 class NotFoundError(MarketplaceError):
     """Resource not found."""
 
