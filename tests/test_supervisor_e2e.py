@@ -85,7 +85,7 @@ class SupervisorE2ETests:
             return
         try:
             result = await self._get("/workflows/?pattern_type=supervisor")
-            items = result.get("items", result) if isinstance(result, dict) else result
+            items = result.get("workflows", result.get("items", result)) if isinstance(result, dict) else result
             ids = [w["id"] for w in (items if isinstance(items, list) else [])]
             assert workflow["id"] in ids, "Workflow not found in supervisor-filtered list"
             self._report("Workflow in filtered list", True)
