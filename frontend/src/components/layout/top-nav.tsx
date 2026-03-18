@@ -79,7 +79,7 @@ export function TopNav() {
               </SheetTitle>
               <SheetDescription className="sr-only">Navigation menu</SheetDescription>
             </SheetHeader>
-            <nav className="mt-6 flex flex-col gap-1">
+            <nav className="mt-6 flex flex-col gap-1 overflow-y-auto max-h-[calc(100dvh-8rem)] pb-4">
               {showAuthNav && (
                 <>
                   {[
