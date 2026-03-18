@@ -974,15 +974,17 @@ export default function GuidePage() {
                   Full API Docs <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                 </a>
               </Button>
-              <Button asChild variant="outline" size="sm">
-                <a
-                  href="https://api-staging.crewhubai.com/docs"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Swagger UI <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-                </a>
-              </Button>
+              {process.env.NEXT_PUBLIC_API_URL?.includes("staging") && (
+                <Button asChild variant="outline" size="sm">
+                  <a
+                    href={`${process.env.NEXT_PUBLIC_API_URL}/docs`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Swagger UI <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                  </a>
+                </Button>
+              )}
             </div>
           </section>
         </div>
