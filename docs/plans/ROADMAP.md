@@ -184,6 +184,15 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 - [x] Duplicate Build Agent entry removed from mobile menu
 - [x] Swagger UI link hidden on production guide page
 
+### Team Mode Merge into Workflows (Mar 18) — LIVE
+- [x] Removed Team Mode from desktop nav, mobile menu, and sidebar
+- [x] All "Try Team Mode" CTAs replaced with "Create Workflow" / "Try Workflows"
+- [x] Guide page: renamed to "Parallel Execution (Team Mode)", updated steps and comparison table
+- [x] Explore page: added Supervisor, Hierarchical, No-Code Builder, Guide cards; updated flows
+- [x] `/team` page replaced with redirect to `/dashboard/workflows/new` (959 lines removed)
+- [x] Sidebar simplified: Workflows, Schedules, Build Agent (3 items, was 4)
+- [x] Full production E2E verified — all 14 functional tests pass
+
 ### Stripe Dashboard Manual Steps (Pending)
 - [ ] **Staging**: Enable Stripe Connect (test mode), add `account.updated` webhook event
 - [ ] **Staging**: Remove 4 stale subscription webhook events
@@ -196,7 +205,9 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 
 ### Near-Term
 - [ ] Agent submissions/review flow (models + schemas created, UI in progress)
-- [ ] Run E2E tests for orchestration patterns on staging
+- [x] Run E2E tests for orchestration patterns on staging — 6/6 pass
+- [x] Run E2E tests on production — 14/14 functional tests pass
+- [x] Merge Team Mode into Workflows — complete
 - [ ] Delegation accuracy analytics query (data captured, no reporting endpoint)
 - [ ] Redis-backed embedding rate limiter (current: in-memory, single-process only)
 
@@ -207,6 +218,44 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 - [ ] Promptfoo evaluation integration (demo_agents/promptfoo/)
 - [ ] Agent marketplace growth — developer onboarding funnel optimization
 - [ ] Performance monitoring / analytics dashboard
+
+### Hybrid Agents — Local/On-Device Execution (Future)
+
+Enable agents running on user hardware to participate in the CrewHub marketplace.
+Unlocks privacy-first, regulated industry, and on-device AI use cases.
+
+**Phase 1: Hybrid Agent Registry** (1-2 weeks)
+- [ ] `crewhub-tunnel` CLI — secure tunnel (Cloudflare Tunnel) to expose local agents
+- [ ] Agent status: `local` badge + online/offline indicator in marketplace
+- [ ] A2A gateway routes tasks to local endpoints (no protocol changes needed)
+- [ ] Local agents can set price to 0 (self-hosted) or charge credits
+- [ ] Heartbeat monitoring — auto-mark offline after 60s no-ping
+
+**Phase 2: Agent Recipes** (2-3 weeks)
+- [ ] `crewhub-agent.yaml` spec — portable agent config (model, prompt, tools, skills)
+- [ ] Developers publish recipes to marketplace alongside cloud-hosted version
+- [ ] `npx crewhub run <agent-id> --gpu auto` — pull recipe, download model from HF Hub, run locally
+- [ ] "Run Locally" / "Try in Cloud" toggle on agent detail page
+- [ ] Billing: developers earn credits whether agent runs in cloud or on user hardware
+
+**Phase 3: Split Execution in Workflows** (3-4 weeks)
+- [ ] Per-step `execution: "local" | "cloud"` setting in workflow editor
+- [ ] Lock icon on local steps, cloud icon on cloud steps
+- [ ] Orchestration engine routes steps to local tunnel or cloud agent as configured
+- [ ] Use case: sensitive data processed locally, non-sensitive steps in cloud
+
+**Phase 4: Agent Swarm Network** (future)
+- [ ] Users opt-in to share idle GPU via `crewhub-node` daemon
+- [ ] P2P agent compute network with latency-based routing
+- [ ] Hosts earn credits for providing compute (3 credits/task)
+- [ ] Sandboxed execution (Docker/WASM) — hosts can't inspect data
+- [ ] Cheaper than cloud: ~5 credits/task vs 15 credits/task
+
+**Phase 5: Confidential Agent Enclaves** (future, enterprise)
+- [ ] TEE support (Intel SGX / AMD SEV / NVIDIA Confidential Computing)
+- [ ] Remote attestation — marketplace verifies exact agent code in enclave
+- [ ] License-key billing (annual subscription) for enterprise enclaves
+- [ ] Provably private execution — nobody (developer, CrewHub, IT) can see data
 
 ---
 
@@ -241,3 +290,4 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 | 2026-03-17 | Publish/review flow plan | In progress |
 | 2026-03-18 | Agent orchestration patterns design | Complete |
 | 2026-03-18 | Agent orchestration patterns implementation plan | Complete |
+| 2026-03-18 | Hybrid agents — local/on-device execution roadmap | Planned (5 phases) |
