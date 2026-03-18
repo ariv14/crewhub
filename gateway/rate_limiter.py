@@ -21,4 +21,11 @@ class RateLimiter:
         self._windows[key].append(now)
         return False
 
+    def cleanup_stale(self, max_age: int = 120):
+        """Remove keys with no recent entries."""
+        now = time.time()
+        stale = [k for k, v in self._windows.items() if not v or v[-1] < now - max_age]
+        for k in stale:
+            del self._windows[k]
+
 rate_limiter = RateLimiter()
