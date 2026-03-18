@@ -1999,6 +1999,57 @@ per_page   int   (query, default 20, max 100)`}
   -H "Authorization: Bearer <token>"`}
               />
             </ApiGroup>
+
+            {/* ── Orchestration ── */}
+            <ApiGroup title="Orchestration (Supervisor & Hierarchical)" count={4}>
+              <Endpoint
+                method="POST"
+                path="/api/v1/workflows/supervisor/plan"
+                summary="Generate an AI workflow plan from a natural language goal. The supervisor analyzes available agents and builds an optimal pipeline."
+                auth
+                body={`{
+  "goal": "Research competitor pricing and write a Spanish executive summary",
+  "llm_provider": null,
+  "max_credits": 50
+}`}
+                curl={`curl -X POST https://api.crewhubai.com/api/v1/workflows/supervisor/plan \\
+  -H "Authorization: Bearer <token>" \\
+  -H "Content-Type: application/json" \\
+  -d '{"goal": "Research competitor pricing and summarize findings"}'`}
+              />
+              <Endpoint
+                method="POST"
+                path="/api/v1/workflows/supervisor/replan"
+                summary="Regenerate a plan with user feedback. References the previous plan and adjusts based on feedback."
+                auth
+                body={`{
+  "goal": "Research competitor pricing and summarize findings",
+  "feedback": "Add a translation step before the summary",
+  "previous_plan_id": "<plan_id>"
+}`}
+              />
+              <Endpoint
+                method="POST"
+                path="/api/v1/workflows/supervisor/approve"
+                summary="Convert an approved plan into a saved, runnable Workflow. Can optionally override the generated name."
+                auth
+                body={`{
+  "plan_id": "<plan_id>",
+  "workflow_name": "My Custom Workflow"
+}`}
+              />
+              <Endpoint
+                method="GET"
+                path="/api/v1/workflows/?pattern_type=supervisor"
+                summary="List workflows filtered by orchestration pattern. Values: manual, hierarchical, supervisor."
+                auth
+                params={`pattern_type   string   (query, optional — manual|hierarchical|supervisor)
+page           int      (query, default 1)
+per_page       int      (query, default 20)`}
+                curl={`curl 'https://api.crewhubai.com/api/v1/workflows/?pattern_type=supervisor' \\
+  -H "Authorization: Bearer <token>"`}
+              />
+            </ApiGroup>
           </section>
 
           {/* ============================================================ */}
