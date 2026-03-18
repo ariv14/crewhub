@@ -58,17 +58,68 @@ class Workflow:
 ### 1.2 WorkflowStep Extensions
 
 ```python
-# src/models/workflow.py — WorkflowStep, new field
+# src/models/workflow.py — WorkflowStep, modified + new fields
 
 class WorkflowStep:
-    # ... existing fields (agent_id, skill_id, step_group, input_mode, etc.) ...
-    sub_workflow_id = Column(UUID, ForeignKey("workflows.id"), nullable=True)
+    # MODIFIED: agent_id and skill_id must become nullable for sub-workflow steps
+    agent_id = Column(UUID, ForeignKey("agents.id", ondelete="CASCADE"), nullable=True)  # was nullable=False
+    skill_id = Column(UUID, ForeignKey("agent_skills.id", ondelete="CASCADE"), nullable=True)  # was nullable=False
+
+    # NEW field
+    sub_workflow_id = Column(UUID, ForeignKey("workflows.id", ondelete="SET NULL"), nullable=True)
     sub_workflow = relationship("Workflow", foreign_keys=[sub_workflow_id])
 
     # Rules:
-    # - When sub_workflow_id is set, agent_id and skill_id are null
-    # - Only allowed when parent workflow.pattern_type in ("hierarchical", "supervisor")
+    # - XOR constraint: exactly one of (agent_id+skill_id) or sub_workflow_id must be set
+    # - Only sub_workflow_id allowed when parent workflow.pattern_type in ("hierarchical", "supervisor")
     # - Execution dispatches sub-workflow instead of A2A task
+    # - ondelete=SET NULL: if sub-workflow is deleted, step becomes invalid (handled at execution time)
+    #   Running child WorkflowRuns are NOT affected (they reference workflow_id, not step)
+
+# Pydantic schema validation (src/schemas/workflow.py):
+class WorkflowStepCreate(BaseModel):
+    agent_id: UUID | None = None
+    skill_id: UUID | None = None
+    sub_workflow_id: UUID | None = None
+    # ... existing fields ...
+
+    @model_validator(mode="after")
+    def validate_step_target(self):
+        has_agent = self.agent_id is not None and self.skill_id is not None
+        has_sub = self.sub_workflow_id is not None
+        if has_agent == has_sub:  # both set or both null
+            raise ValueError("Step must have either (agent_id + skill_id) or sub_workflow_id, not both/neither")
+        return self
+```
+
+### 1.2.1 Cycle Detection
+
+```python
+# src/services/workflow_service.py — added to create_workflow() and update_workflow()
+
+async def detect_cycle(workflow_id: UUID, sub_workflow_id: UUID, db: AsyncSession) -> bool:
+    """Walk the sub-workflow graph to detect cycles. Returns True if cycle found."""
+    visited = {workflow_id}
+    queue = [sub_workflow_id]
+    while queue:
+        current_id = queue.pop(0)
+        if current_id in visited:
+            return True  # cycle detected
+        visited.add(current_id)
+        # Find all sub-workflow references from current workflow's steps
+        steps = await db.execute(
+            select(WorkflowStep.sub_workflow_id)
+            .where(WorkflowStep.workflow_id == current_id)
+            .where(WorkflowStep.sub_workflow_id.isnot(None))
+        )
+        for (child_id,) in steps:
+            queue.append(child_id)
+    return False
+
+# Called before persisting any step with sub_workflow_id:
+if step_data.sub_workflow_id:
+    if await detect_cycle(workflow_id, step_data.sub_workflow_id, db):
+        raise ValueError("Circular sub-workflow reference detected")
 ```
 
 ### 1.3 WorkflowRun Extensions
@@ -88,12 +139,21 @@ class WorkflowRun:
 ### 1.4 Alembic Migration
 
 Single migration file: `028_orchestration_patterns.py`
+
+**New columns:**
 - Add `pattern_type` (String, default "manual") to `workflows`
 - Add `supervisor_config` (JSON, nullable) to `workflows`
-- Add `sub_workflow_id` (UUID FK, nullable) to `workflow_steps`
-- Add `parent_run_id` (UUID FK, nullable) to `workflow_runs`
+- Add `sub_workflow_id` (UUID FK → workflows.id, nullable, ondelete SET NULL) to `workflow_steps`
+- Add `parent_run_id` (UUID FK → workflow_runs.id, nullable) to `workflow_runs`
 - Add `depth` (Integer, default 0) to `workflow_runs`
-- Backfill existing workflows: `pattern_type = "manual"`
+- Add `child_run_id` (UUID FK → workflow_runs.id, nullable) to `workflow_step_runs`
+
+**Altered columns:**
+- Alter `workflow_steps.agent_id` from NOT NULL to nullable
+- Alter `workflow_steps.skill_id` from NOT NULL to nullable
+
+**Backfill:**
+- Set `pattern_type = "manual"` for all existing workflows
 
 ---
 
@@ -200,7 +260,38 @@ class ApprovePlanRequest(BaseModel):
     workflow_name: str | None = None    # override generated name
 ```
 
-### 2.3 API: `src/api/supervisor.py`
+### 2.3 Plan Storage
+
+Plans are stored ephemerally in the `supervisor_plans` table (new model) with 1-hour TTL:
+
+```python
+# src/models/supervisor_plan.py
+class SupervisorPlanRecord(Base):
+    __tablename__ = "supervisor_plans"
+    id = Column(UUID, primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID, ForeignKey("users.id"), nullable=False)
+    goal = Column(String, nullable=False)
+    plan_data = Column(JSON, nullable=False)     # full SupervisorPlan as JSON
+    llm_provider = Column(String, nullable=True)
+    status = Column(String, default="draft")     # "draft" | "approved" | "expired"
+    created_at = Column(DateTime, default=utcnow)
+    expires_at = Column(DateTime)                # created_at + 1 hour
+
+# Cleanup: expired plans deleted on each generate_plan() call (lazy GC)
+# This prevents plan tampering — approve endpoint looks up plan_id server-side,
+# not from client-submitted data.
+```
+
+Add to migration `028_orchestration_patterns.py`.
+
+### 2.4 Rate Limiting
+
+Supervisor plan generation is rate-limited:
+- **Free tier (platform Groq key):** 5 plans per hour per user
+- **BYOK users:** 20 plans per hour per user (uses their own key)
+- Enforced via existing `rate_limiter.py` sliding window
+
+### 2.5 API: `src/api/supervisor.py`
 
 ```
 POST /api/v1/workflows/supervisor/plan
@@ -275,15 +366,21 @@ for step_run in current_group_runs:
 async def execute_workflow(self, workflow_id, input_message, user_id,
                            parent_run_id=None, depth=0):
     workflow = await get_workflow(workflow_id)
-    max_depth = workflow.max_nesting_depth or 2
 
-    # BYOK users get higher limit
+    # Depth limit based on user tier
     user = await get_user(user_id)
     if user_has_byok_keys(user):
-        max_depth = min(max_depth, 10)  # safety cap
+        max_depth = 10  # BYOK users: up to 10 levels
+    else:
+        max_depth = 2   # Free tier: max 2 levels
 
     if depth >= max_depth:
         raise ValueError(f"Maximum nesting depth ({max_depth}) exceeded")
+
+    # Check for null sub_workflow_id (deleted sub-workflow)
+    for step in workflow.steps:
+        if step.agent_id is None and step.sub_workflow_id is None:
+            raise ValueError(f"Step '{step.label or step.id}' has no agent or sub-workflow (may have been deleted)")
 
     run = WorkflowRun(
         workflow_id=workflow_id,
@@ -293,6 +390,24 @@ async def execute_workflow(self, workflow_id, input_message, user_id,
         ...
     )
 ```
+
+**Pump ordering — process children before parents:**
+
+```python
+async def pump_running_workflows(self, db):
+    """Pump all running workflow runs, processing deepest children first."""
+    runs = await db.execute(
+        select(WorkflowRun)
+        .where(WorkflowRun.status == "running")
+        .order_by(WorkflowRun.depth.desc())  # children first, parents last
+        .limit(20)
+    )
+    for run in runs.scalars():
+        await self._pump_single_run(run, db)
+    await db.commit()
+```
+
+This ensures child runs complete and commit their status before parent runs check them in the same pump cycle.
 
 **Timeout inheritance:**
 
@@ -320,7 +435,40 @@ async def cancel_run(self, run_id):
                 await self.cancel_run(step_run.child_run_id)  # recursive
 ```
 
-### 3.2 WorkflowStepRun Extension
+### 3.2 Helper: `_collect_child_output`
+
+```python
+def _collect_child_output(child_run: WorkflowRun) -> str:
+    """Collect output from a completed child workflow run.
+    Returns the last step group's output (same as workflow output endpoint).
+    Falls back to concatenating all completed step outputs if no final group."""
+    last_group = max(sr.step_group for sr in child_run.step_runs)
+    final_outputs = [
+        sr.output_text for sr in child_run.step_runs
+        if sr.step_group == last_group and sr.output_text
+    ]
+    return "\n\n---\n\n".join(final_outputs) if final_outputs else ""
+```
+
+This mirrors the existing `_collect_group_output` pattern — the child's final step group output becomes the parent step's output, which then feeds into the next parent step's `input_mode: "chain"`.
+
+### 3.3 Snapshot Format for Sub-Workflow Steps
+
+```python
+# In workflow_snapshot["steps"], sub-workflow steps store:
+{
+    "step_group": 0,
+    "sub_workflow_id": "uuid",
+    "sub_workflow_name": "Research Pipeline",  # for error messages
+    "agent_id": None,
+    "skill_id": None,
+    "label": "Research sub-pipeline",
+    "input_mode": "chain"
+}
+# This ensures timeout/failure error messages show meaningful names
+```
+
+### 3.4 WorkflowStepRun Extension
 
 ```python
 class WorkflowStepRun:
@@ -507,7 +655,7 @@ Comprehensive interactive guide with sections:
 11. **Building Agents** — registration, Langflow builder, A2A protocol basics
 12. **API Reference** — link to `/docs` page
 
-Navigation: sticky sidebar with section links, smooth scroll anchors.
+Navigation: sticky sidebar with section links, smooth scroll anchors using `<a>` tags (per project convention — no `<Link>` or `router.push`). Guide link added to both public nav (desktop) and mobile hamburger menu. Page is a static route (no dynamic segments), no `_redirects` entry needed.
 
 ---
 
@@ -534,11 +682,21 @@ Navigation: sticky sidebar with section links, smooth scroll anchors.
 - `test_child_failure_fails_parent_step` — error propagation works
 - `test_credit_tallying` — child costs roll up to parent totals
 
-**`tests/test_pattern_types.py`** (~4 tests):
+**`tests/test_pattern_types.py`** (~8 tests):
 - `test_create_workflow_manual` — existing behavior unchanged
 - `test_create_workflow_hierarchical` — allows sub_workflow_id on steps
 - `test_create_workflow_supervisor` — stores supervisor_config correctly
 - `test_manual_rejects_sub_workflow` — enforces pattern constraints
+- `test_step_xor_validation` — rejects steps with both agent_id and sub_workflow_id
+- `test_step_xor_validation_neither` — rejects steps with neither agent_id nor sub_workflow_id
+- `test_cycle_detection` — rejects A→B→A circular sub-workflow references
+- `test_cycle_detection_deep` — rejects A→B→C→A three-level cycle
+
+**`tests/test_supervisor_security.py`** (~4 tests):
+- `test_unauthenticated_plan_generation` — returns 401
+- `test_plan_rate_limiting` — exceeding 5/hour returns 429
+- `test_approve_other_users_plan` — returns 403
+- `test_plan_prompt_injection` — goal with injection attempts produces valid/safe plan
 
 ### 5.2 E2E Tests (staging)
 
@@ -568,17 +726,21 @@ Navigation: sticky sidebar with section links, smooth scroll anchors.
 - `src/services/supervisor_planner.py` — LLM planning service
 - `src/api/supervisor.py` — 3 supervisor API endpoints
 - `src/schemas/supervisor.py` — request/response schemas
+- `src/models/supervisor_plan.py` — ephemeral plan storage model (1h TTL)
 - `alembic/versions/028_orchestration_patterns.py` — migration
 - `tests/test_supervisor_planner.py` — supervisor unit tests
 - `tests/test_hierarchical_execution.py` — hierarchical unit tests
-- `tests/test_pattern_types.py` — pattern type validation tests
+- `tests/test_pattern_types.py` — pattern type + cycle detection tests
+- `tests/test_supervisor_security.py` — auth, rate limiting, injection tests
 - `tests/test_supervisor_e2e.py` — supervisor E2E tests
 - `tests/test_hierarchical_e2e.py` — hierarchical E2E tests
 
 ### Modified Backend Files
-- `src/models/workflow.py` — add pattern_type, supervisor_config, sub_workflow_id, parent_run_id, depth, child_run_id
-- `src/services/workflow_execution.py` — hierarchical dispatch + depth enforcement + cancel cascade
-- `src/api/workflows.py` — register supervisor router
+- `src/models/workflow.py` — add pattern_type, supervisor_config, sub_workflow_id (nullable), parent_run_id, depth, child_run_id; alter agent_id/skill_id to nullable
+- `src/schemas/workflow.py` — add pattern_type, sub_workflow_id to WorkflowCreate/WorkflowStepCreate; add XOR validator
+- `src/services/workflow_execution.py` — hierarchical dispatch + depth enforcement + cancel cascade + pump ordering (depth DESC)
+- `src/services/workflow_service.py` — add cycle detection on create/update
+- `src/api/workflows.py` — register supervisor router, add ?pattern_type filter to list endpoint
 - `src/main.py` — register supervisor API router
 
 ### New Frontend Files
