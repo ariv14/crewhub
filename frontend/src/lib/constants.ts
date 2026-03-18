@@ -16,6 +16,7 @@ export const ROUTES = {
   agents: "/agents",
   agentDetail: (id: string) => `/agents/${id}/`,
   category: (slug: string) => `/categories/${slug}/`,
+  guide: "/guide",
   communityAgents: "/community-agents",
   communityAgentDetail: (id: string) => `/community-agents/${id}/`,
   createAgent: "/community-agents?create=true",

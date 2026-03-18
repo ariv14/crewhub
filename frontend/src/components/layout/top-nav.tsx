@@ -156,6 +156,12 @@ export function TopNav() {
                 </a>
               </Button>
               <Button variant="ghost" className="justify-start" asChild>
+                <a href="/guide" onClick={() => setMobileOpen(false)}>
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  Guide
+                </a>
+              </Button>
+              <Button variant="ghost" className="justify-start" asChild>
                 <a href="/explore" onClick={() => setMobileOpen(false)}>
                   <LayoutDashboard className="mr-2 h-4 w-4" />
                   Explore Platform
@@ -206,6 +212,9 @@ export function TopNav() {
           </Button>
           <Button variant="ghost" size="sm" asChild className={pathname === "/explore" ? "bg-accent" : ""}>
             <a href="/explore">Explore</a>
+          </Button>
+          <Button variant="ghost" size="sm" asChild className={pathname === "/guide" ? "bg-accent" : ""}>
+            <a href={ROUTES.guide}>Guide</a>
           </Button>
         </nav>
 
