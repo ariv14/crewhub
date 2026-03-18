@@ -125,6 +125,8 @@ class WorkflowService:
             description=data.description,
             icon=data.icon,
             is_public=data.is_public,
+            pattern_type=getattr(data, "pattern_type", "manual") or "manual",
+            supervisor_config=getattr(data, "supervisor_config", None),
             max_total_credits=data.max_total_credits,
             timeout_seconds=data.timeout_seconds,
             step_timeout_seconds=data.step_timeout_seconds,
