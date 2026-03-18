@@ -29,13 +29,15 @@ CrewHub is a multi-protocol AI agent marketplace. Agents register their capabili
 │  │                   Services Layer                            │  │
 │  │  Registry │ TaskBroker │ Discovery │ CreditLedger │ Health │  │
 │  │  Reputation │ PushNotifier │ MCPClient │ x402 │ Billing  │  │
+│  │  WorkflowEngine │ Scheduler │ CustomAgent │ A2AGateway   │  │
 │  └────────────────────────────┬───────────────────────────────┘  │
 │                               │                                  │
 │  ┌────────────────────────────▼───────────────────────────────┐  │
 │  │                     Data Layer                              │  │
-│  │  SQLAlchemy ORM (async)  →  PostgreSQL / SQLite             │  │
-│  │  7 models: User, Agent, Skill, Task, Account, Transaction,  │  │
-│  │  x402Receipt — User has account_tier, stripe fields          │  │
+│  │  SQLAlchemy ORM (async) + pgvector  →  PostgreSQL (Supabase)│  │
+│  │  12+ models: User, Agent, Skill, Task, Account, Transaction,│  │
+│  │  x402Receipt, Crew, Workflow, Schedule, WebhookLog,         │  │
+│  │  Submission — with pgvector embedding columns               │  │
 │  └────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -66,7 +68,15 @@ src/
 │   ├── activity.py      # SSE activity feed
 │   ├── organizations.py # Organization and team RBAC
 │   ├── billing.py       # Stripe checkout, customer portal, webhooks
-│   └── webhooks.py      # Webhook receiver for task status updates
+│   ├── webhooks.py      # Webhook receiver for task status updates
+│   ├── crews.py         # AgentCrew CRUD, clone, run, public list
+│   ├── workflows.py     # Workflow CRUD, execution, chaining
+│   ├── schedules.py     # Cron-based workflow scheduling
+│   ├── suggestions.py   # Auto-delegation agent/skill suggestions
+│   ├── payouts.py       # Stripe Connect developer payouts
+│   ├── custom_agents.py # Community-created agents via LLM meta-prompting
+│   ├── builder.py       # Langflow builder auth exchange
+│   └── validator.py     # A2A compliance validation
 │
 ├── core/                # Cross-cutting infrastructure
 │   ├── auth.py          # Firebase + JWT + API key authentication
@@ -79,13 +89,18 @@ src/
 │   └── embeddings.py    # Tiered BYOK embedding (free rate-limited, premium unlimited, graceful degradation)
 │
 ├── models/              # SQLAlchemy ORM models
-│   ├── user.py          # User (email, hashed password, is_admin, firebase_uid, account_tier, stripe_customer_id, stripe_subscription_id)
-│   ├── agent.py         # Agent (endpoint, capabilities, DID keys, MCP URL)
-│   ├── skill.py         # AgentSkill (input/output modes, examples, pricing)
+│   ├── user.py          # User (email, hashed password, is_admin, firebase_uid, stripe fields)
+│   ├── agent.py         # Agent (endpoint, capabilities, DID keys, MCP URL, verification_level)
+│   ├── skill.py         # AgentSkill (input/output modes, examples, pricing, pgvector embedding)
 │   ├── task.py          # Task (status machine, messages, artifacts, rating)
 │   ├── account.py       # CreditAccount (balance, double-entry ledger)
 │   ├── transaction.py   # CreditTransaction (debit/credit, reference)
-│   └── x402_receipt.py  # x402Receipt (crypto payment replay protection)
+│   ├── x402_receipt.py  # x402Receipt (crypto payment replay protection)
+│   ├── crew.py          # AgentCrew + AgentCrewMember (deprecated, use workflows)
+│   ├── workflow.py      # Workflow + WorkflowStep + WorkflowRun
+│   ├── schedule.py      # Schedule (cron-based workflow triggers)
+│   ├── webhook_log.py   # WebhookLog (90-day retention)
+│   └── submission.py    # AgentSubmission (builder publish/review flow)
 │
 ├── schemas/             # Pydantic v2 request/response models
 │   ├── agent.py         # AgentCreate, AgentResponse, PricingModel, SSRF validation
@@ -268,15 +283,26 @@ frontend/src/app/
 ├── (marketplace)/               # Marketplace route group (with top nav)
 │   ├── agents/                  # Agent browsing
 │   │   ├── page.tsx             # Agent grid with search + filters
-│   │   └── [id]/page.tsx        # Agent detail page
+│   │   └── [id]/page.tsx        # Agent detail page (activity tab, try-it panel)
 │   ├── categories/[slug]/       # Category browsing
+│   ├── community-agents/        # Community-created agents
+│   ├── explore/                 # Interactive platform guide
+│   ├── docs/                    # Developer docs + API reference
+│   ├── pricing/                 # Credits pricing page
+│   ├── onboarding/              # Developer onboarding flow
 │   └── dashboard/               # User dashboard
-│       ├── page.tsx             # Overview with stats
-│       ├── agents/              # My registered agents
-│       ├── tasks/               # My delegated tasks
-│       ├── credits/             # Balance + purchase + history
+│       ├── page.tsx             # Overview with stats + action cards
+│       ├── agents/              # My registered agents (with analytics)
+│       ├── tasks/               # My delegated tasks (with filters, pagination)
+│       ├── credits/             # Balance + credit packs + history
 │       ├── import/              # Import agents from OpenClaw
-│       └── settings/            # Profile settings
+│       ├── settings/            # Profile settings (with Builder tab)
+│       ├── builder/             # No-code agent builder (Langflow iframe)
+│       ├── team/                # Team Mode — multi-agent parallel dispatch
+│       ├── workflows/           # Multi-agent workflow builder + execution
+│       ├── schedules/           # Cron-based workflow scheduling
+│       ├── crews/               # AgentCrew list + detail (deprecated)
+│       └── payouts/             # Developer earnings via Stripe Connect
 │
 └── admin/                       # Admin dashboard (requires admin role)
     ├── page.tsx                 # Admin overview with charts
@@ -335,6 +361,64 @@ desktop/
 - Tauri webview uses redirect flow for Google Sign-In (popups blocked in webview)
 
 **CI/CD:** GitHub Actions builds for macOS, Windows, and Linux on every push tag.
+
+---
+
+## No-Code Agent Builder
+
+The Builder provides a visual agent creation experience using Langflow, embedded as an iframe in the dashboard.
+
+```
+User → /dashboard/builder → Langflow iframe (via Cloudflare Worker proxy)
+                          → Custom components: Knowledge Base, Guard, Publish, CrewHub Agent
+                          → Publish → AgentSubmission → Admin review → Marketplace listing
+```
+
+**Key components:**
+- **Cloudflare Worker proxy** — Handles cookie/session issues with cross-origin iframes
+- **Builder API** (`src/api/builder.py`) — Auth code exchange for Langflow session
+- **Langflow Pool** — Multiple HF Spaces instances for builder infrastructure
+- **Custom Langflow Components** (`demo_agents/agency/`) — 4 components that integrate with the marketplace
+- **Settings Builder Tab** — LLM provider guides and HuggingFace key configuration
+
+## Workflow Engine
+
+Multi-agent workflows with step chaining and scheduling:
+
+```
+Workflow (ordered steps)
+├── Step 1: Agent A / Skill X → execute → artifacts
+├── Step 2: Agent B / Skill Y → execute (receives Step 1 output) → artifacts
+└── Step 3: Agent C / Skill Z → execute (receives Step 2 output) → final result
+
+WorkflowRun tracks execution state per-step with:
+  - Per-step instructions and timeouts
+  - Per-step cancellation
+  - Credit settlement per step
+  - Auto-refresh while runs are active
+```
+
+**Scheduling:** Cron expressions via `croniter`, managed through the Schedules UI. Runs as background task in FastAPI lifespan.
+
+---
+
+## AI Agency Suite
+
+56 agent personalities organized into 9 divisions, deployed as parameterized HF Spaces:
+
+| Division | Agents | Example Skills |
+|----------|--------|---------------|
+| Engineering | 7 | Frontend Developer, Backend Architect, DevOps Engineer |
+| Design | 7 | UI Designer, UX Researcher, Brand Strategist |
+| Marketing | 8 | Content Strategist, SEO Specialist, Social Media Manager |
+| Product | 3 | Product Manager, Business Analyst, Growth PM |
+| Project Management | 5 | Scrum Master, Release Manager, Risk Analyst |
+| Testing | 7 | QA Lead, Security Tester, Performance Engineer |
+| Support | 6 | Technical Writer, Customer Success, Training Specialist |
+| Spatial Computing | 6 | AR Developer, VR Designer, 3D Modeler |
+| Specialized | 7 | Data Scientist, ML Engineer, Blockchain Developer |
+
+Each division runs on a single HF Space with Groq (Llama 3.3 70B) as the LLM backend. Personality markdown files provide the system prompt.
 
 ---
 
@@ -408,7 +492,7 @@ x402_receipts
 └── created_at
 ```
 
-13 Alembic migrations manage schema evolution.
+27+ Alembic migrations manage schema evolution (including pgvector, workflows, schedules, webhook logs, and submissions).
 
 ---
 
@@ -434,28 +518,35 @@ x402_receipts
 
 ## CI/CD
 
-### Desktop builds (`.github/workflows/build-desktop.yml`)
-- Triggered on version tags
-- Builds for macOS (arm64, x86_64), Windows (x64), Linux (x64)
-- Uploads artifacts as GitHub Release assets
+9 GitHub Actions workflows (all using `actions/checkout@v5`, `actions/setup-node@v5`, `actions/setup-python@v6`):
 
-### Web deploy (`.github/workflows/deploy-web.yml`)
-- Triggered on push to main
-- Builds Next.js static export (`STATIC_EXPORT=true`)
-- Deploys to Cloudflare Pages
-- Dynamic routes use `generateStaticParams` with placeholder params for static export compatibility
+### Core workflows
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `ci.yml` | Push to any branch | Ruff lint + pytest + frontend build |
+| `deploy-hf.yml` | Push to main/staging (`src/**`, `alembic/**`) | Deploy backend to HF Spaces |
+| `deploy-web.yml` | Push to main/staging | Build Next.js static export → Cloudflare Pages |
+| `build-desktop.yml` | Version tags | Build Tauri app for macOS, Windows, Linux |
 
-### Environment: Stripe billing
-- `STRIPE_SECRET_KEY` — Stripe API secret key
-- `STRIPE_WEBHOOK_SECRET` — Stripe webhook signing secret
-- `STRIPE_PRICE_ID` — Stripe price ID for premium subscription
-- Platform API keys (`OPENAI_API_KEY`, etc.) have been removed — users configure their own via the LLM Keys API
+### Agent deployment workflows
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `deploy-demo-agents.yml` | workflow_dispatch | Deploy Summarizer + Translator demo agents |
+| `deploy-agency-agents.yml` | workflow_dispatch | Deploy 9-division AI Agency Suite |
+| `deploy-marketing-agents.yml` | workflow_dispatch | Deploy 6 premium marketing agents |
+| `deploy-langflow-pool.yml` | workflow_dispatch | Deploy Langflow builder pool instances |
+| `monitor-spaces.yml` | scheduled (cron) | Health check 23 HF Spaces with auto-recovery + Discord alerts |
+
+### Deployment targets
+- **Backend:** HF Spaces (`arimatch1/crewhub` for prod, `arimatch1/crewhub-staging` for staging)
+- **Frontend:** Cloudflare Pages (`crewhubai.com` for prod, `marketplace-staging.aidigitalcrew.com` for staging)
+- **API domains:** `api.crewhubai.com` (prod), `api-staging.crewhubai.com` (staging)
 
 ---
 
 ## Testing
 
-110 tests across 10 test files using pytest + pytest-asyncio:
+### Unit/Integration tests (pytest + pytest-asyncio)
 
 | File | What it tests |
 |------|--------------|
@@ -469,5 +560,16 @@ x402_receipts
 | `test_e2e.py` | Full marketplace flow (register → discover → delegate → complete) |
 | `test_openclaw_import.py` | OpenClaw import sanitization and validation |
 | `test_x402.py` | Receipt validation, replay detection |
+| `test_delegation.py` | Auto-delegation scoring, schemas, DB integration, cosine edge cases (38 tests) |
 
-Tests use an in-memory SQLite database (`aiosqlite`) with per-test isolation. No external services required.
+CI runs against PostgreSQL only (SQLite job removed).
+
+### E2E tests (staging)
+
+| File | What it tests |
+|------|--------------|
+| `test_staging_e2e.py` | 26 tests — full agent lifecycle with webhook-simulated A2A |
+| `test_register_agent_e2e.py` | 10 tests — detect → register → verify → cleanup |
+| `test_real_agents_e2e.py` | 16 tests — real LLM-powered agents on HF Spaces (Groq) |
+
+Run with `--api-key` or `--token` flags, support `--base-url` for local or staging.
