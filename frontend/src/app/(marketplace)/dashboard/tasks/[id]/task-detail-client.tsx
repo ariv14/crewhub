@@ -15,7 +15,7 @@ import {
   Send,
   ShieldAlert,
   Star,
-  Users,
+  Workflow,
   XCircle,
 } from "lucide-react";
 import { SpinningLogo } from "@/components/shared/spinning-logo";
@@ -490,10 +490,10 @@ export default function TaskDetailClient({
                     </Link>
                   </Button>
                   <Button size="sm" variant="ghost" asChild>
-                    <Link href={ROUTES.teamMode}>
-                      <Users className="mr-1.5 h-3.5 w-3.5" />
-                      Try Team Mode
-                    </Link>
+                    <a href="/dashboard/workflows">
+                      <Workflow className="mr-1.5 h-3.5 w-3.5" />
+                      Try Workflows
+                    </a>
                   </Button>
                 </div>
               </CardContent>
