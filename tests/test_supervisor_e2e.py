@@ -19,7 +19,9 @@ class SupervisorE2ETests:
         self.failed = 0
 
     async def _post(self, path: str, data: dict) -> dict:
-        async with httpx.AsyncClient(timeout=120) as client:
+        if not path.endswith("/"):
+            path += "/"
+        async with httpx.AsyncClient(timeout=120, follow_redirects=True) as client:
             resp = await client.post(
                 f"{self.base_url}/api/v1{path}",
                 json=data,
@@ -29,7 +31,9 @@ class SupervisorE2ETests:
             return resp.json()
 
     async def _get(self, path: str) -> dict:
-        async with httpx.AsyncClient(timeout=30) as client:
+        if not path.endswith("/"):
+            path += "/"
+        async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
             resp = await client.get(
                 f"{self.base_url}/api/v1{path}",
                 headers=self.headers,

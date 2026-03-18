@@ -72,24 +72,27 @@ class WorkflowService:
     async def _validate_step_refs(self, steps: list) -> None:
         if not steps:
             return
-        agent_ids = {s.agent_id for s in steps}
-        skill_ids = {s.skill_id for s in steps}
+        # Filter out None values (sub-workflow steps have no agent/skill)
+        agent_ids = {s.agent_id for s in steps if s.agent_id is not None}
+        skill_ids = {s.skill_id for s in steps if s.skill_id is not None}
 
-        result = await self.db.execute(
-            select(Agent.id).where(Agent.id.in_(agent_ids))
-        )
-        found = {row[0] for row in result.all()}
-        missing = agent_ids - found
-        if missing:
-            raise NotFoundError(f"Agent(s) not found: {missing}")
+        if agent_ids:
+            result = await self.db.execute(
+                select(Agent.id).where(Agent.id.in_(agent_ids))
+            )
+            found = {row[0] for row in result.all()}
+            missing = agent_ids - found
+            if missing:
+                raise NotFoundError(f"Agent(s) not found: {missing}")
 
-        result = await self.db.execute(
-            select(AgentSkill.id).where(AgentSkill.id.in_(skill_ids))
-        )
-        found = {row[0] for row in result.all()}
-        missing = skill_ids - found
-        if missing:
-            raise NotFoundError(f"Skill(s) not found: {missing}")
+        if skill_ids:
+            result = await self.db.execute(
+                select(AgentSkill.id).where(AgentSkill.id.in_(skill_ids))
+            )
+            found = {row[0] for row in result.all()}
+            missing = skill_ids - found
+            if missing:
+                raise NotFoundError(f"Skill(s) not found: {missing}")
 
     def _build_steps(self, workflow_id: UUID, steps: list) -> list[WorkflowStep]:
         return [
@@ -98,6 +101,7 @@ class WorkflowService:
                 workflow_id=workflow_id,
                 agent_id=s.agent_id,
                 skill_id=s.skill_id,
+                sub_workflow_id=getattr(s, "sub_workflow_id", None),
                 step_group=s.step_group,
                 position=s.position,
                 input_mode=s.input_mode,

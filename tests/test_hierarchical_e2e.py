@@ -19,17 +19,18 @@ class HierarchicalE2ETests:
         self.failed = 0
 
     async def _post(self, path: str, data: dict) -> dict:
-        async with httpx.AsyncClient(timeout=120) as client:
-            resp = await client.post(
-                f"{self.base_url}/api/v1{path}",
-                json=data,
-                headers=self.headers,
-            )
+        if not path.endswith("/"):
+            path += "/"
+        url = f"{self.base_url}/api/v1{path}"
+        async with httpx.AsyncClient(timeout=120, follow_redirects=True) as client:
+            resp = await client.post(url, json=data, headers=self.headers)
             resp.raise_for_status()
             return resp.json()
 
     async def _get(self, path: str) -> dict:
-        async with httpx.AsyncClient(timeout=30) as client:
+        if not path.endswith("/"):
+            path += "/"
+        async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
             resp = await client.get(
                 f"{self.base_url}/api/v1{path}",
                 headers=self.headers,
@@ -38,7 +39,9 @@ class HierarchicalE2ETests:
             return resp.json()
 
     async def _delete(self, path: str):
-        async with httpx.AsyncClient(timeout=30) as client:
+        if not path.endswith("/"):
+            path += "/"
+        async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
             resp = await client.delete(
                 f"{self.base_url}/api/v1{path}",
                 headers=self.headers,
@@ -96,9 +99,9 @@ class HierarchicalE2ETests:
             })
 
             # Try to make A reference itself
-            async with httpx.AsyncClient(timeout=30) as client:
+            async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
                 resp = await client.put(
-                    f"{self.base_url}/api/v1/workflows/{wf_a['id']}",
+                    f"{self.base_url}/api/v1/workflows/{wf_a['id']}/",
                     json={
                         "steps": [{"sub_workflow_id": wf_a["id"], "step_group": 0}],
                     },
