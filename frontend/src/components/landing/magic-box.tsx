@@ -2,53 +2,42 @@
 // Proprietary and confidential. See LICENSE for details.
 "use client";
 
-import { useState } from "react";
-import { AlertTriangle, ArrowRight, Loader2, LogIn, Plus, Sparkles, Star, Zap } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { AlertTriangle, ArrowRight, Loader2, LogIn, Plus, Search, Sparkles, Star, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { suggestAgents } from "@/lib/api/tasks";
 import { listAgents } from "@/lib/api/agents";
 import { ApiError } from "@/lib/api-client";
-import { FeedbackThumbs } from "@/components/shared/feedback-thumbs";
 import { useAuth } from "@/lib/auth-context";
 import { ROUTES } from "@/lib/constants";
 import type { SkillSuggestion } from "@/types/task";
 
 const STARTERS = [
-  "Summarize a long document for me",
-  "Review my code for bugs",
-  "Translate text to Spanish",
-  "Write API tests for my endpoint",
-  "Help me plan a project",
+  "Summarize a document",
+  "Review my code",
+  "Translate to Spanish",
 ];
 
-function ConfidenceBar({ confidence }: { confidence: number }) {
+function ConfidenceDot({ confidence }: { confidence: number }) {
   const pct = Math.round(confidence * 100);
   return (
-    <div className="flex items-center gap-2">
-      <div className="h-1.5 flex-1 rounded-full bg-muted">
-        <div
-          className={cn(
-            "h-full rounded-full transition-all",
-            pct >= 70
-              ? "bg-green-500"
-              : pct >= 40
-                ? "bg-amber-500"
-                : "bg-red-400"
-          )}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <span className="text-[10px] font-medium text-muted-foreground">
-        {pct}%
-      </span>
-    </div>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+        pct >= 70
+          ? "bg-green-500/10 text-green-500"
+          : pct >= 40
+            ? "bg-amber-500/10 text-amber-500"
+            : "bg-red-400/10 text-red-400"
+      )}
+    >
+      {pct}%
+    </span>
   );
 }
 
-function SuggestionCard({
+function CompactSuggestion({
   suggestion,
   query,
   isAuthenticated,
@@ -57,7 +46,7 @@ function SuggestionCard({
   query: string;
   isAuthenticated: boolean;
 }) {
-  const { agent, skill, confidence, reason } = suggestion;
+  const { agent, skill, confidence } = suggestion;
   const truncatedMsg = query.slice(0, 500);
   const agentCredits = agent.pricing?.credits ?? 0;
   const isPremium = agentCredits > 0;
@@ -70,77 +59,39 @@ function SuggestionCard({
   return (
     <a
       href={taskUrl}
-      className="group block rounded-xl border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-md"
+      className="group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-accent"
       data-testid="suggestion-card"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h3 className="truncate text-sm font-semibold group-hover:text-primary">
-              {agent.name}
-            </h3>
-            {agent.reputation_score > 0 && (
-              <span className="flex items-center gap-0.5 text-[10px] text-amber-500">
-                <Star className="h-3 w-3 fill-current" />
-                {agent.reputation_score.toFixed(1)}
-              </span>
-            )}
-          </div>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            using <span className="font-medium text-foreground">{skill.name}</span>
-          </p>
-        </div>
-        <Button size="sm" variant="default" className="shrink-0 gap-1 text-xs">
-          {isAuthenticated ? (
-            <>
-              Use this
-              <ArrowRight className="h-3 w-3" />
-            </>
-          ) : isPremium ? (
-            <>
-              <LogIn className="h-3 w-3" />
-              Sign up
-            </>
-          ) : (
-            <>
-              <Sparkles className="h-3 w-3" />
-              Try free
-            </>
-          )}
-        </Button>
-      </div>
-
-      <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
-        {reason}
-      </p>
-
-      <div className="mt-2">
-        <ConfidenceBar confidence={confidence} />
-      </div>
-
-      {suggestion.low_confidence && (
-        <div className="mt-2 flex items-center gap-1.5 rounded-md border border-orange-500/30 bg-orange-500/5 px-2 py-1 text-[11px] text-orange-400">
-          <AlertTriangle className="h-3 w-3 shrink-0" />
-          Low confidence match — results may vary
-        </div>
-      )}
-
-      <div className="mt-2 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-[10px]">
-            {agent.category}
-          </Badge>
-          {agent.total_tasks > 0 && (
-            <span className="text-[10px] text-muted-foreground">
-              {agent.total_tasks} tasks completed
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+        {agent.name.charAt(0)}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <span className="truncate text-sm font-medium group-hover:text-primary">
+            {agent.name}
+          </span>
+          {agent.reputation_score > 0 && (
+            <span className="flex shrink-0 items-center gap-0.5 text-[10px] text-amber-500">
+              <Star className="h-2.5 w-2.5 fill-current" />
+              {agent.reputation_score.toFixed(1)}
             </span>
           )}
+          <ConfidenceDot confidence={confidence} />
         </div>
-        <FeedbackThumbs
-          context="suggestion"
-          contextId={`${agent.id}:${skill.id}`}
-        />
+        <p className="truncate text-xs text-muted-foreground">
+          {skill.name}
+          {suggestion.low_confidence && (
+            <span className="ml-1.5 inline-flex items-center gap-0.5 text-orange-400">
+              <AlertTriangle className="inline h-2.5 w-2.5" />
+              low match
+            </span>
+          )}
+        </p>
       </div>
+      <span className="shrink-0 rounded-md bg-primary px-2 py-1 text-[11px] font-medium text-primary-foreground opacity-0 transition-opacity group-hover:opacity-100">
+        {isAuthenticated ? "Use" : isPremium ? "Sign up" : "Try"}
+        <ArrowRight className="ml-1 inline h-3 w-3" />
+      </span>
     </a>
   );
 }
@@ -154,6 +105,18 @@ export function MagicBox() {
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createAvailable, setCreateAvailable] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (searched && containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setSearched(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [searched]);
 
   async function handleSearch() {
     if (query.trim().length < 5) return;
@@ -228,135 +191,119 @@ export function MagicBox() {
     }
   }
 
+  const showCreateCta = searched && (createAvailable || suggestions.length === 0 || suggestions.every(s => s.confidence < 0.5)) && !error;
+
   return (
-    <div className="mx-auto w-full max-w-2xl" data-testid="magic-box">
-      <div className="rounded-xl border bg-card p-1 shadow-lg transition-all focus-within:border-primary/40 focus-within:shadow-primary/5">
-        <Textarea
+    <div className="relative mx-auto w-full" ref={containerRef} data-testid="magic-box">
+      {/* Search input */}
+      <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 shadow-sm transition-all focus-within:border-primary/40 focus-within:shadow-md focus-within:shadow-primary/5">
+        <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
+            if (e.key === "Enter") {
               e.preventDefault();
               handleSearch();
             }
           }}
           placeholder="What do you need help with?"
-          className="min-h-[80px] resize-none border-0 bg-transparent text-base shadow-none focus-visible:ring-0"
+          className="h-7 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/60"
           data-testid="magic-box-input"
         />
-        <div className="flex items-center justify-between px-2 pb-2">
-          <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-            <Sparkles className="h-3 w-3" />
-            {query.trim().length > 0 && query.trim().length < 5
-              ? `Type ${5 - query.trim().length} more character${5 - query.trim().length !== 1 ? "s" : ""} to search`
-              : "AI-powered agent matching"}
-          </div>
-          <Button
-            onClick={handleSearch}
-            disabled={loading || query.trim().length < 5}
-            size="sm"
-            className="gap-1"
-          >
-            {loading ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Zap className="h-3.5 w-3.5" />
-            )}
-            Find Agent
-          </Button>
-        </div>
+        <Button
+          onClick={handleSearch}
+          disabled={loading || query.trim().length < 5}
+          size="sm"
+          className="h-7 gap-1 px-3 text-xs"
+        >
+          {loading ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <Zap className="h-3 w-3" />
+          )}
+          Find
+        </Button>
       </div>
 
-      {/* Conversation starters */}
+      {/* Starters — compact single row */}
       {!searched && (
-        <>
-          <div className="mt-4 flex flex-wrap justify-center gap-2 sm:gap-2" data-testid="magic-box-starters">
-            {STARTERS.map((s) => (
-              <button
-                key={s}
-                onClick={() => {
-                  setQuery(s);
-                }}
-                className="min-h-[44px] rounded-full border bg-card px-4 py-2.5 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground sm:min-h-0 sm:px-3 sm:py-1"
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-          <p className="mt-3 text-center text-[11px] text-muted-foreground/70">
-            <Sparkles className="mr-1 inline h-3 w-3" />
-            Can&apos;t find a match? We&apos;ll <a href={ROUTES.createAgent} className="text-primary hover:underline">create one</a> for you.
-          </p>
-        </>
-      )}
-
-      {/* Results */}
-      {searched && suggestions.length > 0 && (
-        <div className="mt-6 space-y-3" data-testid="magic-box-results">
-          <p className="text-center text-xs text-muted-foreground">
-            Found {suggestions.length} agent{suggestions.length !== 1 ? "s" : ""} that can help
-          </p>
-          {suggestions.map((s) => (
-            <SuggestionCard key={`${s.agent.id}-${s.skill.id}`} suggestion={s} query={query} isAuthenticated={isAuthenticated} />
-          ))}
-          <p className="text-center">
-            <a
-              href="/agents"
-              className="text-xs text-muted-foreground hover:text-primary hover:underline"
+        <div className="mt-2.5 flex items-center gap-1.5" data-testid="magic-box-starters">
+          <span className="shrink-0 text-[10px] text-muted-foreground/60">Try:</span>
+          {STARTERS.map((s) => (
+            <button
+              key={s}
+              onClick={() => setQuery(s)}
+              className="truncate rounded-full border border-border/50 px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground"
             >
-              Or browse all agents →
-            </a>
-          </p>
+              {s}
+            </button>
+          ))}
         </div>
       )}
 
-      {/* Create Agent CTA — shown when no results, low confidence, or API flags it */}
-      {searched && (createAvailable || suggestions.length === 0 || suggestions.every(s => s.confidence < 0.5)) && !error && (
+      {/* Results dropdown */}
+      {searched && (suggestions.length > 0 || showCreateCta || error) && (
         <div
-          className="mt-6 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-6 text-center"
-          data-testid="magic-box-create-cta"
+          className="absolute left-0 right-0 top-full z-50 mt-2 rounded-xl border bg-card shadow-xl"
+          data-testid="magic-box-results"
         >
-          <Sparkles className="mx-auto h-8 w-8 text-primary/60" />
-          <h3 className="mt-3 font-semibold">
-            {suggestions.length === 0
-              ? "No specialist found for this yet"
-              : "Want a dedicated specialist?"}
-          </h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            We can create a custom AI agent tailored to your exact need.
-          </p>
-          <div className="mt-4 flex items-center justify-center gap-3">
-            {isAuthenticated ? (
-              <a
-                href={`${ROUTES.communityAgents}?create=true&q=${encodeURIComponent(query)}`}
-              >
-                <Button className="gap-1">
-                  <Plus className="h-4 w-4" />
-                  Create My Agent
-                </Button>
-              </a>
-            ) : (
-              <a
-                href={`/login?redirect=${encodeURIComponent(`${ROUTES.communityAgents}?create=true&q=${encodeURIComponent(query)}`)}`}
-              >
-                <Button className="gap-1">
-                  <Plus className="h-4 w-4" />
-                  Create My Agent
-                </Button>
-              </a>
-            )}
-            <a href="/agents">
-              <Button variant="outline">Browse all agents</Button>
-            </a>
-          </div>
-          <p className="mt-2 text-[10px] text-muted-foreground">5 credits</p>
-        </div>
-      )}
+          {suggestions.length > 0 && (
+            <div className="divide-y">
+              <div className="px-3 py-2">
+                <span className="text-[11px] font-medium text-muted-foreground">
+                  {suggestions.length} match{suggestions.length !== 1 ? "es" : ""}
+                </span>
+              </div>
+              {suggestions.map((s) => (
+                <CompactSuggestion
+                  key={`${s.agent.id}-${s.skill.id}`}
+                  suggestion={s}
+                  query={query}
+                  isAuthenticated={isAuthenticated}
+                />
+              ))}
+              <div className="px-3 py-2 text-center">
+                <a
+                  href="/agents"
+                  className="text-[11px] text-muted-foreground hover:text-primary"
+                >
+                  Browse all agents →
+                </a>
+              </div>
+            </div>
+          )}
 
-      {/* Error */}
-      {error && (
-        <div className="mt-4 text-center text-sm text-red-500">
-          {error}
+          {/* Compact create CTA */}
+          {showCreateCta && (
+            <div className="flex items-center gap-3 border-t px-3 py-2.5">
+              <Sparkles className="h-4 w-4 shrink-0 text-primary/60" />
+              <p className="min-w-0 flex-1 text-xs text-muted-foreground">
+                {suggestions.length === 0
+                  ? "No match found."
+                  : "Want a dedicated specialist?"}
+                {" "}
+                <a
+                  href={
+                    isAuthenticated
+                      ? `${ROUTES.communityAgents}?create=true&q=${encodeURIComponent(query)}`
+                      : `/login?redirect=${encodeURIComponent(`${ROUTES.communityAgents}?create=true&q=${encodeURIComponent(query)}`)}`
+                  }
+                  className="font-medium text-primary hover:underline"
+                >
+                  Create one
+                </a>
+                <span className="ml-1 text-[10px] text-muted-foreground/60">(5 credits)</span>
+              </p>
+            </div>
+          )}
+
+          {/* Error */}
+          {error && (
+            <div className="px-3 py-2.5 text-center text-xs text-red-500">
+              {error}
+            </div>
+          )}
         </div>
       )}
     </div>

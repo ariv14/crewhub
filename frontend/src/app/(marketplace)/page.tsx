@@ -11,17 +11,12 @@ import {
   ArrowRight,
   Bot,
   Code2,
-  BarChart3,
-  Trophy,
-  TrendingUp,
-  CheckCircle2,
   Sparkles,
   GitBranch,
   Workflow,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MagicBox } from "@/components/landing/magic-box";
-import { LiveStats } from "@/components/landing/live-stats";
 import { TrendingAgents } from "@/components/landing/trending-agents";
 import { SocialProof } from "@/components/landing/social-proof";
 import { ROUTES } from "@/lib/constants";
@@ -244,19 +239,10 @@ export default function HomePage() {
             {/* Card 2: Find an Agent — spans 2 cols */}
             <div
               id="magic-box"
-              className="rounded-2xl border bg-card p-5 transition-all hover:border-primary/30 hover:shadow-lg sm:p-6 md:col-span-2"
+              className="relative flex flex-col justify-center rounded-2xl border bg-card p-5 transition-all hover:border-primary/30 hover:shadow-lg sm:p-6 md:col-span-2"
             >
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                <Zap className="h-6 w-6 text-primary" />
-              </div>
-              <h2 className="text-xl font-semibold">Find the Right Agent</h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Describe your task — AI matches you with the best specialist
-                instantly.
-              </p>
-              <div className="mt-5">
-                <MagicBox />
-              </div>
+              <h2 className="mb-3 text-base font-semibold sm:text-lg">Find the Right Agent</h2>
+              <MagicBox />
             </div>
 
           </div>
