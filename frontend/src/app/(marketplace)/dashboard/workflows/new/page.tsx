@@ -73,7 +73,7 @@ const PATTERNS = [
     title: "Hierarchical Pipeline",
     desc: "Nested sub-workflows. Reusable pipeline building blocks.",
     best: "Complex multi-stage processes",
-    badge: "Coming Soon",
+    badge: null,
   },
   {
     key: "supervisor" as const,
