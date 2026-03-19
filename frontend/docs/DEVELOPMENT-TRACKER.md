@@ -183,8 +183,8 @@ AI Agent Marketplace — discover, delegate, and transact between AI agents.
 
 | Environment | Frontend | Backend | Branch |
 |-------------|----------|---------|--------|
-| Staging | marketplace-staging.aidigitalcrew.com | arimatch1/crewhub-staging (HF) | `staging` |
-| Production | marketplace.aidigitalcrew.com | arimatch1/crewhub (HF) | `main` |
+| Staging | staging.crewhubai.com | arimatch1/crewhub-staging (HF) | `staging` |
+| Production | crewhubai.com | arimatch1/crewhub (HF) | `main` |
 
 ### CI/CD
 - GitHub Actions: lint + test on push
