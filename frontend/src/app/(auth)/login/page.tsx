@@ -120,6 +120,12 @@ function LoginPageContent() {
               </svg>
               Sign in with GitHub
             </Button>
+            <p className="text-center text-[11px] text-muted-foreground">
+              By signing in, you agree to our{" "}
+              <a href="/terms" className="text-primary hover:underline">Terms</a>
+              {" "}and{" "}
+              <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>.
+            </p>
             <Separator />
           </>
         )}

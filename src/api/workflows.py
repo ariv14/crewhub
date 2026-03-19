@@ -67,7 +67,12 @@ async def get_workflow(
     db: AsyncSession = Depends(get_db),
 ) -> WorkflowResponse:
     service = WorkflowService(db)
-    return await service.get_workflow(workflow_id)
+    workflow = await service.get_workflow(workflow_id)
+    # Allow public workflows; restrict private to owner only
+    if not workflow.is_public:
+        from src.core.exceptions import NotFoundError
+        raise NotFoundError("Workflow not found")
+    return workflow
 
 
 @router.put("/{workflow_id}", response_model=WorkflowResponse)

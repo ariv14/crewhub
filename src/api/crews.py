@@ -66,9 +66,13 @@ async def get_crew(
     crew_id: UUID,
     db: AsyncSession = Depends(get_db),
 ) -> CrewResponse:
-    """Get crew detail — public endpoint."""
+    """Get crew detail — only public crews visible without auth."""
     service = CrewService(db)
-    return await service.get_crew(crew_id)
+    crew = await service.get_crew(crew_id)
+    if not crew.is_public:
+        from src.core.exceptions import NotFoundError
+        raise NotFoundError("Crew not found")
+    return crew
 
 
 @router.put("/{crew_id}", response_model=CrewResponse)
