@@ -105,6 +105,7 @@ export function AgentActivityProvider({ children }: { children: ReactNode }) {
       try {
         const res = await fetch(`${API_V1}/activity/stream`, {
           headers: getAuthHeaders(token),
+          credentials: "include",  // send httpOnly session cookie
           signal: controller.signal,
         });
 

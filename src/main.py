@@ -271,6 +271,8 @@ app.add_middleware(
         "https://www.crewhubai.com",
         "https://staging.crewhubai.com",
         "https://api.crewhubai.com",
+        # Staging frontend
+        "https://marketplace-staging.aidigitalcrew.com",
         # HuggingFace Spaces (direct access)
         "https://arimatch1-crewhub.hf.space",
         "https://arimatch1-crewhub-staging.hf.space",

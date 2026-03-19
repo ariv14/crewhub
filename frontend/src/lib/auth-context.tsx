@@ -56,13 +56,34 @@ function setAuthCookie(token: string | null) {
 }
 
 /**
- * Force-refresh the current user's Firebase ID token and update storage.
+ * Create/refresh the httpOnly session cookie by exchanging a Firebase token
+ * with the backend. Falls back to localStorage for non-Firebase auth.
+ */
+async function createSession(idToken: string): Promise<void> {
+  const { API_V1 } = await import("./constants");
+  await fetch(`${API_V1}/auth/session`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id_token: idToken }),
+    credentials: "include",
+  });
+}
+
+/**
+ * Force-refresh the current user's Firebase ID token and update session.
  * Returns the new token, or null if no user is signed in.
  */
 export async function refreshToken(): Promise<string | null> {
   const user = fbAuth?.currentUser;
   if (!user) return null;
   const token = await user.getIdToken(true);
+  // Update httpOnly session cookie via backend
+  try {
+    await createSession(token);
+  } catch {
+    // Network blip — keep old cookie, don't logout
+  }
+  // Also update localStorage as fallback (for SSE hooks during transition)
   localStorage.setItem("auth_token", token);
   setAuthCookie(token);
   return token;
@@ -117,11 +138,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async (firebaseUser: FirebaseUser | null) => {
         if (firebaseUser) {
           const idToken = await firebaseUser.getIdToken();
+          // Set httpOnly session cookie via backend
+          try {
+            await createSession(idToken);
+          } catch {
+            // Fallback: keep using Bearer header path
+          }
+          // Keep localStorage + non-httpOnly cookie as fallback during transition
           localStorage.setItem("auth_token", idToken);
           setAuthCookie(idToken);
-          // Exchange Firebase token with our backend
           try {
-            await api.post("/auth/firebase", { id_token: idToken });
             await fetchProfile();
           } catch {
             setState({ user: null, loading: false, isAdmin: false });
@@ -141,10 +167,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (currentUser) {
         try {
           const newToken = await currentUser.getIdToken(true);
+          // Refresh httpOnly session cookie
+          await createSession(newToken).catch(() => {});
+          // Keep localStorage fallback during transition
           localStorage.setItem("auth_token", newToken);
           setAuthCookie(newToken);
         } catch {
-          // Token refresh failed — user will re-auth on next API call
+          // Token refresh failed — don't logout, retry next interval
         }
       }
     }, REFRESH_INTERVAL_MS);
@@ -166,13 +195,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return; // redirect flow — onAuthStateChanged handles it on return
     }
     const result = await signInWithPopup(firebaseAuth, provider);
-    // Set token + cookie NOW so middleware sees auth on the next navigation.
-    // Without this, router.push("/dashboard") races ahead of onAuthStateChanged
-    // and middleware redirects back to /login (no cookie yet).
     const idToken = await result.user.getIdToken();
+    // Set httpOnly session cookie via backend (primary auth)
+    await createSession(idToken).catch(() => {});
+    // Keep localStorage + cookie as fallback during transition
     localStorage.setItem("auth_token", idToken);
     setAuthCookie(idToken);
-    await api.post("/auth/firebase", { id_token: idToken });
     await fetchProfile();
   }, [isTauri, fetchProfile]);
 
@@ -185,9 +213,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const result = await signInWithPopup(firebaseAuth, provider);
     const idToken = await result.user.getIdToken();
+    await createSession(idToken).catch(() => {});
     localStorage.setItem("auth_token", idToken);
     setAuthCookie(idToken);
-    await api.post("/auth/firebase", { id_token: idToken });
     await fetchProfile();
   }, [isTauri, fetchProfile]);
 
@@ -216,6 +244,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isFirebaseMode && firebaseAuth) {
       await firebaseSignOut(firebaseAuth);
     }
+    // Clear httpOnly session cookie via backend (JS can't clear httpOnly cookies)
+    const { API_V1 } = await import("./constants");
+    await fetch(`${API_V1}/auth/session/logout`, {
+      method: "POST",
+      credentials: "include",
+    }).catch(() => {});
+    // Clear localStorage fallback
     localStorage.removeItem("auth_token");
     setAuthCookie(null);
     setState({ user: null, loading: false, isAdmin: false });

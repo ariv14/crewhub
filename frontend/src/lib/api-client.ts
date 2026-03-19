@@ -33,6 +33,7 @@ class ApiClient {
       res = await fetch(`${API_V1}${path}`, {
         ...options,
         headers,
+        credentials: "include",  // send httpOnly session cookie automatically
       });
     } catch (err) {
       // Network error (offline, DNS failure, etc.) — retry
