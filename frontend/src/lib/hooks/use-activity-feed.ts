@@ -95,7 +95,6 @@ export function useActivityFeed(): UseActivityFeedReturn {
       try {
         const res = await fetch(url, {
           headers: getAuthHeaders(token),
-          credentials: "include",  // send httpOnly session cookie
           signal: controller.signal,
         });
 

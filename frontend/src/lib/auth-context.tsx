@@ -57,10 +57,21 @@ function setAuthCookie(token: string | null) {
 
 /**
  * Create/refresh the httpOnly session cookie by exchanging a Firebase token
- * with the backend. Falls back to localStorage for non-Firebase auth.
+ * with the backend. Only works on same-site deployments (production).
+ * On cross-site staging, this is a no-op and Bearer header is used instead.
  */
 async function createSession(idToken: string): Promise<void> {
   const { API_V1 } = await import("./constants");
+  // Only set httpOnly cookie on same-site deployments (production)
+  try {
+    const apiHost = new URL(API_V1).hostname;
+    const pageHost = typeof window !== "undefined" ? window.location.hostname : "";
+    const apiRoot = apiHost.split(".").slice(-2).join(".");
+    const pageRoot = pageHost.split(".").slice(-2).join(".");
+    if (apiRoot !== pageRoot) return; // cross-site — skip cookie, use Bearer
+  } catch {
+    return;
+  }
   await fetch(`${API_V1}/auth/session`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -245,11 +256,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await firebaseSignOut(firebaseAuth);
     }
     // Clear httpOnly session cookie via backend (JS can't clear httpOnly cookies)
-    const { API_V1 } = await import("./constants");
-    await fetch(`${API_V1}/auth/session/logout`, {
-      method: "POST",
-      credentials: "include",
-    }).catch(() => {});
+    try {
+      const { API_V1 } = await import("./constants");
+      const apiHost = new URL(API_V1).hostname;
+      const pageHost = window.location.hostname;
+      const apiRoot = apiHost.split(".").slice(-2).join(".");
+      const pageRoot = pageHost.split(".").slice(-2).join(".");
+      if (apiRoot === pageRoot) {
+        await fetch(`${API_V1}/auth/session/logout`, {
+          method: "POST",
+          credentials: "include",
+        });
+      }
+    } catch {
+      // Logout continues even if session clear fails
+    }
     // Clear localStorage fallback
     localStorage.removeItem("auth_token");
     setAuthCookie(null);
