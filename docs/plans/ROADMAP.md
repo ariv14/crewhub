@@ -274,6 +274,12 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 - [x] staging.crewhubai.com set as canonical staging frontend (Firebase authorized)
 - [x] Builder submissions use resolve_db_user_id (Firebase UID compat)
 
+### E2E Test Audit (Mar 19) — COMPLETE
+- [x] Comprehensive E2E test plan: 37 pages, 120+ API endpoints, 71 paths mapped
+- [x] Trailing slash audit: all admin list pages verified working
+- [x] Fixed: admin submissions trailing slash 404, security_schemes validation, builder CSP
+- [x] Full E2E tested: builder → publish → admin approve → agent live with endpoint + skill
+
 ### Near-Term
 - [x] Run E2E tests for orchestration patterns on staging — 6/6 pass
 - [x] Run E2E tests on production — 14/14 functional tests pass
