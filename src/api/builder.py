@@ -195,3 +195,56 @@ async def delete_submission(
     await db.delete(submission)
     await db.commit()
     return {"status": "deleted"}
+
+
+class SubmissionResubmit(BaseModel):
+    langflow_flow_id: str | None = Field(None, max_length=200)
+    name: str | None = Field(None, max_length=200)
+    description: str | None = None
+    category: str | None = None
+    credits: float | None = Field(None, ge=5)
+    tags: list[str] | None = None
+
+
+@router.post("/submissions/{submission_id}/resubmit", response_model=SubmissionResponse)
+async def resubmit_submission(
+    submission_id: UUID,
+    data: SubmissionResubmit,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Re-submit a rejected submission for review with optional updates."""
+    user_id = _resolve_user_id(current_user)
+    submission = await db.get(AgentSubmission, submission_id)
+
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    if submission.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Not your submission")
+    if submission.status != "rejected":
+        raise HTTPException(status_code=400, detail=f"Can only resubmit rejected submissions (current: {submission.status})")
+
+    # Apply optional updates
+    if data.langflow_flow_id is not None:
+        submission.langflow_flow_id = data.langflow_flow_id
+    if data.name is not None:
+        submission.name = data.name
+    if data.description is not None:
+        submission.description = data.description
+    if data.category is not None:
+        submission.category = data.category
+    if data.credits is not None:
+        submission.credits = data.credits
+    if data.tags is not None:
+        submission.tags = data.tags
+
+    # Reset review state
+    submission.status = "pending_review"
+    submission.reviewer_notes = None
+    submission.reviewed_by = None
+    submission.reviewed_at = None
+
+    await db.commit()
+    await db.refresh(submission)
+    logger.info("Submission %s resubmitted by user %s", submission.id, user_id)
+    return SubmissionResponse.model_validate(submission)

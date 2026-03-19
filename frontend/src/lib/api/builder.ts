@@ -43,3 +43,16 @@ export async function listSubmissions(page = 1, perPage = 20): Promise<Submissio
 export async function deleteSubmission(id: string): Promise<void> {
   return api.delete(`/builder/submissions/${id}`);
 }
+
+export interface SubmissionResubmit {
+  langflow_flow_id?: string;
+  name?: string;
+  description?: string;
+  category?: string;
+  credits?: number;
+  tags?: string[];
+}
+
+export async function resubmitSubmission(id: string, data: SubmissionResubmit): Promise<Submission> {
+  return api.post(`/builder/submissions/${id}/resubmit`, data);
+}

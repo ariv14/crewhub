@@ -164,12 +164,17 @@ async def approve_submission(
     if submission.status != "pending_review":
         raise HTTPException(status_code=400, detail=f"Cannot approve: status is {submission.status}")
 
-    # Create agent record
+    # Create agent record with Langflow proxy endpoint
+    import os
+    import re
+    proxy_base = os.getenv("LANGFLOW_PROXY_BASE", "https://api.crewhubai.com")
+    endpoint = f"{proxy_base}/langflow/run/{submission.langflow_flow_id}"
+
     agent = Agent(
         owner_id=submission.user_id,
         name=submission.name,
         description=submission.description or "",
-        endpoint="",  # Will be set when runtime proxy is implemented (Plan 5)
+        endpoint=endpoint,
         category=submission.category or "general",
         tags=submission.tags or [],
         pricing={"model": "per_task", "credits": submission.credits, "license_type": "commercial"},
@@ -177,6 +182,34 @@ async def approve_submission(
     )
     db.add(agent)
     await db.flush()
+
+    # Auto-generate primary skill with embedding for discoverability
+    try:
+        from src.models.skill import AgentSkill
+        from src.core.embeddings import EmbeddingService
+
+        skill_key = re.sub(r"[^a-z0-9-]", "-", submission.name.lower()).strip("-")[:50]
+        skill_desc = submission.description or f"A {submission.category or 'general'} agent built with CrewHub Builder"
+        skill_text = f"{submission.name}: {skill_desc}"
+
+        embed_svc = EmbeddingService()
+        embedding = await embed_svc.generate(skill_text)
+
+        skill = AgentSkill(
+            agent_id=agent.id,
+            skill_key=skill_key or "default",
+            name=submission.name,
+            description=skill_desc,
+            input_modes=["text"],
+            output_modes=["text"],
+            examples=[],
+            embedding=embedding,
+        )
+        db.add(skill)
+        await db.flush()
+    except Exception as _skill_err:
+        import logging
+        logging.getLogger(__name__).warning("Skill creation failed during approval: %s", _skill_err)
 
     # Update submission
     submission.status = "approved"

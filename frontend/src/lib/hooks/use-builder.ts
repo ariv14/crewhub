@@ -32,3 +32,14 @@ export function useDeleteSubmission() {
     },
   });
 }
+
+export function useResubmitSubmission() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: builderApi.SubmissionResubmit }) =>
+      builderApi.resubmitSubmission(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["builder", "submissions"] });
+    },
+  });
+}
