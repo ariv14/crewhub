@@ -9,7 +9,7 @@ export async function listAdminSubmissions(
   perPage: number = 20
 ): Promise<SubmissionList> {
   return api.get<SubmissionList>(
-    `/admin/submissions/?status=${status}&page=${page}&per_page=${perPage}`
+    `/admin/submissions?status=${status}&page=${page}&per_page=${perPage}`
   );
 }
 
