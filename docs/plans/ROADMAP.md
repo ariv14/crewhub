@@ -264,8 +264,17 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 
 - [ ] **Week 4**: DPA template, incident response docs, auditor engagement (documentation only)
 
+### Agent Submissions Flow (Mar 19) — COMPLETE
+- [x] Langflow proxy: POST /langflow/run/{flow_id} — A2A-to-Langflow adapter
+- [x] Approved agents get endpoint auto-set to proxy URL (task dispatch works)
+- [x] Auto-generate primary skill with embedding on approval (search works)
+- [x] Re-submission endpoint: POST /builder/submissions/{id}/resubmit
+- [x] Status change notifications via localStorage-diff toast
+- [x] CSP fix: added apis.google.com + *.firebaseapp.com to script-src/frame-src
+- [x] staging.crewhubai.com set as canonical staging frontend (Firebase authorized)
+- [x] Builder submissions use resolve_db_user_id (Firebase UID compat)
+
 ### Near-Term
-- [ ] Agent submissions/review flow (models + schemas created, UI in progress)
 - [x] Run E2E tests for orchestration patterns on staging — 6/6 pass
 - [x] Run E2E tests on production — 14/14 functional tests pass
 - [x] Merge Team Mode into Workflows — complete
