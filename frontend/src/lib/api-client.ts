@@ -49,10 +49,14 @@ class ApiClient {
 
     let res: Response;
     try {
+      // Send credentials: "include" only when no Bearer/API-key header is set
+      // (pure cookie auth). When a token is in the header, credentials: "include"
+      // can conflict with CF Worker proxies that force Access-Control-Allow-Origin: *
+      const useCredentials = isSameSite() && !token;
       res = await fetch(`${API_V1}${path}`, {
         ...options,
         headers,
-        ...(isSameSite() ? { credentials: "include" as RequestCredentials } : {}),
+        ...(useCredentials ? { credentials: "include" as RequestCredentials } : {}),
       });
     } catch (err) {
       // Network error (offline, DNS failure, etc.) — retry

@@ -72,12 +72,17 @@ async function createSession(idToken: string): Promise<void> {
   } catch {
     return;
   }
-  await fetch(`${API_V1}/auth/session`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id_token: idToken }),
-    credentials: "include",
-  });
+  try {
+    await fetch(`${API_V1}/auth/session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id_token: idToken }),
+      credentials: "include",
+    });
+  } catch {
+    // CORS may block credentials:include if proxy returns wildcard origin.
+    // Silently skip — Bearer header from localStorage is the fallback.
+  }
 }
 
 /**
