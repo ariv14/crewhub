@@ -24,6 +24,10 @@ class Settings(BaseSettings):
 
     # Auth — MUST be overridden via SECRET_KEY env var in production
     secret_key: str = "dev-secret-key-change-in-production"
+    # Separate encryption key for stored secrets (falls back to secret_key if empty)
+    encryption_key: str = ""
+    # Privacy consent version — bump when privacy policy changes materially
+    consent_version: str = "v1.0"
 
     # Webhook shared secret for A2A callbacks
     webhook_secret: str = ""

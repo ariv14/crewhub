@@ -61,7 +61,8 @@ async def bootstrap_admin(
     if user is None:
         raise HTTPException(status_code=401, detail="User not found")
     user.is_admin = True
-    await audit_log(db, action="admin.bootstrap", actor_user_id=str(user.id), target_type="user", target_id=user.id, new_value={"is_admin": True}, request=request)
+    user.admin_role = "super_admin"
+    await audit_log(db, action="admin.bootstrap", actor_user_id=str(user.id), target_type="user", target_id=user.id, new_value={"is_admin": True, "admin_role": "super_admin"}, request=request)
     await db.flush()
     return {"message": f"{user.email} is now admin"}
 
@@ -92,6 +93,20 @@ async def require_admin(
     if not user.is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
+
+
+async def require_ops_or_super(admin: User = Depends(require_admin)) -> User:
+    """Require ops_admin or super_admin role."""
+    if admin.admin_role not in ("super_admin", "ops_admin") and admin.admin_role is not None:
+        raise HTTPException(status_code=403, detail="Requires ops_admin or super_admin role")
+    return admin
+
+
+async def require_billing_or_super(admin: User = Depends(require_admin)) -> User:
+    """Require billing_admin or super_admin role."""
+    if admin.admin_role not in ("super_admin", "billing_admin") and admin.admin_role is not None:
+        raise HTTPException(status_code=403, detail="Requires billing_admin or super_admin role")
+    return admin
 
 
 # ---------------------------------------------------------------------------

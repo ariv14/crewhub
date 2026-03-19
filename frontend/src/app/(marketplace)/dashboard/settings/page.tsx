@@ -19,6 +19,8 @@ import {
   Radio,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { api } from "@/lib/api-client";
+import { API_V1 } from "@/lib/constants";
 import { createApiKey, revokeApiKey, updateMe } from "@/lib/api/auth";
 import { listLLMKeys, setLLMKey, deleteLLMKey } from "@/lib/api/llm-keys";
 import type { LLMKeyInfo } from "@/lib/api/llm-keys";
@@ -49,11 +51,56 @@ const PROVIDERS = [
 ];
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
 
   // Spending limit state
   const [spendLimit, setSpendLimit] = useState("");
   const [savingLimit, setSavingLimit] = useState(false);
+
+  // GDPR: export + delete account state
+  const [exporting, setExporting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleExportData() {
+    setExporting(true);
+    try {
+      const res = await fetch(`${API_V1}/auth/me/export`, {
+        headers: token ? (token.startsWith("a2a_") ? { "X-API-Key": token } : { Authorization: `Bearer ${token}` }) : {},
+      });
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `crewhub-export-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Data exported");
+    } catch {
+      toast.error("Export failed — try again later");
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    try {
+      await api.delete("/auth/me", { confirmation: "DELETE" });
+      toast.success("Account deleted");
+      logout();
+      window.location.href = "/";
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Deletion failed");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   useEffect(() => {
     if (user?.daily_spend_limit != null) {
@@ -249,6 +296,59 @@ export default function SettingsPage() {
                 <p className="text-xs text-muted-foreground">
                   Current limit: {user.daily_spend_limit} credits/day
                 </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Data & Account — Danger Zone */}
+          <Card className="border-destructive/30">
+            <CardHeader>
+              <CardTitle className="text-base text-destructive">Data &amp; Account</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Download Your Data</p>
+                  <p className="text-xs text-muted-foreground">Export all your data as JSON (GDPR Article 20)</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleExportData} disabled={exporting}>
+                  {exporting ? "Exporting..." : "Download"}
+                </Button>
+              </div>
+              <div className="border-t pt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Delete Account</p>
+                    <p className="text-xs text-muted-foreground">Permanently delete your account and all data</p>
+                  </div>
+                  <Button variant="destructive" size="sm" onClick={() => setShowDeleteDialog(true)}>
+                    Delete Account
+                  </Button>
+                </div>
+              </div>
+              {showDeleteDialog && (
+                <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 space-y-3">
+                  <p className="text-sm text-destructive font-medium">This action cannot be undone.</p>
+                  <p className="text-xs text-muted-foreground">Your personal data will be scrubbed immediately. Agents and workflows will be deleted. Transaction records are retained for financial compliance.</p>
+                  <Input
+                    placeholder='Type "DELETE" to confirm'
+                    value={deleteConfirmText}
+                    onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      disabled={deleteConfirmText !== "DELETE" || deleting}
+                      onClick={handleDeleteAccount}
+                    >
+                      {deleting ? "Deleting..." : "Permanently Delete"}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => { setShowDeleteDialog(false); setDeleteConfirmText(""); }}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>

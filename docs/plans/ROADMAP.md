@@ -240,10 +240,21 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 - [x] Terms + Privacy links on registration form
 - [x] Staging frontend added to CORS allow_origins
 
-**Remaining: 17 findings (0 critical, 2 high, 12 medium, 3 low)**
+**Week 3 Day 1 — COMPLETE (Mar 19):** 57 of 64 findings resolved
+- [x] GET /workflows/{id}: restrict to public-only (private returns 404)
+- [x] GET /crews/{id}: restrict to public-only (private returns 404)
+- [x] GET /analytics/delegation-accuracy: requires auth
+- [x] POST /builder/verify-code: rate limited
+- [x] Redis: startup warning in production if REDIS_URL unset
+- [x] pip-audit: dependency scanning step added to CI
+- [x] /validate timeout: reduced from 30s to 10s
+- [x] Login page: Terms + Privacy Policy text below OAuth buttons
+- [x] Submission model + schema tracked (was untracked, broke CI)
 
-- [ ] **Week 3**: GDPR endpoints (data export/deletion, Settings UI) + SOC 2 (RBAC, key rotation, workflow/crew visibility)
-- [ ] **Week 4**: Hardening (Redis enforcement, pip-audit), DPA, incident response, auditor engagement
+**Remaining: 7 findings (0 critical, 0 high, 7 medium)**
+
+- [ ] **Week 3 Day 2-3**: GDPR endpoints (data export/deletion, consent tracking, Settings UI) + RBAC + encryption key rotation
+- [ ] **Week 4**: DPA template, incident response docs, auditor engagement
 
 ### Near-Term
 - [ ] Agent submissions/review flow (models + schemas created, UI in progress)

@@ -55,12 +55,28 @@ class User(Base):
     llm_api_keys: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True, default=dict)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=sa.true())
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa.false())
+    admin_role: Mapped[Optional[str]] = mapped_column(
+        String(20), nullable=True, default=None,
+        comment="super_admin | ops_admin | billing_admin | NULL"
+    )
     onboarding_completed: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa.false())
     daily_spend_limit: Mapped[Optional[float]] = mapped_column(
         sa.Float, nullable=True, default=None,
         comment="Max credits per day (NULL = unlimited)"
     )
     interests: Mapped[list | None] = mapped_column(JSON, nullable=True, default=list)
+    deletion_requested_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None
+    )
+    consent_version: Mapped[Optional[str]] = mapped_column(
+        String(20), nullable=True, default=None
+    )
+    consent_given_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None
+    )
+    consent_ip: Mapped[Optional[str]] = mapped_column(
+        String(45), nullable=True, default=None
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
