@@ -353,6 +353,7 @@ from src.api.schedules import router as schedules_router  # noqa: E402
 from src.api.custom_agents import router as custom_agents_router  # noqa: E402
 from src.api.channels import router as channels_router  # noqa: E402
 from src.api.builder import router as builder_router  # noqa: E402
+from src.api.langflow_proxy import router as langflow_router  # noqa: E402
 
 app.include_router(auth_router, prefix=settings.api_v1_prefix)
 app.include_router(agents_router, prefix=settings.api_v1_prefix)
@@ -387,6 +388,7 @@ app.include_router(workflows_router, prefix=settings.api_v1_prefix)
 app.include_router(schedules_router, prefix=settings.api_v1_prefix)
 app.include_router(custom_agents_router, prefix=settings.api_v1_prefix)
 app.include_router(builder_router, prefix=settings.api_v1_prefix)
+app.include_router(langflow_router)  # mounted at root (no prefix) — /langflow/run/{flow_id}
 # Also mount ANP well-known endpoint at root (no prefix)
 app.include_router(anp_router)
 

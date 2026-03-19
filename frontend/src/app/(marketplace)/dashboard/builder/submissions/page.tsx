@@ -2,8 +2,9 @@
 // Proprietary and confidential. See LICENSE for details.
 "use client";
 
-import { Clock, CheckCircle2, XCircle, Loader2, Trash2, ExternalLink } from "lucide-react";
-import { useSubmissions, useDeleteSubmission } from "@/lib/hooks/use-builder";
+import { useEffect } from "react";
+import { Clock, CheckCircle2, XCircle, Loader2, Trash2, ExternalLink, RotateCcw } from "lucide-react";
+import { useSubmissions, useDeleteSubmission, useResubmitSubmission } from "@/lib/hooks/use-builder";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +20,24 @@ const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; variant: "defau
 export default function SubmissionsPage() {
   const { data, isLoading } = useSubmissions();
   const deleteMutation = useDeleteSubmission();
+  const resubmitMutation = useResubmitSubmission();
+
+  // Notify on status changes (localStorage diff)
+  useEffect(() => {
+    if (!data) return;
+    const stored = JSON.parse(localStorage.getItem("submission_statuses") || "{}");
+    for (const sub of data.submissions) {
+      const prev = stored[sub.id];
+      if (prev === "pending_review" && sub.status === "approved") {
+        toast.success(`"${sub.name}" was approved and is now live!`);
+      } else if (prev === "pending_review" && sub.status === "rejected") {
+        toast.error(`"${sub.name}" was rejected. See reviewer notes below.`);
+      }
+    }
+    const next: Record<string, string> = {};
+    for (const sub of data.submissions) next[sub.id] = sub.status;
+    localStorage.setItem("submission_statuses", JSON.stringify(next));
+  }, [data]);
 
   async function handleDelete(id: string) {
     try {
@@ -26,6 +45,15 @@ export default function SubmissionsPage() {
       toast.success("Submission deleted");
     } catch {
       toast.error("Failed to delete submission");
+    }
+  }
+
+  async function handleResubmit(id: string) {
+    try {
+      await resubmitMutation.mutateAsync({ id, data: {} });
+      toast.success("Resubmitted for review!");
+    } catch {
+      toast.error("Failed to resubmit");
     }
   }
 
@@ -101,6 +129,18 @@ export default function SubmissionsPage() {
                           View Agent
                         </Button>
                       </a>
+                    )}
+                    {sub.status === "rejected" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1"
+                        onClick={() => handleResubmit(sub.id)}
+                        disabled={resubmitMutation.isPending}
+                      >
+                        <RotateCcw className="h-3 w-3" />
+                        Resubmit
+                      </Button>
                     )}
                     {sub.status !== "approved" && (
                       <Button
