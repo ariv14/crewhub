@@ -6,6 +6,8 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
+
+from src.core.auth import get_current_user
 from pydantic import BaseModel
 from sqlalchemy import case, func, literal_column, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -110,6 +112,7 @@ class DelegationWeek(BaseModel):
 @router.get("/delegation-accuracy", response_model=DelegationAccuracyResponse)
 async def get_delegation_accuracy(
     weeks: int = Query(default=12, ge=1, le=52),
+    current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Platform-wide delegation accuracy — how often auto-suggestions lead to successful tasks."""

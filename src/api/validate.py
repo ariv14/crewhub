@@ -281,7 +281,7 @@ async def validate_agent(data: ValidateRequest) -> ValidateResponse:
             },
         }
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=10.0) as client:
                 rpc_resp = await client.post(base_url, json=rpc_payload)
             if rpc_resp.status_code == 200:
                 checks.append(ValidationCheck(

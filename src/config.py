@@ -190,6 +190,15 @@ if not _IN_TESTS and not settings.debug and not settings.webhook_secret:
     )
     sys.exit(1)
 
+# WARN: Redis strongly recommended in production for shared rate limiting
+if not _IN_TESTS and not settings.debug and not os.environ.get("REDIS_URL"):
+    print(
+        "WARNING: REDIS_URL is not set in production mode. "
+        "Rate limiting will use in-memory state (not shared across workers). "
+        "Set REDIS_URL for production-grade rate limiting.",
+        file=sys.stderr,
+    )
+
 # CRIT-SEC: Validate DATABASE_URL is PostgreSQL in production
 if not _IN_TESTS and not settings.debug and "sqlite" in settings.database_url:
     print(
