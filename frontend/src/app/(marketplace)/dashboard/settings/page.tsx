@@ -315,20 +315,26 @@ export default function SettingsPage() {
                 Cookie Preferences
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                We use PostHog for analytics and session replay to improve the platform.
-                All form inputs are masked. Essential cookies (authentication, preferences)
-                are always active.
-              </p>
-              <div className="flex items-center justify-between rounded-md border px-3 py-2">
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">Analytics cookies</span> help us understand
+                  how people use CrewHub — which pages are popular, where users get stuck, and how we
+                  can improve. No personally identifiable form data is captured.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">Essential cookies</span> keep you signed in
+                  and are required for the platform to work. These cannot be turned off.
+                </p>
+              </div>
+              <div className="flex items-center justify-between rounded-md border px-3 py-2.5">
                 <div>
-                  <p className="text-sm font-medium">Analytics &amp; Session Recording</p>
+                  <p className="text-sm font-medium">Analytics Cookies</p>
                   <p className="text-xs text-muted-foreground">
                     {cookieConsent === "true"
-                      ? "You have accepted analytics cookies"
+                      ? "Enabled — helping us improve CrewHub"
                       : cookieConsent === "false"
-                        ? "You have declined analytics cookies"
+                        ? "Disabled — no analytics data collected"
                         : "No preference set"}
                   </p>
                 </div>
@@ -338,15 +344,16 @@ export default function SettingsPage() {
                   onClick={() => {
                     resetAnalyticsConsent();
                     setCookieConsent(null);
-                    toast.success("Cookie preferences reset — the consent banner will reappear");
+                    toast.success("Preferences reset — consent banner will reappear");
                   }}
                 >
                   Reset Preferences
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Resetting will opt you out of analytics tracking and show the consent banner again.{" "}
-                <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>
+                For full details on what we collect, how long it&apos;s stored, and our data practices,
+                see our{" "}
+                <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>.
               </p>
             </CardContent>
           </Card>
