@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.rate_limiter import rate_limit_by_ip
 
-from src.core.auth import get_current_user
+from src.core.auth import get_current_user, resolve_db_user_id
 from src.database import get_db
 from src.models.submission import AgentSubmission
 from src.schemas.submission import (
@@ -101,17 +101,22 @@ def _resolve_user_id(current_user: dict) -> UUID:
     uid = current_user.get("id")
     if not uid:
         raise HTTPException(status_code=401, detail="User ID not found")
-    return UUID(uid) if isinstance(uid, str) else uid
+    if isinstance(uid, UUID):
+        return uid
+    try:
+        return UUID(uid)
+    except (ValueError, AttributeError):
+        # Firebase UID (not a UUID) — this will be resolved via resolve_db_user_id
+        raise HTTPException(status_code=500, detail="Use resolve_db_user_id for Firebase auth")
 
 
 @router.post("/submissions", response_model=SubmissionResponse)
 async def create_submission(
     data: SubmissionCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    user_id: UUID = Depends(resolve_db_user_id),
 ):
     """Submit a Langflow flow for marketplace review."""
-    user_id = _resolve_user_id(current_user)
 
     # Check agent limit (3 free, then paid)
     count_q = select(func.count()).select_from(
@@ -151,10 +156,9 @@ async def list_submissions(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    user_id: UUID = Depends(resolve_db_user_id),
 ):
     """List my submissions."""
-    user_id = _resolve_user_id(current_user)
 
     total_q = select(func.count()).select_from(
         select(AgentSubmission).where(AgentSubmission.user_id == user_id).subquery()
@@ -181,10 +185,9 @@ async def list_submissions(
 async def delete_submission(
     submission_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    user_id: UUID = Depends(resolve_db_user_id),
 ):
     """Delete/unpublish a submission (user-initiated)."""
-    user_id = _resolve_user_id(current_user)
     submission = await db.get(AgentSubmission, submission_id)
 
     if not submission:
@@ -211,10 +214,9 @@ async def resubmit_submission(
     submission_id: UUID,
     data: SubmissionResubmit,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    user_id: UUID = Depends(resolve_db_user_id),
 ):
     """Re-submit a rejected submission for review with optional updates."""
-    user_id = _resolve_user_id(current_user)
     submission = await db.get(AgentSubmission, submission_id)
 
     if not submission:
