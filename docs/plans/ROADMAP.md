@@ -1,6 +1,6 @@
 # CrewHub Development Roadmap
 
-**Last updated:** 2026-03-18
+**Last updated:** 2026-03-19
 **Staging:** marketplace-staging.aidigitalcrew.com | arimatch1-crewhub-staging.hf.space
 **Production:** crewhubai.com | arimatch1/crewhub (HF Space)
 **API:** api.crewhubai.com (prod) | api-staging.crewhubai.com (staging)
@@ -195,10 +195,13 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 
 ### Compact Landing Page + Security Hardening (Mar 19) — ON STAGING
 - [x] Compact "Find the Right Agent" card — textarea → input, 5 starters → 3, floating dropdown
-- [x] Security: 40 of 64 compliance findings resolved (see Compliance section below)
+- [x] Security: **64 of 64 compliance findings resolved (100%)**
 - [x] AuditLog model + migration 030 + utility wired into all admin endpoints
 - [x] SSRF protection, rate limiting, Sentry PII scrubbing, CSP headers, cookie hardening
-- [x] Compliance plan v2 drafted with updated gap analysis (24 remaining)
+- [x] GDPR: data export + account deletion endpoints, consent tracking migrations
+- [x] RBAC: admin_role column with ops/super/billing separation
+- [x] Encryption key versioning with backward-compatible decrypt
+- [x] Cookie compliance Phase 1: sidebar_state flags, consent banner text, privacy policy inventory
 
 ### Stripe Dashboard Manual Steps (Pending)
 - [ ] **Staging**: Enable Stripe Connect (test mode), add `account.updated` webhook event
@@ -210,7 +213,7 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 
 ## Current Sprint
 
-### Compliance Certification (see `2026-03-19-compliance-certification-plan-v2.md`)
+### Compliance Certification — ALL TECHNICAL WORK COMPLETE (see `2026-03-19-compliance-certification-plan-v2.md`)
 
 **Week 1 — COMPLETE (Mar 19):** 40 of 64 findings resolved
 - [x] XSS prevention: rehype-sanitize on all markdown, image URL validation
@@ -280,30 +283,34 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 - [x] Fixed: admin submissions trailing slash 404, security_schemes validation, builder CSP
 - [x] Full E2E tested: builder → publish → admin approve → agent live with endpoint + skill
 
-### Cookie & Privacy Compliance (audited Mar 19)
-7 NON-COMPLIANT, 5 NEEDS IMPROVEMENT, 6 COMPLIANT findings.
+### Cookie & Privacy Compliance (Mar 19) — Phases 1-2 COMPLETE
+7 NON-COMPLIANT, 5 NEEDS IMPROVEMENT, 6 COMPLIANT findings audited.
 
-**Phase 1: Quick fixes (1-2 hrs)**
-- [ ] Fix `sidebar_state` cookie — add `SameSite=Lax; Secure` flags
-- [ ] Update consent banner text: mention session recording + PostHog by name
-- [ ] Update privacy policy Section 5: full cookie/storage inventory (6 missing items)
-- [ ] Fix "anonymous" → "pseudonymous" in privacy policy PostHog section
-- [ ] Add session recording disclosure to privacy policy
+**Phase 1: Quick fixes — COMPLETE**
+- [x] Fix `sidebar_state` cookie — add `SameSite=Lax; Secure` flags
+- [x] Update consent banner text: mention session recording + PostHog by name
+- [x] Update privacy policy Section 5: full cookie/storage inventory (6 missing items)
+- [x] Fix "anonymous" → "pseudonymous" in privacy policy PostHog section
+- [x] Add session recording disclosure to privacy policy
 
-**Phase 2: Consent withdrawal (1-2 hrs)**
-- [ ] "Cookie Preferences" button in Settings Profile tab
-- [ ] "Cookie Preferences" link in footer
-- [ ] Both reset localStorage consent, call posthog.opt_out_capturing(), re-show banner
+**Phase 2: Consent withdrawal — COMPLETE**
+- [x] "Cookie Preferences" card in Settings Profile tab (shows current status + reset button)
+- [x] "Cookie Preferences" link in homepage footer
+- [x] Both reset localStorage consent, call posthog.opt_out_capturing(), re-show banner
+- [x] PostHog provider listens for custom event, resetAnalyticsConsent() exported for reuse
 
 **Phase 3: Server-side consent logging (1 hr)**
 - [ ] `POST /api/v1/auth/consent` endpoint — stores timestamp, version, IP
 - [ ] Call from handleAccept() in posthog-provider
 - [ ] Version the consent key (analytics_consent_v1.0)
 
+### Multi-Channel Gateway (Mar 18) — DESIGNED, NOT YET IMPLEMENTED
+- [x] Full design spec: `docs/superpowers/specs/2026-03-18-multi-channel-gateway-design.md`
+- [x] 5 platforms (Slack, Discord, Telegram, WhatsApp, email), developer-pays model
+- [x] Async callback pattern, 5 implementation phases
+- [ ] Phase 1 implementation (next priority)
+
 ### Near-Term
-- [x] Run E2E tests for orchestration patterns on staging — 6/6 pass
-- [x] Run E2E tests on production — 14/14 functional tests pass
-- [x] Merge Team Mode into Workflows — complete
 - [ ] Delegation accuracy analytics query (data captured, no reporting endpoint)
 - [ ] Redis-backed embedding rate limiter (current: in-memory, single-process only)
 
@@ -478,4 +485,7 @@ Clients → CF Worker (gateway) → Primary (HF Space) / Secondary (Railway/Fly)
 | 2026-03-18 | Hybrid agents — local/on-device execution roadmap | Planned (5 phases) |
 | 2026-03-18 | Resilience & multi-cloud readiness | Planned (3 tiers) |
 | 2026-03-19 | Protocol adoption roadmap (AG-UI, A2UI, MCP, AP2, UCP) | Planned (5 phases) |
-| 2026-03-19 | Compliance certification plan (SOC 2, GDPR, HIPAA) | In progress (64 findings) |
+| 2026-03-19 | Compliance certification plan (SOC 2, GDPR, HIPAA) | Complete (64/64 resolved) |
+| 2026-03-19 | Cookie & privacy compliance audit | Phase 1 complete, Phases 2-3 remaining |
+| 2026-03-19 | Agent submissions gap fixes | Complete (5 gaps fixed) |
+| 2026-03-19 | E2E test plan — 37 pages, 120+ endpoints | Complete |
