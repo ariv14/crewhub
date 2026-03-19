@@ -20,6 +20,7 @@ import { MagicBox } from "@/components/landing/magic-box";
 import { TrendingAgents } from "@/components/landing/trending-agents";
 import { SocialProof } from "@/components/landing/social-proof";
 import { ROUTES } from "@/lib/constants";
+import { CookiePreferencesButton } from "@/components/shared/cookie-preferences-button";
 
 const audiences = [
   {
@@ -507,6 +508,7 @@ export default function HomePage() {
             <a href="/privacy" className="hover:text-foreground transition-colors">
               Privacy
             </a>
+            <CookiePreferencesButton className="hover:text-foreground transition-colors" />
             <a
               href="https://discord.gg/zpFpZSX4hc"
               target="_blank"
