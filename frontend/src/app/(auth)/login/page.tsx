@@ -131,6 +131,7 @@ function LoginPageContent() {
               <Input
                 id="email"
                 type="email"
+                autoComplete="email"
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -142,6 +143,7 @@ function LoginPageContent() {
               <Input
                 id="password"
                 type="password"
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required

@@ -75,6 +75,7 @@ export default function RegisterPage() {
             <Label htmlFor="name">Name</Label>
             <Input
               id="name"
+              autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -85,6 +86,7 @@ export default function RegisterPage() {
             <Input
               id="email"
               type="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -95,6 +97,7 @@ export default function RegisterPage() {
             <Input
               id="password"
               type="password"
+              autoComplete="new-password"
               minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -105,6 +108,12 @@ export default function RegisterPage() {
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Creating account..." : "Create Account"}
           </Button>
+          <p className="text-center text-[11px] text-muted-foreground">
+            By creating an account, you agree to our{" "}
+            <Link href="/terms" className="text-primary hover:underline">Terms of Service</Link>
+            {" "}and{" "}
+            <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
+          </p>
         </form>
       </CardContent>
       <CardFooter className="justify-center">
