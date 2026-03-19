@@ -5,7 +5,7 @@
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, Query
+from fastapi import APIRouter, Depends, Header, Query, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -53,6 +53,7 @@ def _to_response(agent, user_vote: int | None = None) -> CustomAgentResponse:
 
 
 async def _optional_user_id(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
     x_api_key: str | None = Header(None, alias="X-API-Key"),
 ) -> UUID | None:
@@ -61,7 +62,7 @@ async def _optional_user_id(
         return None
     try:
         from src.core.auth import get_current_user as _get_user
-        user = await _get_user(credentials, x_api_key)
+        user = await _get_user(request=request, credentials=credentials, x_api_key=x_api_key)
         # Resolve to DB UUID
         from sqlalchemy import select as sa_select
         from src.database import async_session

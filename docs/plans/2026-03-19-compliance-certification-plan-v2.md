@@ -119,37 +119,47 @@ and identifies **34 remaining gaps** — down from the original 64.
 11. [ ] Create `global-error.tsx` (L-1)
 12. [ ] Add `autoComplete` attributes to login/register forms (L-2)
 
-### Phase 2: GDPR Compliance (3-5 days)
+### Phase 2: Auth Architecture + GDPR Quick Wins (1 week)
 
-**Backend:**
+**Auth migration (C-1 — last remaining CRITICAL):**
+1. [ ] Backend: `POST /auth/session` — receives Firebase token, sets httpOnly cookie
+2. [ ] Backend: CORS changes — `credentials: "include"`, explicit origin (not `*`)
+3. [ ] Frontend: rewrite api-client.ts to use cookie-based auth (drop Authorization header)
+4. [ ] Frontend: rewrite auth-context.tsx token refresh to go through session endpoint
+5. [ ] Handle cross-origin cookies (crewhubai.com ↔ api.crewhubai.com)
+6. [ ] Migration plan for existing logged-in users
+
+**GDPR quick wins (in parallel):**
+7. [ ] Cookie consent banner — gate PostHog init + identify (H-1, H-3)
+8. [ ] Check `navigator.doNotTrack` and call `posthog.opt_out_capturing()` (H-5)
+9. [ ] Fix privacy policy: remove false claims about PostHog PII and DNT (H-4, H-5)
+10. [ ] Privacy policy + terms links on registration form (M-2)
+
+### Phase 3: GDPR Endpoints + SOC 2 Controls (1 week)
+
+**GDPR:**
 1. [ ] `GET /api/v1/auth/me/export` — user data export (M-3)
 2. [ ] `DELETE /api/v1/auth/me` — account deletion with 30-day PII purge (M-4)
 3. [ ] Add `consent_version`, `consent_given_at` columns to User model (M-5)
+4. [ ] "Delete Account" + "Download My Data" buttons in Settings (M-1)
 
-**Frontend:**
-4. [ ] Cookie consent banner — gate PostHog init + identify (H-1, H-3)
-5. [ ] Check `navigator.doNotTrack` and call `posthog.opt_out_capturing()` (H-5)
-6. [ ] "Delete Account" + "Download My Data" buttons in Settings (M-1)
-7. [ ] Privacy policy + terms links on registration form (M-2)
+**SOC 2:**
+5. [ ] RBAC admin roles (super/ops/billing)
+6. [ ] Separate ENCRYPTION_KEY from SECRET_KEY + key rotation path
+7. [ ] Add auth + visibility to `GET /workflows/{id}` and `GET /crews/{id}` (H-9, H-10)
 
-### Phase 3: SOC 2 Controls + Hardening (1 week)
+### Phase 4: Hardening + Audit Prep (1 week)
 
-1. [ ] RBAC admin roles (super/ops/billing)
-2. [ ] Separate ENCRYPTION_KEY from SECRET_KEY + key rotation path
-3. [ ] Enforce Redis for rate limiting in production
-4. [ ] `pip-audit` in CI pipeline
-5. [ ] Move debug health endpoints to conditional router registration
-6. [ ] Add auth to `/analytics/delegation-accuracy`
-7. [ ] Reduce validate.py timeout from 30s to 10s
-8. [ ] Move builder exchange codes to Redis
-
-### Phase 4: Auth Architecture + Audit Prep (1 week)
-
-1. [ ] Migrate auth token from localStorage to httpOnly cookies (C-1)
-2. [ ] Document incident response / breach notification procedure
-3. [ ] Create DPA template for enterprise
-4. [ ] Write SOC 2 controls mapping (CC1-CC9)
-5. [ ] Engage SOC 2 auditor for readiness assessment
+1. [ ] Enforce Redis for rate limiting in production
+2. [ ] `pip-audit` in CI pipeline
+3. [ ] Move debug health endpoints to conditional router registration
+4. [ ] Add auth to `/analytics/delegation-accuracy`
+5. [ ] Reduce validate.py timeout from 30s to 10s
+6. [ ] Move builder exchange codes to Redis
+7. [ ] Document incident response / breach notification procedure
+8. [ ] Create DPA template for enterprise
+9. [ ] Write SOC 2 controls mapping (CC1-CC9)
+10. [ ] Engage SOC 2 auditor for readiness assessment
 
 ---
 

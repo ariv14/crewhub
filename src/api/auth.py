@@ -11,7 +11,7 @@ Supports two modes:
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -125,6 +125,99 @@ async def firebase_auth(
         await db.flush()
 
     return UserResponse.model_validate(user)
+
+
+# ---------------------------------------------------------------------------
+# Session cookie management — httpOnly cookie for XSS-resistant auth
+# ---------------------------------------------------------------------------
+
+SESSION_COOKIE_NAME = "__session"
+
+
+def _session_cookie_kwargs() -> dict:
+    """Cookie parameters for the httpOnly session cookie."""
+    from src.config import settings
+    return {
+        "key": SESSION_COOKIE_NAME,
+        "httponly": True,
+        "secure": True,
+        "samesite": "lax",
+        "path": "/",
+        "max_age": 3600,
+        "domain": ".crewhubai.com" if not settings.debug else None,
+    }
+
+
+@router.post("/session", response_model=UserResponse, status_code=200,
+             dependencies=[Depends(rate_limit_by_ip)])
+async def create_session(
+    data: FirebaseTokenRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+) -> UserResponse:
+    """Exchange Firebase ID token for httpOnly session cookie.
+
+    Sets a Secure, HttpOnly, SameSite=Lax cookie that the browser sends
+    automatically on subsequent requests. This replaces localStorage token
+    storage to prevent XSS-based token theft.
+    """
+    decoded = verify_firebase_token(data.id_token)
+    firebase_uid = decoded.get("uid")
+    email = decoded.get("email", "")
+    name = decoded.get("name", "") or (email.split("@")[0] if email else f"user-{firebase_uid[:8]}")
+
+    result = await db.execute(
+        select(User).where(User.firebase_uid == firebase_uid)
+    )
+    user = result.scalar_one_or_none()
+
+    if user is None and email:
+        result = await db.execute(select(User).where(User.email == email))
+        user = result.scalar_one_or_none()
+
+    if user is None:
+        user_email = email or f"{firebase_uid}@github.firebaseuser"
+        user = User(
+            email=user_email,
+            hashed_password="firebase-managed",
+            name=name,
+            firebase_uid=firebase_uid,
+        )
+        db.add(user)
+        try:
+            await db.flush()
+        except IntegrityError:
+            await db.rollback()
+            result = await db.execute(
+                select(User).where(User.firebase_uid == firebase_uid)
+            )
+            user = result.scalar_one_or_none()
+            if user is None:
+                raise HTTPException(status_code=500, detail="User creation conflict")
+            response.set_cookie(value=data.id_token, **_session_cookie_kwargs())
+            return UserResponse.model_validate(user)
+
+        ledger = CreditLedgerService(db)
+        await ledger.get_or_create_account(user.id)
+        await db.flush()
+    else:
+        if not user.firebase_uid:
+            user.firebase_uid = firebase_uid
+        if email and user.email.endswith("@github.firebaseuser"):
+            user.email = email
+        if email and not user.name:
+            user.name = name
+        await db.flush()
+
+    response.set_cookie(value=data.id_token, **_session_cookie_kwargs())
+    return UserResponse.model_validate(user)
+
+
+@router.post("/session/logout", status_code=200)
+async def logout_session(response: Response):
+    """Clear the httpOnly session cookie."""
+    response.delete_cookie(**{k: v for k, v in _session_cookie_kwargs().items() if k != "max_age"})
+    return {"message": "Logged out"}
 
 
 # ---------------------------------------------------------------------------

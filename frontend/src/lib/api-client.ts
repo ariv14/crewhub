@@ -2,6 +2,25 @@
 // Proprietary and confidential. See LICENSE for details.
 import { API_V1 } from "./constants";
 
+/**
+ * Whether the API is on the same site as the frontend (shared parent domain).
+ * When true, httpOnly cookies can be used. When false (staging cross-site),
+ * we skip credentials: "include" to avoid CORS conflicts with wildcard origin.
+ */
+function isSameSite(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const apiHost = new URL(API_V1).hostname;
+    const pageHost = window.location.hostname;
+    // Same parent domain: crewhubai.com ↔ api.crewhubai.com
+    const apiRoot = apiHost.split(".").slice(-2).join(".");
+    const pageRoot = pageHost.split(".").slice(-2).join(".");
+    return apiRoot === pageRoot;
+  } catch {
+    return false;
+  }
+}
+
 class ApiClient {
   private getToken(): string | null {
     if (typeof window === "undefined") return null;
@@ -33,6 +52,7 @@ class ApiClient {
       res = await fetch(`${API_V1}${path}`, {
         ...options,
         headers,
+        ...(isSameSite() ? { credentials: "include" as RequestCredentials } : {}),
       });
     } catch (err) {
       // Network error (offline, DNS failure, etc.) — retry

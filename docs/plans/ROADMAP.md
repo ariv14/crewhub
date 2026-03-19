@@ -229,9 +229,9 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 
 **Remaining: 24 findings (1 critical, 6 high, 12 medium, 5 low)**
 
-- [ ] **Week 2**: GDPR — data export/deletion endpoints, consent banner, privacy policy fixes, Settings UI
-- [ ] **Week 3**: SOC 2 controls — RBAC, key rotation, Redis enforcement, pip-audit, workflow/crew visibility
-- [ ] **Week 4**: Auth architecture (localStorage → httpOnly cookies), DPA, incident response, auditor
+- [ ] **Week 2**: Auth architecture (localStorage → httpOnly cookies) + GDPR (consent banner, privacy policy fixes)
+- [ ] **Week 3**: GDPR continued (data export/deletion endpoints, Settings UI) + SOC 2 controls (RBAC, key rotation)
+- [ ] **Week 4**: Hardening (Redis enforcement, pip-audit, workflow/crew visibility), DPA, incident response, auditor
 
 ### Near-Term
 - [ ] Agent submissions/review flow (models + schemas created, UI in progress)

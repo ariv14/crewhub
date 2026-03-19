@@ -8,7 +8,7 @@ from uuid import UUID
 
 import firebase_admin
 from firebase_admin import auth as firebase_auth, credentials
-from fastapi import Depends, Header
+from fastapi import Depends, Header, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from passlib.context import CryptContext
 
@@ -155,26 +155,22 @@ def generate_api_key() -> str:
 
 
 async def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     x_api_key: str | None = Header(None, alias="X-API-Key"),
 ) -> dict:
-    """Extract the current user from a Firebase ID token, fallback JWT, or API key.
+    """Extract the current user from a Firebase ID token, fallback JWT, API key, or httpOnly cookie.
 
-    Priority: Bearer token → API key.
-
-    For Bearer tokens:
-    - If Firebase is configured: verifies as Firebase ID token
-    - If Firebase is not configured: verifies as local JWT (dev/test mode)
+    Priority: Bearer token → API key → httpOnly session cookie.
 
     Returns:
         dict with 'id' (UUID str or Firebase UID), 'email', and optionally 'firebase_uid'.
     """
-    # Try Bearer token first
+    # 1. Try Bearer token first
     if credentials is not None:
         token = credentials.credentials
 
         if is_firebase_enabled():
-            # Production mode: Firebase Auth
             decoded = verify_firebase_token(token)
             return {
                 "id": decoded.get("uid"),
@@ -183,14 +179,13 @@ async def get_current_user(
                 "firebase_uid": decoded.get("uid"),
             }
         else:
-            # Dev/test mode: local JWT
             payload = decode_access_token(token)
             user_id = payload.get("sub")
             if user_id is None:
                 raise UnauthorizedError(detail="Token missing subject claim")
             return {"id": user_id, "email": payload.get("email", "")}
 
-    # Fall back to API key
+    # 2. Try API key
     if x_api_key is not None:
         try:
             from src.core._api_key_lookup import lookup_user_by_api_key
@@ -199,6 +194,38 @@ async def get_current_user(
                 return user
         except ImportError:
             pass
+
+    # 3. Try httpOnly session cookie (__session)
+    session_token = request.cookies.get("__session") if request else None
+    if session_token:
+        # CSRF check: for cookie-authenticated mutations, verify Origin header
+        if request.method not in ("GET", "HEAD", "OPTIONS"):
+            origin = request.headers.get("origin", "")
+            allowed_origins = {
+                "https://crewhubai.com",
+                "https://www.crewhubai.com",
+                "https://staging.crewhubai.com",
+                "https://marketplace-staging.aidigitalcrew.com",
+                "http://localhost:3000",
+                "http://localhost:5173",
+            }
+            if origin and origin not in allowed_origins:
+                raise UnauthorizedError(detail="CSRF: origin not allowed")
+
+        if is_firebase_enabled():
+            decoded = verify_firebase_token(session_token)
+            return {
+                "id": decoded.get("uid"),
+                "email": decoded.get("email", ""),
+                "name": decoded.get("name", ""),
+                "firebase_uid": decoded.get("uid"),
+            }
+        else:
+            payload = decode_access_token(session_token)
+            user_id = payload.get("sub")
+            if user_id is None:
+                raise UnauthorizedError(detail="Token missing subject claim")
+            return {"id": user_id, "email": payload.get("email", "")}
 
     raise UnauthorizedError(detail="Authentication required")
 
