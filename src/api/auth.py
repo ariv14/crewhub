@@ -490,3 +490,168 @@ if _settings.debug:
             "user_id": str(user.id),
             "note": "API key is only shown on first generation. Store it securely.",
         }
+
+
+# ---------------------------------------------------------------------------
+# GDPR Data Export (Article 15 / Article 20)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/me/export", dependencies=[Depends(rate_limit_by_ip)])
+async def export_my_data(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Export all personal data as JSON (GDPR Article 20 — data portability)."""
+    from src.models.task import Task
+    from src.models.transaction import Transaction
+    from src.models.agent import Agent
+    from src.models.workflow import Workflow
+
+    # Resolve DB user
+    firebase_uid = current_user.get("firebase_uid")
+    if firebase_uid:
+        result = await db.execute(select(User).where(User.firebase_uid == firebase_uid))
+    else:
+        result = await db.execute(select(User).where(User.id == UUID(current_user["id"])))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Agents
+    agents_result = await db.execute(select(Agent).where(Agent.owner_id == user.id))
+    agents = [
+        {"id": str(a.id), "name": a.name, "description": a.description, "status": a.status,
+         "category": a.category, "created_at": a.created_at.isoformat() if a.created_at else None}
+        for a in agents_result.scalars().all()
+    ]
+
+    # Tasks (cap 500)
+    tasks_result = await db.execute(
+        select(Task).where(Task.creator_user_id == user.id)
+        .order_by(Task.created_at.desc()).limit(500)
+    )
+    tasks_list = tasks_result.scalars().all()
+    tasks = [
+        {"id": str(t.id), "status": t.status.value if hasattr(t.status, "value") else t.status,
+         "credits_charged": float(t.credits_charged) if t.credits_charged else None,
+         "created_at": t.created_at.isoformat() if t.created_at else None}
+        for t in tasks_list
+    ]
+
+    # Transactions (cap 1000)
+    if user.account:
+        txns_result = await db.execute(
+            select(Transaction).where(Transaction.user_id == user.id)
+            .order_by(Transaction.created_at.desc()).limit(1000)
+        )
+        txns = [
+            {"id": str(tx.id), "type": tx.type.value if hasattr(tx.type, "value") else tx.type,
+             "amount": float(tx.amount), "description": tx.description,
+             "created_at": tx.created_at.isoformat() if tx.created_at else None}
+            for tx in txns_result.scalars().all()
+        ]
+    else:
+        txns = []
+
+    # Workflows
+    wf_result = await db.execute(select(Workflow).where(Workflow.owner_id == user.id))
+    workflows = [
+        {"id": str(w.id), "name": w.name, "is_public": w.is_public,
+         "created_at": w.created_at.isoformat() if w.created_at else None}
+        for w in wf_result.scalars().all()
+    ]
+
+    # LLM key providers (names only, never values)
+    llm_providers = list(user.llm_api_keys.keys()) if user.llm_api_keys else []
+
+    import json as json_mod
+    from fastapi.responses import Response as JSONFileResponse
+    export = {
+        "export_generated_at": datetime.now(timezone.utc).isoformat(),
+        "schema_version": "1",
+        "profile": {
+            "id": str(user.id), "email": user.email, "name": user.name,
+            "account_tier": user.account_tier, "created_at": user.created_at.isoformat() if user.created_at else None,
+        },
+        "consent": {
+            "version": user.consent_version, "given_at": user.consent_given_at.isoformat() if user.consent_given_at else None,
+        },
+        "api_key_metadata": {"has_key": bool(user.api_key_hash), "revoked": bool(user.api_key_revoked_at)},
+        "llm_key_providers": llm_providers,
+        "credit_balance": float(user.account.balance) if user.account else 0,
+        "agents": agents,
+        "tasks": {"items": tasks, "count": len(tasks), "truncated": len(tasks_list) >= 500},
+        "transactions": {"items": txns, "count": len(txns), "truncated": len(txns) >= 1000},
+        "workflows": workflows,
+    }
+    return JSONFileResponse(
+        content=json_mod.dumps(export, indent=2, default=str),
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="crewhub-export-{datetime.now().strftime("%Y-%m-%d")}.json"'},
+    )
+
+
+# ---------------------------------------------------------------------------
+# GDPR Account Deletion (Article 17)
+# ---------------------------------------------------------------------------
+
+
+class DeleteAccountRequest(BaseModel):
+    confirmation: str
+
+
+@router.delete("/me")
+async def delete_my_account(
+    data: DeleteAccountRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Delete account and scrub PII (GDPR Article 17 — right to erasure).
+
+    Requires {"confirmation": "DELETE"} in the request body.
+    PII is scrubbed immediately. Account is deactivated. Transactions retained for compliance.
+    """
+    if data.confirmation != "DELETE":
+        raise HTTPException(status_code=400, detail='Confirmation must be exactly "DELETE"')
+
+    import hashlib as hl
+    from src.core.audit import audit_log
+
+    firebase_uid = current_user.get("firebase_uid")
+    if firebase_uid:
+        result = await db.execute(select(User).where(User.firebase_uid == firebase_uid))
+    else:
+        result = await db.execute(select(User).where(User.id == UUID(current_user["id"])))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.deletion_requested_at:
+        raise HTTPException(status_code=409, detail="Account deletion already requested")
+
+    # Audit log before scrubbing
+    await audit_log(db, action="gdpr.account_deletion", actor_user_id=str(user.id),
+                    target_type="user", target_id=user.id)
+
+    # Scrub PII immediately
+    email_hash = hl.sha256(user.email.encode()).hexdigest()[:12]
+    user.email = f"deleted-{email_hash}@deleted.crewhub"
+    user.name = "Deleted User"
+    user.hashed_password = "deleted"
+    user.firebase_uid = None
+    user.llm_api_keys = None
+    user.stripe_customer_id = None
+    user.stripe_subscription_id = None
+    user.stripe_connect_account_id = None
+    user.api_key_hash = None
+    user.is_active = False
+    user.deletion_requested_at = datetime.now(timezone.utc)
+
+    await db.flush()
+
+    # Clear httpOnly session cookie
+    from src.api.auth import _session_cookie_kwargs
+    response.delete_cookie(**{k: v for k, v in _session_cookie_kwargs().items() if k != "max_age"})
+
+    return {"message": "Account deletion processed. PII has been scrubbed. Transactions retained for compliance."}
