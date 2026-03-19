@@ -539,11 +539,14 @@ async def export_my_data(
         for t in tasks_list
     ]
 
-    # Transactions (cap 1000)
+    # Transactions (cap 1000) — join via account
     if user.account:
+        from sqlalchemy import or_
+        account_id = user.account.id
         txns_result = await db.execute(
-            select(Transaction).where(Transaction.user_id == user.id)
-            .order_by(Transaction.created_at.desc()).limit(1000)
+            select(Transaction).where(
+                or_(Transaction.from_account_id == account_id, Transaction.to_account_id == account_id)
+            ).order_by(Transaction.created_at.desc()).limit(1000)
         )
         txns = [
             {"id": str(tx.id), "type": tx.type.value if hasattr(tx.type, "value") else tx.type,
