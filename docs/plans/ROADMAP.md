@@ -280,6 +280,26 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 - [x] Fixed: admin submissions trailing slash 404, security_schemes validation, builder CSP
 - [x] Full E2E tested: builder → publish → admin approve → agent live with endpoint + skill
 
+### Cookie & Privacy Compliance (audited Mar 19)
+7 NON-COMPLIANT, 5 NEEDS IMPROVEMENT, 6 COMPLIANT findings.
+
+**Phase 1: Quick fixes (1-2 hrs)**
+- [ ] Fix `sidebar_state` cookie — add `SameSite=Lax; Secure` flags
+- [ ] Update consent banner text: mention session recording + PostHog by name
+- [ ] Update privacy policy Section 5: full cookie/storage inventory (6 missing items)
+- [ ] Fix "anonymous" → "pseudonymous" in privacy policy PostHog section
+- [ ] Add session recording disclosure to privacy policy
+
+**Phase 2: Consent withdrawal (1-2 hrs)**
+- [ ] "Cookie Preferences" button in Settings Profile tab
+- [ ] "Cookie Preferences" link in footer
+- [ ] Both reset localStorage consent, call posthog.opt_out_capturing(), re-show banner
+
+**Phase 3: Server-side consent logging (1 hr)**
+- [ ] `POST /api/v1/auth/consent` endpoint — stores timestamp, version, IP
+- [ ] Call from handleAccept() in posthog-provider
+- [ ] Version the consent key (analytics_consent_v1.0)
+
 ### Near-Term
 - [x] Run E2E tests for orchestration patterns on staging — 6/6 pass
 - [x] Run E2E tests on production — 14/14 functional tests pass
