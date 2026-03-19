@@ -266,13 +266,13 @@ def main():
     # Phase 1: Detect endpoint tests
     print("─── Phase 1: Detect ───")
     test_detect_summarizer(client)
-    test_detect_translator(client)
+    detect_result = test_detect_translator(client)
     test_detect_invalid_url(client)
     test_detect_response_schema(client)
 
     # Phase 2: Register from detect (uses unique endpoint to avoid conflicts)
     print("\n─── Phase 2: Register ───")
-    agent_id = test_register_from_detect(client, detect_trans)
+    agent_id = test_register_from_detect(client, detect_result)
 
     if agent_id:
         # Get the registered endpoint for duplicate test
