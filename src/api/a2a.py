@@ -50,13 +50,14 @@ _bearer_optional = HTTPBearer(auto_error=False)
 
 
 async def _get_current_user_optional(
+    request: Request,
     credentials=Depends(_bearer_optional),
     x_api_key: str | None = Header(None, alias="X-API-Key"),
 ) -> dict | None:
     """Like get_current_user but returns None instead of raising when no creds."""
     if credentials is None and x_api_key is None:
         return None
-    return await get_current_user(credentials=credentials, x_api_key=x_api_key)
+    return await get_current_user(request=request, credentials=credentials, x_api_key=x_api_key)
 
 
 async def get_a2a_caller(
