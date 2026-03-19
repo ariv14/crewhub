@@ -227,11 +227,23 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 - [x] global-error.tsx for root layout crashes
 - [x] Bug fixes: AsyncSessionLocal import, abuse_detector import path
 
-**Remaining: 24 findings (1 critical, 6 high, 12 medium, 5 low)**
+**Week 2 — COMPLETE (Mar 19):** 47 of 64 findings resolved
+- [x] httpOnly session cookie: POST /auth/session + /auth/session/logout endpoints
+- [x] Backend get_current_user reads __session cookie as 3rd auth path
+- [x] CSRF protection: Origin header validation for cookie-authenticated mutations
+- [x] credentials:include conditional on same-site (production only)
+- [x] Cookie consent banner gating PostHog (Accept/Decline + Privacy Policy link)
+- [x] PostHog respects navigator.doNotTrack — skips loading when DNT=1
+- [x] posthog.identify() only runs after consent
+- [x] Privacy policy updated: removed false claims about PII tracking and DNT
+- [x] autoComplete attributes on login/register forms
+- [x] Terms + Privacy links on registration form
+- [x] Staging frontend added to CORS allow_origins
 
-- [ ] **Week 2**: Auth architecture (localStorage → httpOnly cookies) + GDPR (consent banner, privacy policy fixes)
-- [ ] **Week 3**: GDPR continued (data export/deletion endpoints, Settings UI) + SOC 2 controls (RBAC, key rotation)
-- [ ] **Week 4**: Hardening (Redis enforcement, pip-audit, workflow/crew visibility), DPA, incident response, auditor
+**Remaining: 17 findings (0 critical, 2 high, 12 medium, 3 low)**
+
+- [ ] **Week 3**: GDPR endpoints (data export/deletion, Settings UI) + SOC 2 (RBAC, key rotation, workflow/crew visibility)
+- [ ] **Week 4**: Hardening (Redis enforcement, pip-audit), DPA, incident response, auditor engagement
 
 ### Near-Term
 - [ ] Agent submissions/review flow (models + schemas created, UI in progress)
