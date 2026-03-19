@@ -285,6 +285,13 @@ class AgentUpdate(BaseModel):
 class AgentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+    @field_validator("security_schemes", mode="before")
+    @classmethod
+    def coerce_security_schemes(cls, v):
+        if isinstance(v, dict):
+            return list(v.values()) if v else []
+        return v or []
+
     id: UUID
     owner_id: UUID
     name: str
@@ -293,7 +300,7 @@ class AgentResponse(BaseModel):
     endpoint: str
     capabilities: dict
     skills: list[SkillResponse]
-    security_schemes: list[dict]
+    security_schemes: list[dict] = []
     category: str
     tags: list[str]
     pricing: PricingModel
