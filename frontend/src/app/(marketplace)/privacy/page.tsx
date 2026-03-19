@@ -45,14 +45,16 @@ export default function PrivacyPolicyPage() {
             forwarded to third-party AI providers (e.g., Groq, OpenAI, Anthropic) for processing.
           </p>
 
-          <h3 className="mt-4 font-medium text-foreground">2.4 Analytics Data</h3>
+          <h3 className="mt-4 font-medium text-foreground">2.4 Analytics &amp; Session Recording</h3>
           <p className="mt-1">
-            We use PostHog for product analytics. PostHog collects usage events (pages
-            visited, features used, session duration) to help us improve the Platform. When you
-            are logged in and have accepted analytics cookies, PostHog may associate events with
-            your account to provide a better experience. You can opt out at any time via the
-            cookie consent banner, or by enabling your browser&apos;s Do Not Track (DNT) setting
-            — we honor DNT and will not load analytics when it is enabled.
+            We use PostHog for product analytics and session replay. PostHog collects usage events
+            (pages visited, features used, session duration) and records session replays (mouse
+            movements, clicks, page interactions — all form inputs are masked). When you are logged
+            in and have accepted analytics cookies, PostHog associates events with your account
+            (pseudonymous tracking via email and name). You can opt out at any time via the cookie
+            consent banner, the Cookie Preferences option in Settings, or by enabling your
+            browser&apos;s Do Not Track (DNT) setting — we honor DNT and will not load analytics
+            or session recording when it is enabled.
           </p>
 
           <h3 className="mt-4 font-medium text-foreground">2.5 Log Data</h3>
@@ -120,15 +122,35 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold text-foreground">5. Cookies</h2>
+          <h2 className="text-lg font-semibold text-foreground">5. Cookies &amp; Local Storage</h2>
           <p className="mt-2">
-            We use essential cookies and local storage for authentication (Firebase session tokens,
-            API keys) and user preferences (theme selection). We do not use third-party advertising
-            or tracking cookies.
+            We use the following cookies and browser storage. Essential items are always active.
+            Analytics items load only after you accept the cookie consent banner.
           </p>
+          <h3 className="mt-4 font-medium text-foreground">5.1 Essential Cookies (always active)</h3>
+          <ul className="mt-1 space-y-1 text-sm list-disc pl-5">
+            <li><code className="text-xs">__session</code> — httpOnly session cookie for authentication (1 hour, set by our server)</li>
+            <li><code className="text-xs">__auth_token</code> — Authentication token mirror for route protection (1 hour)</li>
+            <li><code className="text-xs">sidebar_state</code> — Sidebar open/collapsed UI preference (7 days)</li>
+            <li><code className="text-xs">__cf_bm</code> — Cloudflare bot detection (set by Cloudflare)</li>
+          </ul>
+          <h3 className="mt-4 font-medium text-foreground">5.2 Essential Local Storage</h3>
+          <ul className="mt-1 space-y-1 text-sm list-disc pl-5">
+            <li><code className="text-xs">auth_token</code> — Firebase ID token or API key for API authentication</li>
+            <li><code className="text-xs">theme</code> — Light/dark mode preference</li>
+            <li><code className="text-xs">guest_trial_used</code> — Prevents repeated guest trials (functional)</li>
+            <li><code className="text-xs">pwa-install-dismissed</code> — Remembers PWA install prompt dismissal</li>
+            <li><code className="text-xs">submission_statuses</code> — Agent submission status cache for notifications</li>
+          </ul>
+          <h3 className="mt-4 font-medium text-foreground">5.3 Analytics Cookies (consent required)</h3>
+          <ul className="mt-1 space-y-1 text-sm list-disc pl-5">
+            <li><code className="text-xs">ph_*</code> — PostHog session and identity cookies for analytics and session replay. Only set after you accept the consent banner. When logged in, linked to your account (pseudonymous).</li>
+            <li><code className="text-xs">analytics_consent</code> — Your Accept/Decline decision (stored in local storage)</li>
+          </ul>
           <p className="mt-2">
-            Cloudflare may set performance cookies (<code className="text-xs">__cf_bm</code>) for
-            bot detection. PostHog uses a first-party cookie for anonymous session tracking.
+            We do not use third-party advertising or tracking cookies.
+            You can manage analytics preferences via the cookie consent banner or the
+            Cookie Preferences option in your account Settings.
           </p>
         </section>
 

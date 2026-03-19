@@ -143,7 +143,8 @@ export function PostHogProvider() {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-[100] border-t bg-card/95 px-4 py-3 shadow-lg backdrop-blur-sm sm:bottom-4 sm:left-4 sm:right-auto sm:max-w-sm sm:rounded-xl sm:border">
       <p className="text-sm text-muted-foreground">
-        We use cookies for analytics to improve the platform.{" "}
+        We use PostHog for analytics and session replay to improve the platform.
+        All form inputs are masked. Essential auth cookies are always active.{" "}
         <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>
       </p>
       <div className="mt-2 flex gap-2">
