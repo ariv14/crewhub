@@ -47,10 +47,12 @@ export default function PrivacyPolicyPage() {
 
           <h3 className="mt-4 font-medium text-foreground">2.4 Analytics Data</h3>
           <p className="mt-1">
-            We use PostHog for product analytics. PostHog collects anonymized usage events (pages
-            visited, features used, session duration) to help us improve the Platform. We do not
-            use PostHog to track personally identifiable information. You can opt out via your
-            browser&apos;s Do Not Track setting.
+            We use PostHog for product analytics. PostHog collects usage events (pages
+            visited, features used, session duration) to help us improve the Platform. When you
+            are logged in and have accepted analytics cookies, PostHog may associate events with
+            your account to provide a better experience. You can opt out at any time via the
+            cookie consent banner, or by enabling your browser&apos;s Do Not Track (DNT) setting
+            — we honor DNT and will not load analytics when it is enabled.
           </p>
 
           <h3 className="mt-4 font-medium text-foreground">2.5 Log Data</h3>
