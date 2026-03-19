@@ -17,6 +17,7 @@ import {
   XCircle,
   ChevronDown,
   Radio,
+  Cookie,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api-client";
@@ -41,6 +42,7 @@ import {
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { ChannelsTab } from "./channels-tab";
+import { resetAnalyticsConsent } from "@/components/shared/posthog-provider";
 
 const PROVIDERS = [
   { id: "openai", name: "OpenAI", hint: "sk-..." },
@@ -57,6 +59,11 @@ export default function SettingsPage() {
   // Spending limit state
   const [spendLimit, setSpendLimit] = useState("");
   const [savingLimit, setSavingLimit] = useState(false);
+
+  // Cookie consent state
+  const [cookieConsent, setCookieConsent] = useState<string | null>(() =>
+    typeof window !== "undefined" ? localStorage.getItem("analytics_consent") : null
+  );
 
   // GDPR: export + delete account state
   const [exporting, setExporting] = useState(false);
@@ -297,6 +304,50 @@ export default function SettingsPage() {
                   Current limit: {user.daily_spend_limit} credits/day
                 </p>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Cookie Preferences */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Cookie className="h-4 w-4" />
+                Cookie Preferences
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                We use PostHog for analytics and session replay to improve the platform.
+                All form inputs are masked. Essential cookies (authentication, preferences)
+                are always active.
+              </p>
+              <div className="flex items-center justify-between rounded-md border px-3 py-2">
+                <div>
+                  <p className="text-sm font-medium">Analytics &amp; Session Recording</p>
+                  <p className="text-xs text-muted-foreground">
+                    {cookieConsent === "true"
+                      ? "You have accepted analytics cookies"
+                      : cookieConsent === "false"
+                        ? "You have declined analytics cookies"
+                        : "No preference set"}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    resetAnalyticsConsent();
+                    setCookieConsent(null);
+                    toast.success("Cookie preferences reset — the consent banner will reappear");
+                  }}
+                >
+                  Reset Preferences
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Resetting will opt you out of analytics tracking and show the consent banner again.{" "}
+                <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>
+              </p>
             </CardContent>
           </Card>
 

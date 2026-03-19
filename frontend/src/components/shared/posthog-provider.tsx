@@ -50,6 +50,21 @@ function isDNT(): boolean {
   return navigator.doNotTrack === "1" || (navigator as unknown as Record<string, string>).globalPrivacyControl === "1";
 }
 
+/**
+ * Reset analytics consent — removes stored decision, opts out of PostHog,
+ * and dispatches a custom event so the PostHogProvider re-shows the banner.
+ * Can be called from anywhere (Settings page, footer, etc.).
+ */
+export function resetAnalyticsConsent() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(CONSENT_KEY);
+  // Opt out of PostHog tracking immediately
+  if (window.posthog && typeof (window.posthog as Record<string, unknown>).opt_out_capturing === "function") {
+    (window.posthog as unknown as { opt_out_capturing: () => void }).opt_out_capturing();
+  }
+  window.dispatchEvent(new CustomEvent("crewhub:reset-consent"));
+}
+
 export function PostHogProvider() {
   const { user } = useAuth();
   const [consent, setConsent] = useState<boolean | null>(() => getConsent());
@@ -61,6 +76,16 @@ export function PostHogProvider() {
       setShowBanner(true);
     }
   }, [consent]);
+
+  // Listen for consent reset events from Settings / footer
+  useEffect(() => {
+    function handleReset() {
+      setConsent(null);
+      setShowBanner(!isDNT());
+    }
+    window.addEventListener("crewhub:reset-consent", handleReset);
+    return () => window.removeEventListener("crewhub:reset-consent", handleReset);
+  }, []);
 
   // Load PostHog only after consent is given (and DNT is not set)
   useEffect(() => {
@@ -143,7 +168,8 @@ export function PostHogProvider() {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-[100] border-t bg-card/95 px-4 py-3 shadow-lg backdrop-blur-sm sm:bottom-4 sm:left-4 sm:right-auto sm:max-w-sm sm:rounded-xl sm:border">
       <p className="text-sm text-muted-foreground">
-        We use cookies for analytics to improve the platform.{" "}
+        We use PostHog for analytics and session replay to improve the platform.
+        All form inputs are masked. Essential auth cookies are always active.{" "}
         <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>
       </p>
       <div className="mt-2 flex gap-2">

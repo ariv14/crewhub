@@ -18,6 +18,9 @@ from src.core.auth import get_current_user, resolve_db_user_id
 from src.database import async_session
 from sqlalchemy.orm import selectinload
 
+from sqlalchemy import or_
+
+from src.models.account import Account
 from src.models.agent import Agent
 from src.models.task import Task
 from src.models.transaction import Transaction
@@ -126,17 +129,28 @@ async def activity_stream(
                         if not last_seen.get("agent") or agent.created_at > last_seen["agent"]:
                             last_seen["agent"] = agent.created_at
 
-                    # Credit transactions (scoped to current user)
+                    # Credit transactions (scoped to current user via account)
                     tx_since = last_seen.get("tx", since)
+                    acct_result = await db.execute(
+                        select(Account.id).where(Account.owner_id == user_id)
+                    )
+                    account_id = acct_result.scalar_one_or_none()
                     stmt = (
                         select(Transaction)
                         .where(Transaction.created_at > tx_since)
-                        .where(Transaction.user_id == user_id)
+                        .where(
+                            or_(
+                                Transaction.from_account_id == account_id,
+                                Transaction.to_account_id == account_id,
+                            )
+                        )
                         .order_by(desc(Transaction.created_at))
                         .limit(5)
-                    )
-                    result = await db.execute(stmt)
-                    txns = result.scalars().all()
+                    ) if account_id else None
+                    txns = []
+                    if stmt is not None:
+                        result = await db.execute(stmt)
+                        txns = result.scalars().all()
                     for tx in reversed(txns):
                         tx_type_val = tx.type.value if hasattr(tx.type, "value") else tx.type
                         event = {
