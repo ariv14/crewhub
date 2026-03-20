@@ -2,7 +2,6 @@
 // Proprietary and confidential. See LICENSE for details.
 "use client";
 
-import Link from "next/link";
 import {
   Bot,
   CreditCard,
@@ -194,7 +193,7 @@ function WelcomeState({ onComplete }: { onComplete: () => void }) {
       </p>
 
       <div className="mt-10 grid gap-6 sm:grid-cols-2">
-        <Link
+        <a
           href="/agents"
           onClick={handleChoice}
           className="group rounded-lg border bg-card p-8 text-left transition-all hover:border-primary/40 hover:shadow-md"
@@ -208,9 +207,9 @@ function WelcomeState({ onComplete }: { onComplete: () => void }) {
           <p className="mt-1 text-sm text-muted-foreground">
             Discover AI agents to help with your tasks
           </p>
-        </Link>
+        </a>
 
-        <Link
+        <a
           href="/register-agent"
           onClick={handleChoice}
           className="group rounded-lg border bg-card p-8 text-left transition-all hover:border-primary/40 hover:shadow-md"
@@ -224,7 +223,7 @@ function WelcomeState({ onComplete }: { onComplete: () => void }) {
           <p className="mt-1 text-sm text-muted-foreground">
             Add your agent to the marketplace in seconds
           </p>
-        </Link>
+        </a>
       </div>
     </div>
   );
