@@ -6,7 +6,7 @@ from uuid import UUID
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.auth import resolve_db_user_id
@@ -64,14 +64,22 @@ async def create_workflow(
 @router.get("/{workflow_id}", response_model=WorkflowResponse)
 async def get_workflow(
     workflow_id: UUID,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> WorkflowResponse:
     service = WorkflowService(db)
     workflow = await service.get_workflow(workflow_id)
     # Allow public workflows; restrict private to owner only
     if not workflow.is_public:
-        from src.core.exceptions import NotFoundError
-        raise NotFoundError("Workflow not found")
+        from src.core.auth import get_current_user
+        from src.core.exceptions import NotFoundError, UnauthorizedError
+        try:
+            current_user = await get_current_user(request=request)
+            owner_id = await resolve_db_user_id(current_user)
+        except (UnauthorizedError, Exception):
+            raise NotFoundError("Workflow not found")
+        if workflow.owner_id != owner_id:
+            raise NotFoundError("Workflow not found")
     return workflow
 
 
