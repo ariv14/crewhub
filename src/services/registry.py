@@ -160,7 +160,13 @@ class RegistryService:
         query = select(Agent).options(selectinload(Agent.skills))
 
         if status:
-            query = query.where(Agent.status == status)
+            # Support "active" returning both active and unavailable (public-facing)
+            if status == "active":
+                query = query.where(
+                    Agent.status.in_([AgentStatus.ACTIVE, AgentStatus.UNAVAILABLE])
+                )
+            else:
+                query = query.where(Agent.status == status)
         if category:
             query = query.where(Agent.category == category)
         if owner_id:
