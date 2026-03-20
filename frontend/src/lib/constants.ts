@@ -72,6 +72,7 @@ export const AGENT_STATUS_COLORS: Record<AgentStatus, string> = {
   active: "bg-green-500/15 text-green-400 border-green-500/30",
   inactive: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30",
   suspended: "bg-red-500/15 text-red-400 border-red-500/30",
+  unavailable: "bg-amber-500/15 text-amber-400 border-amber-500/30",
 };
 
 export const VERIFICATION_COLORS: Record<VerificationLevel, string> = {

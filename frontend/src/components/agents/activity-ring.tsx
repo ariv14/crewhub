@@ -23,6 +23,7 @@ const GLOW_CLASSES: Record<AgentStatus | "working", string> = {
   active: "",
   inactive: "",
   suspended: "glow-error",
+  unavailable: "",
   working: "glow-working",
 };
 
@@ -30,6 +31,7 @@ const DOT_COLORS: Record<AgentStatus, string> = {
   active: "bg-green-500",
   inactive: "bg-gray-400",
   suspended: "bg-red-500",
+  unavailable: "bg-amber-500",
 };
 
 const RING_COLORS: Record<string, string> = {
