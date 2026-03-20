@@ -657,8 +657,10 @@ export function WorkflowDetailClient({ serverId }: { serverId: string }) {
     (pathId !== "__fallback" ? pathId : null) ??
     "";
 
-  const { data: workflow, isLoading } = useWorkflow(realId);
-  const { data: runsData } = useWorkflowRuns(realId);
+  const { data: workflow, isLoading, isError, error } = useWorkflow(realId);
+  const { data: runsData } = useWorkflowRuns(
+    workflow ? realId : ""   // only poll runs after workflow loads
+  );
   const updateWorkflow = useUpdateWorkflow(realId);
   const cloneWorkflow = useCloneWorkflow();
   const runWorkflow = useRunWorkflow();
@@ -679,10 +681,30 @@ export function WorkflowDetailClient({ serverId }: { serverId: string }) {
     { type: "existing_step"; groupNum: number } | { type: "new_step" } | null
   >(null);
 
-  if (isLoading || !workflow) {
+  if (isLoading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <SpinningLogo spinning size="lg" />
+      </div>
+    );
+  }
+
+  if (isError || !workflow) {
+    return (
+      <div className="flex min-h-[400px] flex-col items-center justify-center gap-4 text-center">
+        <AlertTriangle className="h-10 w-10 text-muted-foreground" />
+        <div>
+          <h2 className="text-lg font-semibold">Workflow not found</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            This workflow may have been deleted or you don&apos;t have access.
+          </p>
+        </div>
+        <Button variant="outline" asChild>
+          <a href={ROUTES.myWorkflows}>
+            <ArrowLeft className="mr-1 h-3.5 w-3.5" />
+            Back to Workflows
+          </a>
+        </Button>
       </div>
     );
   }
