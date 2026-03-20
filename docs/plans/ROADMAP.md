@@ -1,6 +1,6 @@
 # CrewHub Development Roadmap
 
-**Last updated:** 2026-03-19
+**Last updated:** 2026-03-20
 **Staging:** marketplace-staging.aidigitalcrew.com | arimatch1-crewhub-staging.hf.space
 **Production:** crewhubai.com | arimatch1/crewhub (HF Space)
 **API:** api.crewhubai.com (prod) | api-staging.crewhubai.com (staging)
@@ -212,6 +212,25 @@ See `2026-03-07-bug-fixes-progress.md` for details.
   - Settings: plain-language analytics vs essential cookies explanation
   - Vendor details moved to Privacy Policy where they belong (GDPR best practice)
 - [ ] **Phase 3**: Server-side consent logging (`POST /auth/consent`, versioned consent key)
+
+### Health Monitor Fix (Mar 20) — ALL PHASES COMPLETE (LIVE)
+Post-incident fix after 27 agents mass-deactivated. 18 gaps identified, 18 resolved.
+See `docs/plans/2026-03-20-health-monitor-fix.md` for full gap analysis.
+
+- [x] **Phase 0 — Hotfix**: `UNAVAILABLE` status enum, threshold 3→12 (1hr), auto-recovery
+  on healthy check, migration 033 (reactivated 27 agents), per-agent error isolation
+- [x] **Phase 1 — Frontend UX**: "Unavailable" badge on agent cards, "Offline" label replaces
+  Try button, detail page amber warning banner, Try It tab disabled for unavailable agents,
+  agent listing returns unavailable agents (visible with badge, not hidden)
+- [x] **Phase 2 — Scale + Compliance**: concurrent checks (`asyncio.gather` + Semaphore(10)),
+  shared `httpx.AsyncClient` with connection pooling, 401/403/429 treated as "alive",
+  audit log on every automated status change, `User-Agent: CrewHub-HealthMonitor/1.0`,
+  admin `POST /admin/agents/bulk-reactivate`, admin `GET /admin/health/overview`
+- [x] **Phase 3 — Cold-Start + Adaptive**: HF Spaces sleep detection (503 pattern),
+  60s wake probe timeout for sleeping agents, adaptive intervals (10min healthy / 2min failing),
+  random jitter (0-30s) prevents thundering herd, migration 034 (dedicated health columns:
+  `health_failures`, `health_reason`, `last_health_check_at`, `last_healthy_at`,
+  `last_health_latency_ms`), JSONB `_health_failures` cleanup
 
 ### Stripe Dashboard Manual Steps (Pending)
 - [ ] **Staging**: Enable Stripe Connect (test mode), add `account.updated` webhook event
@@ -482,6 +501,7 @@ Clients → CF Worker (gateway) → Primary (HF Space) / Secondary (Railway/Fly)
 | 2026-03-18 | Resilience & multi-cloud readiness | Planned (3 tiers) |
 | 2026-03-19 | Protocol adoption roadmap (AG-UI, A2UI, MCP, AP2, UCP) | Planned (5 phases) |
 | 2026-03-19 | Compliance certification plan (SOC 2, GDPR, HIPAA) | Complete (64/64 resolved) |
-| 2026-03-19 | Cookie & privacy compliance audit | Phase 1 complete, Phases 2-3 remaining |
+| 2026-03-19 | Cookie & privacy compliance audit | Phases 1-2 + UX complete, Phase 3 remaining |
 | 2026-03-19 | Agent submissions gap fixes | Complete (5 gaps fixed) |
 | 2026-03-19 | E2E test plan — 37 pages, 120+ endpoints | Complete |
+| 2026-03-20 | Health monitor fix — post-incident (18 gaps) | Complete (all 4 phases) |
