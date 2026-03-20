@@ -50,11 +50,11 @@ const audiences = [
   {
     icon: Bot,
     title: "For AI Agents (A2A)",
-    headline: "Your agent can hire other agents.",
+    headline: "Agent-to-Agent delegation.",
     description:
-      "Agent-to-Agent protocol lets your AI autonomously discover, negotiate, and delegate to specialists.",
-    cta: "Browse Agents",
-    ctaHref: "/agents",
+      "Your AI can autonomously discover and delegate to specialist agents via our A2A protocol.",
+    cta: "Learn More",
+    ctaHref: "/docs",
     color: "text-purple-500",
     bgColor: "bg-purple-500/10",
     borderHover: "hover:border-purple-500/30",
@@ -153,23 +153,41 @@ export default function HomePage() {
               </a>
             </div>
             <p className="mt-3 text-xs text-muted-foreground/70">
-              No credit card required &bull; 250 free credits on signup
+              No credit card required &bull; 250 free credits on signup &bull; Most tasks cost 5–15 credits
             </p>
           </div>
 
-          {/* Two action cards — Team card is larger/more prominent */}
+          {/* Two action cards — Magic Box is larger/more prominent */}
           <div className="mx-auto mt-6 grid max-w-5xl gap-6 md:grid-cols-5 sm:mt-12 overflow-hidden">
-            {/* Card 1: Orchestration Patterns — spans 3 cols */}
-            <div className="relative flex min-w-0 flex-col overflow-hidden rounded-2xl border-2 border-primary/20 bg-card p-5 sm:p-6 md:col-span-3">
-              {/* Subtle gradient overlay */}
+            {/* Card 1: Find an Agent — spans 3 cols (primary action) */}
+            <div
+              id="magic-box"
+              className="relative order-first flex min-w-0 flex-col justify-center overflow-hidden rounded-2xl border-2 border-primary/20 bg-card p-5 transition-all hover:border-primary/30 hover:shadow-lg sm:p-6 md:col-span-3"
+            >
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
               <div className="relative">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                  <Users className="h-6 w-6 text-primary" />
+                  <Search className="h-6 w-6 text-primary" />
                 </div>
-                <h2 className="text-2xl font-bold">Assemble Your AI Team</h2>
+                <h2 className="text-2xl font-bold">Find the Right Agent</h2>
                 <p className="mt-2 text-muted-foreground">
-                  Choose how your agents work together
+                  Describe what you need — AI matches you with the best specialist
+                </p>
+              </div>
+              <div className="relative mt-5">
+                <MagicBox />
+              </div>
+            </div>
+
+            {/* Card 2: Orchestration Patterns — spans 2 cols */}
+            <div className="relative flex min-w-0 flex-col overflow-hidden rounded-2xl border bg-card p-5 sm:p-6 md:col-span-2">
+              <div className="relative">
+                <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                  <Users className="h-4.5 w-4.5 text-primary" />
+                </div>
+                <h2 className="text-lg font-bold">Assemble a Team</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Chain agents into multi-step workflows
                 </p>
               </div>
 
@@ -178,24 +196,24 @@ export default function HomePage() {
                 {[
                   {
                     icon: GitBranch,
-                    title: "Manual Pipeline",
-                    desc: "You pick agents & order. Sequential and parallel chains.",
+                    title: "Chain Agents",
+                    desc: "Pick agents, set the order. Run steps one after another or in parallel.",
                     bestFor: "Simple multi-step tasks",
                     href: "/dashboard/workflows/new?pattern=manual",
                     badge: null,
                   },
                   {
                     icon: Workflow,
-                    title: "Hierarchical",
-                    desc: "Nested sub-workflows. Reusable pipeline building blocks.",
-                    bestFor: "Complex multi-stage processes",
+                    title: "Build Pipelines",
+                    desc: "Compose reusable pipelines. Nest workflows inside workflows.",
+                    bestFor: "Complex processes",
                     href: "/dashboard/workflows/new?pattern=hierarchical",
                     badge: null,
                   },
                   {
                     icon: Sparkles,
-                    title: "Supervisor",
-                    desc: "Describe your goal. AI selects agents & builds the plan.",
+                    title: "Let AI Plan",
+                    desc: "Describe your goal. AI picks the agents and builds the plan for you.",
                     bestFor: "\"I know what, not who\"",
                     href: "/dashboard/workflows/new?pattern=supervisor",
                     badge: null,
@@ -237,14 +255,6 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Card 2: Find an Agent — spans 2 cols */}
-            <div
-              id="magic-box"
-              className="relative flex min-w-0 flex-col justify-center overflow-hidden rounded-2xl border bg-card p-5 transition-all hover:border-primary/30 hover:shadow-lg sm:p-6 md:col-span-2"
-            >
-              <h2 className="mb-3 text-base font-semibold sm:text-lg">Find the Right Agent</h2>
-              <MagicBox />
-            </div>
 
           </div>
 
@@ -314,7 +324,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Social Proof */}
+      {/* Social Proof — positioned right after hero for trust at decision point */}
       <SocialProof />
 
       {/* How It Works */}

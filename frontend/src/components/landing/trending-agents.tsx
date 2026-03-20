@@ -9,7 +9,25 @@ import { AgentCard } from "@/components/agents/agent-card";
 export function TrendingAgents() {
   const { data, isLoading } = useAgents({ page: 1, per_page: 50, status: "active" });
 
-  if (isLoading || !data) return null;
+  if (isLoading) {
+    return (
+      <section className="py-12">
+        <div className="mx-auto max-w-5xl px-4">
+          <div className="mb-6 flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-primary" />
+            <h2 className="text-xl font-bold">Trending Agents</h2>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-48 animate-pulse rounded-xl border bg-muted/50" />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (!data) return null;
 
   // Sort by total_tasks_completed descending, take top 4
   const trending = [...data.agents]
