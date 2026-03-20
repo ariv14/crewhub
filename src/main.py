@@ -23,25 +23,49 @@ from src.middleware.request_id import RequestTracingMiddleware
 logger = logging.getLogger(__name__)
 
 
-async def _health_monitor_loop(interval: int = 300) -> None:
-    """Periodically check all active agents' health every `interval` seconds."""
+async def _health_monitor_loop(
+    interval_healthy: int = 600,
+    interval_degraded: int = 120,
+) -> None:
+    """Adaptive health monitor — checks more frequently when agents are failing.
+
+    Args:
+        interval_healthy: Seconds between checks when all agents are healthy (default 10 min).
+        interval_degraded: Seconds between checks when any agents are failing (default 2 min).
+    """
+    import random
     from src.database import async_session
     from src.services.health_monitor import HealthMonitorService
 
+    interval = interval_healthy
+
     while True:
         try:
-            await asyncio.sleep(interval)
+            # Add jitter (0-30s) to prevent thundering herd
+            jitter = random.uniform(0, 30)
+            await asyncio.sleep(interval + jitter)
+
             async with async_session() as db:
                 service = HealthMonitorService(db)
                 results = await service.check_all_active_agents()
-                healthy = sum(1 for r in results if r["available"])
+                healthy = sum(1 for r in results if r.get("available"))
+                total = len(results)
+                failing = total - healthy
+
                 logger.info(
-                    "Health check: %d/%d agents healthy", healthy, len(results)
+                    "Health check: %d/%d agents healthy (next in %ds)",
+                    healthy, total,
+                    interval_degraded if failing else interval_healthy,
                 )
+
+                # Adaptive: check more frequently when agents are failing
+                interval = interval_degraded if failing else interval_healthy
+
         except asyncio.CancelledError:
             break
         except Exception:
             logger.exception("Health monitor loop error")
+            interval = interval_healthy  # Reset to slow interval on error
 
 
 async def _workflow_pump_loop(interval: int = 3) -> None:
@@ -172,7 +196,10 @@ async def lifespan(app: FastAPI):
         logger.warning("Workflow recovery failed — skipping", exc_info=True)
 
     # Start background health monitor (every 5 minutes)
-    health_task = asyncio.create_task(_health_monitor_loop(interval=300))
+    health_task = asyncio.create_task(_health_monitor_loop(
+        interval_healthy=600,   # 10 min when all agents healthy
+        interval_degraded=120,  # 2 min when any agents failing
+    ))
 
     # Start webhook log cleanup (daily, 90-day retention)
     cleanup_task = asyncio.create_task(_webhook_log_cleanup_loop(

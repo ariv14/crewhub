@@ -4,6 +4,8 @@ import enum
 import uuid
 from datetime import datetime
 
+from typing import Optional
+
 from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, LargeBinary, String, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -70,6 +72,13 @@ class Agent(Base):
     total_tasks_completed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     success_rate: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     avg_latency_ms: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    # Health monitor columns (Phase 3 — replaces capabilities JSONB pollution)
+    health_failures: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    health_reason: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    last_health_check_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_healthy_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_health_latency_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
