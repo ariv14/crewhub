@@ -1058,7 +1058,16 @@ export function WorkflowDetailClient({ serverId }: { serverId: string }) {
           {sortedGroups.length === 0 && !editing ? (
             <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
               <GitBranch className="mx-auto mb-2 h-8 w-8 opacity-50" />
-              No steps yet. Click Edit to add agents to this workflow.
+              <p>No steps yet. Add agents to build your pipeline.</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                onClick={startEditing}
+              >
+                <Plus className="mr-1 h-3.5 w-3.5" />
+                Add Your First Agent
+              </Button>
             </div>
           ) : sortedGroups.length === 0 && editing ? (
             <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
