@@ -4,8 +4,10 @@
 
 import asyncio
 import logging
+import random
 import time
 from collections import defaultdict
+from datetime import datetime, timezone
 
 import httpx
 from sqlalchemy import func, select
@@ -19,12 +21,16 @@ logger = logging.getLogger(__name__)
 # In-memory circuit breaker state (fallback when Redis unavailable)
 _circuit_failures: dict[str, list[float]] = defaultdict(list)
 
-# Reusable HTTP client for health checks (created per cycle)
+# Health check configuration
 _HEALTH_CHECK_TIMEOUT = 10.0
+_WAKE_PROBE_TIMEOUT = 60.0  # Longer timeout for sleeping HF Spaces
 _CONCURRENCY_LIMIT = 10
 
 # HTTP status codes that mean "alive but not serving agent card"
 _ALIVE_STATUS_CODES = {401, 403, 429}
+
+# HF Spaces sleep indicators
+_HF_SLEEP_INDICATORS = {"is sleeping", "space is paused", "space is sleeping"}
 
 
 def is_circuit_open(agent_id: str) -> bool:
@@ -92,6 +98,21 @@ def reset_circuit(agent_id: str) -> None:
     _circuit_failures.pop(agent_id, None)
 
 
+def _is_hf_space(endpoint: str) -> bool:
+    """Check if an endpoint is a HuggingFace Space."""
+    return ".hf.space" in endpoint if endpoint else False
+
+
+def _detect_sleep(status_code: int, error: str | None) -> bool:
+    """Detect if a health check failure looks like a sleeping HF Space."""
+    if status_code == 503:
+        return True
+    if error:
+        lower = error.lower()
+        return any(indicator in lower for indicator in _HF_SLEEP_INDICATORS)
+    return False
+
+
 class HealthMonitorService:
     """Periodically checks agent endpoints and manages availability status."""
 
@@ -103,18 +124,36 @@ class HealthMonitorService:
     # ------------------------------------------------------------------
 
     async def check_agent(
-        self, agent: Agent, client: httpx.AsyncClient | None = None,
+        self,
+        agent: Agent,
+        client: httpx.AsyncClient | None = None,
+        wake_probe: bool = False,
     ) -> dict:
         """HTTP GET the agent's well-known agent card endpoint and measure latency.
 
+        Args:
+            agent: Agent to check.
+            client: Shared httpx client (optional).
+            wake_probe: If True, use a longer timeout (60s) to allow cold start.
+
         Returns:
-            A dict with keys: available, latency_ms, error, status_code.
+            A dict with keys: available, latency_ms, error, status_code, sleeping.
         """
         from src.schemas.agent import _validate_public_url
 
+        if not agent.endpoint:
+            return {
+                "agent_id": str(agent.id),
+                "available": False,
+                "latency_ms": 0,
+                "status_code": 0,
+                "error": "No endpoint configured",
+                "sleeping": False,
+            }
+
         url = agent.endpoint.rstrip("/") + "/.well-known/agent-card.json"
 
-        # SSRF guard: validate the URL before making the request
+        # SSRF guard
         try:
             _validate_public_url(url)
         except ValueError as exc:
@@ -124,12 +163,15 @@ class HealthMonitorService:
                 "latency_ms": 0,
                 "status_code": 0,
                 "error": f"Invalid endpoint: {exc}",
+                "sleeping": False,
             }
+
+        timeout = _WAKE_PROBE_TIMEOUT if wake_probe else _HEALTH_CHECK_TIMEOUT
 
         try:
             own_client = client is None
             if own_client:
-                client = httpx.AsyncClient(timeout=_HEALTH_CHECK_TIMEOUT)
+                client = httpx.AsyncClient(timeout=timeout)
 
             try:
                 start = time.monotonic()
@@ -145,23 +187,31 @@ class HealthMonitorService:
                         "latency_ms": elapsed_ms,
                         "status_code": 200,
                         "error": None,
+                        "sleeping": False,
                     }
                 elif response.status_code in _ALIVE_STATUS_CODES:
-                    # 401/403/429 = agent is alive but misconfigured or rate-limited
                     return {
                         "agent_id": str(agent.id),
                         "available": True,
                         "latency_ms": elapsed_ms,
                         "status_code": response.status_code,
                         "error": f"HTTP {response.status_code} (alive, not counted as failure)",
+                        "sleeping": False,
                     }
                 else:
+                    body = ""
+                    try:
+                        body = response.text[:200]
+                    except Exception:
+                        pass
+                    sleeping = _detect_sleep(response.status_code, body)
                     return {
                         "agent_id": str(agent.id),
                         "available": False,
                         "latency_ms": elapsed_ms,
                         "status_code": response.status_code,
                         "error": f"HTTP {response.status_code}",
+                        "sleeping": sleeping,
                     }
             finally:
                 if own_client:
@@ -171,9 +221,10 @@ class HealthMonitorService:
             return {
                 "agent_id": str(agent.id),
                 "available": False,
-                "latency_ms": 10_000,
+                "latency_ms": int(timeout * 1000),
                 "status_code": 0,
-                "error": "Timeout after 10s",
+                "error": f"Timeout after {int(timeout)}s",
+                "sleeping": _is_hf_space(agent.endpoint),
             }
         except Exception as exc:
             return {
@@ -182,22 +233,25 @@ class HealthMonitorService:
                 "latency_ms": 0,
                 "status_code": 0,
                 "error": str(exc),
+                "sleeping": False,
             }
 
     # ------------------------------------------------------------------
-    # Check all active agents (concurrent)
+    # Check all active agents (concurrent, with wake probes)
     # ------------------------------------------------------------------
 
     async def check_all_active_agents(self) -> list[dict]:
         """Check active and unavailable agents concurrently, auto-recover on success.
 
         - ACTIVE agents that fail ``settings.health_check_max_failures``
-          consecutive checks are marked UNAVAILABLE (not INACTIVE).
+          consecutive checks are marked UNAVAILABLE.
+        - UNAVAILABLE agents with health_reason='sleeping' get a wake probe
+          (60s timeout) to allow HF Spaces cold start.
         - UNAVAILABLE agents that respond successfully are auto-promoted
           back to ACTIVE.
         - INACTIVE agents (owner-deactivated) are never touched.
-        - 401/403/429 responses are treated as "alive" (not counted as failure).
-        - Each status change is audit-logged for SOC 2 compliance.
+        - 401/403/429 responses are treated as "alive".
+        - Each status change is audit-logged.
         """
         from src.core.audit import audit_log
 
@@ -213,13 +267,19 @@ class HealthMonitorService:
 
         # Concurrent health checks with semaphore
         sem = asyncio.Semaphore(_CONCURRENCY_LIMIT)
+        now = datetime.now(timezone.utc)
 
         async def _check_with_limit(agent: Agent, client: httpx.AsyncClient) -> dict:
             async with sem:
-                return await self.check_agent(agent, client=client)
+                # Use wake probe for sleeping agents (longer timeout)
+                use_wake = (
+                    agent.status == AgentStatus.UNAVAILABLE
+                    and agent.health_reason == "sleeping"
+                )
+                return await self.check_agent(agent, client=client, wake_probe=use_wake)
 
         async with httpx.AsyncClient(
-            timeout=_HEALTH_CHECK_TIMEOUT,
+            timeout=_WAKE_PROBE_TIMEOUT,  # Use longer timeout for pool
             limits=httpx.Limits(max_connections=_CONCURRENCY_LIMIT),
         ) as client:
             check_tasks = [_check_with_limit(a, client) for a in agents]
@@ -229,7 +289,6 @@ class HealthMonitorService:
         results: list[dict] = []
         for agent, check in zip(agents, check_results):
             try:
-                # Handle gather exceptions
                 if isinstance(check, Exception):
                     logger.exception("Health check exception for %s", agent.id, exc_info=check)
                     results.append({
@@ -241,14 +300,14 @@ class HealthMonitorService:
                     continue
 
                 results.append(check)
-
-                caps = dict(agent.capabilities or {})
-                consecutive_failures = caps.get("_health_failures", 0)
                 old_status = agent.status
+                agent.last_health_check_at = now
 
                 if check["available"]:
-                    caps["_health_failures"] = 0
-                    caps["_last_healthy_ms"] = check["latency_ms"]
+                    agent.health_failures = 0
+                    agent.health_reason = None
+                    agent.last_healthy_at = now
+                    agent.last_health_latency_ms = check["latency_ms"]
                     # Auto-recover unavailable agents
                     if agent.status == AgentStatus.UNAVAILABLE:
                         agent.status = AgentStatus.ACTIVE
@@ -257,21 +316,24 @@ class HealthMonitorService:
                             agent.name, agent.id,
                         )
                 else:
-                    consecutive_failures += 1
-                    caps["_health_failures"] = consecutive_failures
+                    agent.health_failures = (agent.health_failures or 0) + 1
+
+                    # Set health reason
+                    if check.get("sleeping"):
+                        agent.health_reason = "sleeping"
+                    else:
+                        agent.health_reason = "failed"
 
                     if (
-                        consecutive_failures >= settings.health_check_max_failures
+                        agent.health_failures >= settings.health_check_max_failures
                         and agent.status == AgentStatus.ACTIVE
                     ):
                         agent.status = AgentStatus.UNAVAILABLE
                         logger.warning(
                             "Agent %s (%s) marked UNAVAILABLE after %d failures: %s",
-                            agent.name, agent.id, consecutive_failures,
+                            agent.name, agent.id, agent.health_failures,
                             check.get("error", "unknown"),
                         )
-
-                agent.capabilities = caps
 
                 # Audit log status changes
                 if agent.status != old_status:
@@ -284,7 +346,8 @@ class HealthMonitorService:
                         old_value={"status": old_status.value if hasattr(old_status, "value") else old_status},
                         new_value={
                             "status": agent.status.value if hasattr(agent.status, "value") else agent.status,
-                            "consecutive_failures": consecutive_failures,
+                            "health_failures": agent.health_failures,
+                            "health_reason": agent.health_reason,
                             "last_error": check.get("error"),
                         },
                     )
@@ -307,9 +370,8 @@ class HealthMonitorService:
 
         for agent in agents:
             agent.status = AgentStatus.ACTIVE
-            caps = dict(agent.capabilities or {})
-            caps["_health_failures"] = 0
-            agent.capabilities = caps
+            agent.health_failures = 0
+            agent.health_reason = None
 
         if agents:
             await self.db.commit()
@@ -323,8 +385,6 @@ class HealthMonitorService:
 
     async def get_health_overview(self) -> dict:
         """Return aggregate health stats for all agents."""
-        from sqlalchemy import case
-
         stmt = select(
             Agent.status,
             func.count().label("count"),
@@ -335,23 +395,27 @@ class HealthMonitorService:
         status_counts = {row.status: row.count for row in rows}
         total = sum(status_counts.values())
 
-        # Get agents with high failure counts
+        # Get agents with health issues
         failing_stmt = (
-            select(Agent.id, Agent.name, Agent.capabilities)
+            select(Agent.id, Agent.name, Agent.health_failures, Agent.health_reason,
+                   Agent.last_health_latency_ms, Agent.last_health_check_at, Agent.status)
             .where(Agent.status.in_([AgentStatus.ACTIVE, AgentStatus.UNAVAILABLE]))
+            .where(Agent.health_failures > 0)
+            .order_by(Agent.health_failures.desc())
         )
         failing_result = await self.db.execute(failing_stmt)
-        failing_agents = []
-        for row in failing_result.all():
-            caps = row.capabilities or {}
-            failures = caps.get("_health_failures", 0) if isinstance(caps, dict) else 0
-            if failures > 0:
-                failing_agents.append({
-                    "id": str(row.id),
-                    "name": row.name,
-                    "consecutive_failures": failures,
-                    "last_healthy_ms": caps.get("_last_healthy_ms"),
-                })
+        failing_agents = [
+            {
+                "id": str(row.id),
+                "name": row.name,
+                "status": row.status,
+                "health_failures": row.health_failures,
+                "health_reason": row.health_reason,
+                "last_latency_ms": row.last_health_latency_ms,
+                "last_check_at": row.last_health_check_at.isoformat() if row.last_health_check_at else None,
+            }
+            for row in failing_result.all()
+        ]
 
         return {
             "total": total,
@@ -359,9 +423,7 @@ class HealthMonitorService:
             "unavailable": status_counts.get(AgentStatus.UNAVAILABLE, 0),
             "inactive": status_counts.get(AgentStatus.INACTIVE, 0),
             "suspended": status_counts.get(AgentStatus.SUSPENDED, 0),
-            "failing_agents": sorted(
-                failing_agents, key=lambda x: x["consecutive_failures"], reverse=True,
-            ),
+            "failing_agents": failing_agents,
         }
 
     # ------------------------------------------------------------------
@@ -382,5 +444,4 @@ class HealthMonitorService:
                 "error": "Agent not found",
             }
 
-        # Perform a live check
         return await self.check_agent(agent)
