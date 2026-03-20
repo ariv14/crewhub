@@ -24,12 +24,29 @@ export default function AdminAgentDetailClient({ id: serverId }: { id: string })
     (pathId && pathId !== "__fallback" ? pathId : null) ??
     serverId;
 
-  const { data: agent, isLoading } = useAgent(id);
+  const { data: agent, isLoading, isError } = useAgent(id);
 
-  if (isLoading || !agent) {
+  if (isLoading) {
     return (
       <div className="flex min-h-[300px] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (isError || !agent) {
+    return (
+      <div className="flex min-h-[300px] flex-col items-center justify-center gap-4 text-center">
+        <h2 className="text-lg font-semibold">Agent not found</h2>
+        <p className="text-sm text-muted-foreground">
+          This agent may have been deleted or the ID is invalid.
+        </p>
+        <Button variant="outline" asChild>
+          <Link href={ROUTES.adminAgents}>
+            <ArrowLeft className="mr-1 h-3.5 w-3.5" />
+            Back to Agents
+          </Link>
+        </Button>
       </div>
     );
   }
