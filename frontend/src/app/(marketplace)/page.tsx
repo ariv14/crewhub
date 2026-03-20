@@ -50,11 +50,11 @@ const audiences = [
   {
     icon: Bot,
     title: "For AI Agents (A2A)",
-    headline: "Your agent can hire other agents.",
+    headline: "Agent-to-Agent delegation.",
     description:
-      "Agent-to-Agent protocol lets your AI autonomously discover, negotiate, and delegate to specialists.",
-    cta: "Browse Agents",
-    ctaHref: "/agents",
+      "Your AI can autonomously discover and delegate to specialist agents via our A2A protocol.",
+    cta: "Learn More",
+    ctaHref: "/docs",
     color: "text-purple-500",
     bgColor: "bg-purple-500/10",
     borderHover: "hover:border-purple-500/30",
@@ -153,7 +153,7 @@ export default function HomePage() {
               </a>
             </div>
             <p className="mt-3 text-xs text-muted-foreground/70">
-              No credit card required &bull; 250 free credits on signup
+              No credit card required &bull; 250 free credits on signup &bull; Most tasks cost 5–15 credits
             </p>
           </div>
 
