@@ -3,7 +3,6 @@
 import Link from "next/link";
 import {
   Rocket,
-  Users,
   Zap,
   Shield,
   Coins,
@@ -12,11 +11,8 @@ import {
   Bot,
   Code2,
   Sparkles,
-  GitBranch,
-  Workflow,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { MagicBox } from "@/components/landing/magic-box";
+import { HeroTabs } from "@/components/landing/hero-tabs";
 import { TrendingAgents } from "@/components/landing/trending-agents";
 import { SocialProof } from "@/components/landing/social-proof";
 import { ROUTES } from "@/lib/constants";
@@ -157,106 +153,8 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Two action cards — Magic Box is larger/more prominent */}
-          <div className="mx-auto mt-6 grid max-w-5xl gap-6 md:grid-cols-5 sm:mt-12 overflow-hidden">
-            {/* Card 1: Find an Agent — spans 3 cols (primary action) */}
-            <div
-              id="magic-box"
-              className="relative order-first flex min-w-0 flex-col justify-center overflow-hidden rounded-2xl border-2 border-primary/20 bg-card p-5 transition-all hover:border-primary/30 hover:shadow-lg sm:p-6 md:col-span-3"
-            >
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
-              <div className="relative">
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                  <Search className="h-6 w-6 text-primary" />
-                </div>
-                <h2 className="text-2xl font-bold">Find the Right Agent</h2>
-                <p className="mt-2 text-muted-foreground">
-                  Describe what you need — AI matches you with the best specialist
-                </p>
-              </div>
-              <div className="relative mt-5">
-                <MagicBox />
-              </div>
-            </div>
-
-            {/* Card 2: Orchestration Patterns — spans 2 cols */}
-            <div className="relative flex min-w-0 flex-col overflow-hidden rounded-2xl border bg-card p-5 sm:p-6 md:col-span-2">
-              <div className="relative">
-                <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-                  <Users className="h-4.5 w-4.5 text-primary" />
-                </div>
-                <h2 className="text-lg font-bold">Assemble a Team</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Chain agents into multi-step workflows
-                </p>
-              </div>
-
-              {/* 3 Pattern Cards */}
-              <div className="relative mt-6 grid gap-3 sm:grid-cols-3">
-                {[
-                  {
-                    icon: GitBranch,
-                    title: "Chain Agents",
-                    desc: "Pick agents, set the order. Run steps one after another or in parallel.",
-                    bestFor: "Simple multi-step tasks",
-                    href: "/dashboard/workflows/new?pattern=manual",
-                    badge: null,
-                  },
-                  {
-                    icon: Workflow,
-                    title: "Build Pipelines",
-                    desc: "Compose reusable pipelines. Nest workflows inside workflows.",
-                    bestFor: "Complex processes",
-                    href: "/dashboard/workflows/new?pattern=hierarchical",
-                    badge: null,
-                  },
-                  {
-                    icon: Sparkles,
-                    title: "Let AI Plan",
-                    desc: "Describe your goal. AI picks the agents and builds the plan for you.",
-                    bestFor: "\"I know what, not who\"",
-                    href: "/dashboard/workflows/new?pattern=supervisor",
-                    badge: null,
-                  },
-                ].map((pattern) => (
-                  <a
-                    key={pattern.title}
-                    href={pattern.href}
-                    className="group/card relative flex flex-col rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/30 hover:bg-primary/5"
-                  >
-                    {pattern.badge && (
-                      <Badge variant="secondary" className="absolute top-3 right-3 text-[10px]">
-                        {pattern.badge}
-                      </Badge>
-                    )}
-                    <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-                      <pattern.icon className="h-4.5 w-4.5 text-primary" />
-                    </div>
-                    <h3 className="text-sm font-semibold">{pattern.title}</h3>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {pattern.desc}
-                    </p>
-                    <p className="mt-auto pt-3 text-[10px] font-medium text-primary/70">
-                      Best for: {pattern.bestFor}
-                    </p>
-                  </a>
-                ))}
-              </div>
-
-              {/* Try Workflows CTA */}
-              <div className="relative mt-5 flex justify-center">
-                <a
-                  href="/dashboard/workflows/new"
-                  className="group/cta inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90"
-                >
-                  Try Workflows
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover/cta:translate-x-0.5" />
-                </a>
-              </div>
-            </div>
-
-
-          </div>
+          {/* Tabbed hero — Find an Agent / Build a Team */}
+          <HeroTabs />
 
           {/* Build My Agent — premium strip */}
           <div className="mx-auto mt-6 max-w-5xl px-0">
