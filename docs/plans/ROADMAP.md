@@ -193,7 +193,7 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 - [x] Sidebar simplified: Workflows, Schedules, Build Agent (3 items, was 4)
 - [x] Full production E2E verified — all 14 functional tests pass
 
-### Compact Landing Page + Security Hardening (Mar 19) — ON STAGING
+### Compact Landing Page + Security Hardening (Mar 19) — LIVE
 - [x] Compact "Find the Right Agent" card — textarea → input, 5 starters → 3, floating dropdown
 - [x] Security: **64 of 64 compliance findings resolved (100%)**
 - [x] AuditLog model + migration 030 + utility wired into all admin endpoints
@@ -202,6 +202,16 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 - [x] RBAC: admin_role column with ops/super/billing separation
 - [x] Encryption key versioning with backward-compatible decrypt
 - [x] Cookie compliance Phase 1: sidebar_state flags, consent banner text, privacy policy inventory
+- [x] Activity stream fix: `Transaction.user_id` → account-based query (was crashing SSE)
+
+### Cookie & Privacy Compliance (Mar 19) — ALL PHASES COMPLETE (LIVE)
+- [x] **Phase 1**: sidebar_state flags, privacy policy inventory, session recording disclosure
+- [x] **Phase 2**: Cookie Preferences card in Settings, footer link, consent reset flow
+- [x] **UX rewrite**: Removed PostHog/session replay jargon from banner + settings card
+  - Banner: "We use cookies to understand how you use CrewHub so we can make it better"
+  - Settings: plain-language analytics vs essential cookies explanation
+  - Vendor details moved to Privacy Policy where they belong (GDPR best practice)
+- [ ] **Phase 3**: Server-side consent logging (`POST /auth/consent`, versioned consent key)
 
 ### Stripe Dashboard Manual Steps (Pending)
 - [ ] **Staging**: Enable Stripe Connect (test mode), add `account.updated` webhook event
@@ -283,23 +293,9 @@ See `2026-03-07-bug-fixes-progress.md` for details.
 - [x] Fixed: admin submissions trailing slash 404, security_schemes validation, builder CSP
 - [x] Full E2E tested: builder → publish → admin approve → agent live with endpoint + skill
 
-### Cookie & Privacy Compliance (Mar 19) — Phases 1-2 COMPLETE
-7 NON-COMPLIANT, 5 NEEDS IMPROVEMENT, 6 COMPLIANT findings audited.
+### Cookie & Privacy Compliance (Mar 19) — Phases 1-2 + UX COMPLETE (see Completed Work above)
 
-**Phase 1: Quick fixes — COMPLETE**
-- [x] Fix `sidebar_state` cookie — add `SameSite=Lax; Secure` flags
-- [x] Update consent banner text: mention session recording + PostHog by name
-- [x] Update privacy policy Section 5: full cookie/storage inventory (6 missing items)
-- [x] Fix "anonymous" → "pseudonymous" in privacy policy PostHog section
-- [x] Add session recording disclosure to privacy policy
-
-**Phase 2: Consent withdrawal — COMPLETE**
-- [x] "Cookie Preferences" card in Settings Profile tab (shows current status + reset button)
-- [x] "Cookie Preferences" link in homepage footer
-- [x] Both reset localStorage consent, call posthog.opt_out_capturing(), re-show banner
-- [x] PostHog provider listens for custom event, resetAnalyticsConsent() exported for reuse
-
-**Phase 3: Server-side consent logging (1 hr)**
+**Phase 3: Server-side consent logging (remaining)**
 - [ ] `POST /api/v1/auth/consent` endpoint — stores timestamp, version, IP
 - [ ] Call from handleAccept() in posthog-provider
 - [ ] Version the consent key (analytics_consent_v1.0)
