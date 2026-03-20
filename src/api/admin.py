@@ -665,3 +665,39 @@ async def re_embed_skills(
     await audit_log(db, action="admin.re_embed_skills", actor_user_id=str(admin.id), new_value={"skills_count": len(skills)}, request=request)
     await db.commit()
     return {"message": f"Re-embedded {len(skills)} skills", "updated": len(skills)}
+
+
+# ------------------------------------------------------------------
+# Health Monitor Admin Endpoints
+# ------------------------------------------------------------------
+
+
+@router.get("/health/overview")
+async def health_overview(
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Aggregate health stats — active, unavailable, failing agents."""
+    from src.services.health_monitor import HealthMonitorService
+    service = HealthMonitorService(db)
+    return await service.get_health_overview()
+
+
+@router.post("/agents/bulk-reactivate")
+async def bulk_reactivate(
+    request: Request,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Reactivate all UNAVAILABLE agents back to ACTIVE."""
+    from src.services.health_monitor import HealthMonitorService
+    service = HealthMonitorService(db)
+    count = await service.bulk_reactivate_unavailable()
+    await audit_log(
+        db, action="admin.bulk_reactivate",
+        actor_user_id=str(admin.id),
+        target_type="agents",
+        new_value={"reactivated": count},
+        request=request,
+    )
+    return {"reactivated": count}
