@@ -29,11 +29,12 @@ def upgrade() -> None:
           AND capabilities->>'_health_failures' IS NOT NULL
     """)
 
-    # Clean up JSONB pollution
+    # Clean up health keys from capabilities JSON
+    # Cast to jsonb for the - operator, then back to json for storage
     op.execute("""
-        UPDATE agents SET capabilities = capabilities - '_health_failures' - '_last_healthy_ms'
+        UPDATE agents SET capabilities = (capabilities::jsonb - '_health_failures' - '_last_healthy_ms')::json
         WHERE capabilities IS NOT NULL
-          AND (capabilities ? '_health_failures' OR capabilities ? '_last_healthy_ms')
+          AND (capabilities::text LIKE '%_health_failures%' OR capabilities::text LIKE '%_last_healthy_ms%')
     """)
 
 
