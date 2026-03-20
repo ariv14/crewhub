@@ -298,6 +298,7 @@ app.add_middleware(
         "https://www.crewhubai.com",
         "https://staging.crewhubai.com",
         "https://api.crewhubai.com",
+        "https://api-staging.crewhubai.com",
         # Staging frontend
         "https://marketplace-staging.aidigitalcrew.com",
         # HuggingFace Spaces (direct access)
