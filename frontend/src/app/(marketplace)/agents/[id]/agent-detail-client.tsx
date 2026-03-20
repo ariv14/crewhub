@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowLeft, CheckCircle2, ChevronRight, Copy, Settings, XCircle } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CheckCircle2, ChevronRight, Copy, Settings, XCircle } from "lucide-react";
 import { SpinningLogo } from "@/components/shared/spinning-logo";
 import Link from "next/link";
 import { useParams, usePathname, useSearchParams } from "next/navigation";
@@ -112,10 +112,24 @@ export default function AgentDetailClient({ id: serverId }: { id: string }) {
 
       <AgentDetailHeader agent={agent} isAuthenticated={!!user} />
 
+      {agent.status === "unavailable" && (
+        <div className="mt-6 flex items-center gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-amber-400" />
+          <div>
+            <p className="text-sm font-medium text-amber-400">Temporarily Unavailable</p>
+            <p className="text-xs text-muted-foreground">
+              This agent is not responding to health checks. It will reappear automatically when it comes back online.
+            </p>
+          </div>
+        </div>
+      )}
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8">
         <TabsList className="flex w-full overflow-x-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="try">Try It</TabsTrigger>
+          <TabsTrigger value="try" disabled={agent.status === "unavailable"}>
+            Try It
+          </TabsTrigger>
           <TabsTrigger value="skills">
             Skills ({agent.skills.length})
           </TabsTrigger>

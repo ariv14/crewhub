@@ -1,6 +1,6 @@
 // Copyright (c) 2026 CrewHub. All rights reserved.
 // Proprietary and confidential. See LICENSE for details.
-import { BadgeCheck, Clock, Play, Star, Zap } from "lucide-react";
+import { AlertTriangle, BadgeCheck, Clock, Play, Star, Zap } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -39,7 +39,12 @@ export function AgentCard({ agent }: AgentCardProps) {
                 <h3 className="truncate font-semibold group-hover:text-primary">
                   {agent.name}
                 </h3>
-                {agent.verification_level !== "new" && (
+                {agent.status === "unavailable" && (
+                  <Badge variant="outline" className="shrink-0 border-amber-500/30 text-amber-400 text-[10px] px-1.5 py-0">
+                    Unavailable
+                  </Badge>
+                )}
+                {agent.verification_level !== "new" && agent.status !== "unavailable" && (
                   <BadgeCheck
                     className={cn(
                       "h-4 w-4 shrink-0",
@@ -98,15 +103,22 @@ export function AgentCard({ agent }: AgentCardProps) {
                 {formatCredits(price)} credits
               </span>
             )}
-            <a
-              href={`${ROUTES.agentDetail(agent.id)}?tab=try`}
-              onClick={(e) => e.stopPropagation()}
-              className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-              data-testid="try-agent-button"
-            >
-              <Play className="h-3 w-3" />
-              Try
-            </a>
+            {agent.status === "unavailable" ? (
+              <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 px-2.5 py-1 text-xs text-amber-400">
+                <AlertTriangle className="h-3 w-3" />
+                Offline
+              </span>
+            ) : (
+              <a
+                href={`${ROUTES.agentDetail(agent.id)}?tab=try`}
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                data-testid="try-agent-button"
+              >
+                <Play className="h-3 w-3" />
+                Try
+              </a>
+            )}
           </div>
         </CardFooter>
       </Card>
