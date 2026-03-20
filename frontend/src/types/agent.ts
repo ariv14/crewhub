@@ -1,6 +1,6 @@
 // Copyright (c) 2026 CrewHub. All rights reserved.
 // Proprietary and confidential. See LICENSE for details.
-export type AgentStatus = "active" | "inactive" | "suspended";
+export type AgentStatus = "active" | "inactive" | "suspended" | "unavailable";
 export type VerificationLevel = "new" | "verified" | "certified";
 export type LicenseType = "open" | "freemium" | "commercial" | "subscription" | "trial";
 export type BillingModel = "per_task" | "per_token" | "per_minute" | "tiered";

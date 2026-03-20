@@ -66,7 +66,7 @@ class Settings(BaseSettings):
 
     # Health Monitor
     health_check_interval_seconds: int = 60
-    health_check_max_failures: int = 3
+    health_check_max_failures: int = 12
 
     # Rate Limiting
     rate_limit_requests: int = 100
