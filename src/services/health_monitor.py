@@ -155,38 +155,57 @@ class HealthMonitorService:
     # ------------------------------------------------------------------
 
     async def check_all_active_agents(self) -> list[dict]:
-        """Check every active agent and update status on consecutive failures.
+        """Check active and unavailable agents, auto-recover on success.
 
-        If an agent fails ``settings.health_check_max_failures`` consecutive
-        checks it is marked inactive.
+        - ACTIVE agents that fail ``settings.health_check_max_failures``
+          consecutive checks are marked UNAVAILABLE (not INACTIVE).
+        - UNAVAILABLE agents that respond successfully are auto-promoted
+          back to ACTIVE.
+        - INACTIVE agents (owner-deactivated) are never touched.
         """
         stmt = (
             select(Agent)
-            .where(Agent.status == AgentStatus.ACTIVE)
+            .where(Agent.status.in_([AgentStatus.ACTIVE, AgentStatus.UNAVAILABLE]))
         )
         result = await self.db.execute(stmt)
         agents = list(result.scalars().unique().all())
 
         results: list[dict] = []
         for agent in agents:
-            check = await self.check_agent(agent)
-            results.append(check)
+            try:
+                check = await self.check_agent(agent)
+                results.append(check)
 
-            # Track consecutive failures in the agent's capabilities JSONB
-            caps = dict(agent.capabilities or {})
-            consecutive_failures = caps.get("_health_failures", 0)
+                caps = dict(agent.capabilities or {})
+                consecutive_failures = caps.get("_health_failures", 0)
 
-            if check["available"]:
-                caps["_health_failures"] = 0
-                caps["_last_healthy_ms"] = check["latency_ms"]
-            else:
-                consecutive_failures += 1
-                caps["_health_failures"] = consecutive_failures
+                if check["available"]:
+                    caps["_health_failures"] = 0
+                    caps["_last_healthy_ms"] = check["latency_ms"]
+                    # Auto-recover unavailable agents
+                    if agent.status == AgentStatus.UNAVAILABLE:
+                        agent.status = AgentStatus.ACTIVE
+                        logger.info(
+                            "Agent %s (%s) auto-recovered to ACTIVE",
+                            agent.name, agent.id,
+                        )
+                else:
+                    consecutive_failures += 1
+                    caps["_health_failures"] = consecutive_failures
 
-                if consecutive_failures >= settings.health_check_max_failures:
-                    agent.status = AgentStatus.INACTIVE
+                    if (
+                        consecutive_failures >= settings.health_check_max_failures
+                        and agent.status == AgentStatus.ACTIVE
+                    ):
+                        agent.status = AgentStatus.UNAVAILABLE
+                        logger.warning(
+                            "Agent %s (%s) marked UNAVAILABLE after %d failures",
+                            agent.name, agent.id, consecutive_failures,
+                        )
 
-            agent.capabilities = caps
+                agent.capabilities = caps
+            except Exception:
+                logger.exception("Error checking agent %s", agent.id)
 
         await self.db.commit()
         return results

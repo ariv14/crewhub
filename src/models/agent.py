@@ -14,6 +14,7 @@ class AgentStatus(str, enum.Enum):
     ACTIVE = "active"
     INACTIVE = "inactive"
     SUSPENDED = "suspended"
+    UNAVAILABLE = "unavailable"
 
 
 class VerificationLevel(str, enum.Enum):
