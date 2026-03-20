@@ -44,7 +44,7 @@ import type { AgentUpdate } from "@/types/agent";
 
 export function AgentSettings({ agentId }: { agentId: string }) {
   const { user } = useAuth();
-  const { data: agent, isLoading } = useAgent(agentId);
+  const { data: agent, isLoading, isError } = useAgent(agentId);
   const updateMutation = useUpdateAgent(agentId);
   const deleteMutation = useDeleteAgent();
   const hardDeleteMutation = useDeleteAgentPermanently();
@@ -78,8 +78,15 @@ export function AgentSettings({ agentId }: { agentId: string }) {
     );
   }
 
-  if (!agent) {
-    return <p className="text-muted-foreground">Agent not found.</p>;
+  if (isError || !agent) {
+    return (
+      <div className="flex min-h-[200px] flex-col items-center justify-center gap-3 text-center">
+        <p className="text-muted-foreground">Agent not found.</p>
+        <Button variant="outline" size="sm" asChild>
+          <a href={ROUTES.myAgents}>Back to My Agents</a>
+        </Button>
+      </div>
+    );
   }
 
   if (user && agent.owner_id !== user.id) {
