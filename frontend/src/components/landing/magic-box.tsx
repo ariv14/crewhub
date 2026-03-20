@@ -106,6 +106,16 @@ export function MagicBox() {
   const [error, setError] = useState<string | null>(null);
   const [createAvailable, setCreateAvailable] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const pendingSearchRef = useRef<string | null>(null);
+
+  // Auto-search when a starter chip sets the query
+  useEffect(() => {
+    if (pendingSearchRef.current && query === pendingSearchRef.current) {
+      pendingSearchRef.current = null;
+      handleSearch();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -226,6 +236,13 @@ export function MagicBox() {
         </Button>
       </div>
 
+      {/* Character hint */}
+      {query.length > 0 && query.length < 5 && !searched && (
+        <p className="mt-1.5 text-[10px] text-muted-foreground/60">
+          Type at least 5 characters to search
+        </p>
+      )}
+
       {/* Starters — compact single row */}
       {!searched && (
         <div className="mt-2.5 flex items-center gap-1.5" data-testid="magic-box-starters">
@@ -233,7 +250,10 @@ export function MagicBox() {
           {STARTERS.map((s) => (
             <button
               key={s}
-              onClick={() => setQuery(s)}
+              onClick={() => {
+                setQuery(s);
+                pendingSearchRef.current = s;
+              }}
               className="truncate rounded-full border border-border/50 px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground"
             >
               {s}
@@ -265,7 +285,7 @@ export function MagicBox() {
               ))}
               <div className="px-3 py-2 text-center">
                 <a
-                  href="/agents"
+                  href={`/agents${query.trim() ? `?q=${encodeURIComponent(query.trim())}` : ""}`}
                   className="text-[11px] text-muted-foreground hover:text-primary"
                 >
                   Browse all agents →
