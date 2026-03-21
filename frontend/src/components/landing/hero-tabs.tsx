@@ -11,9 +11,9 @@ import { MagicBox } from "@/components/landing/magic-box";
 export function HeroPanels() {
   return (
     <div className="mx-auto mt-6 max-w-5xl sm:mt-8" id="magic-box">
-      <div className="grid gap-3 sm:gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:gap-6 lg:grid-cols-2">
         {/* Left panel: Find an Agent */}
-        <div className="flex flex-col rounded-xl border bg-card p-3.5 sm:rounded-2xl sm:p-6">
+        <div className="min-w-0 flex flex-col rounded-xl border bg-card p-3.5 sm:rounded-2xl sm:p-6">
           <h2 className="mb-0.5 text-base font-bold sm:mb-1 sm:text-lg">Find an Agent</h2>
           <p className="mb-3 hidden text-sm text-muted-foreground sm:block">Describe what you need — AI matches the best specialist</p>
           <p className="mb-2 text-xs text-muted-foreground sm:hidden">AI matches the best specialist</p>
@@ -21,7 +21,7 @@ export function HeroPanels() {
         </div>
 
         {/* Right panel: Build a Workflow */}
-        <div className="flex flex-col rounded-xl border bg-card p-3.5 sm:rounded-2xl sm:p-6">
+        <div className="min-w-0 flex flex-col rounded-xl border bg-card p-3.5 sm:rounded-2xl sm:p-6">
           <h2 className="mb-0.5 text-base font-bold sm:mb-1 sm:text-lg">Build a Workflow</h2>
           <p className="mb-3 hidden text-sm text-muted-foreground sm:block">Chain agents into multi-step pipelines</p>
           <p className="mb-2 text-xs text-muted-foreground sm:hidden">Chain agents into pipelines</p>
