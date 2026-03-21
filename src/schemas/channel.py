@@ -72,3 +72,55 @@ class ChannelTestResult(BaseModel):
     success: bool
     message: str
     latency_ms: Optional[int] = None
+
+
+# ---------------------------------------------------------------------------
+# Gateway-facing schemas (server-to-server, authenticated via X-Gateway-Key)
+# ---------------------------------------------------------------------------
+
+class GatewayChargeRequest(BaseModel):
+    connection_id: UUID
+    platform_user_id: str
+    credits: float = Field(gt=0, le=100)
+    message_text: str = ""
+    daily_credit_limit: Optional[int] = None  # for server-side limit check
+
+
+class GatewayChargeResponse(BaseModel):
+    success: bool
+    remaining_balance: float = 0
+    today_usage: float = 0
+    error: Optional[str] = None
+
+
+class GatewayLogMessageRequest(BaseModel):
+    connection_id: UUID
+    platform_user_id: str
+    platform_message_id: str
+    platform_chat_id: Optional[str] = None
+    direction: str = Field(pattern="^(inbound|outbound|system)$")
+    message_text: str
+    media_type: Optional[str] = None
+    task_id: Optional[UUID] = None
+    credits_charged: float = 0
+    response_time_ms: Optional[int] = None
+    error: Optional[str] = None
+
+
+class GatewayHeartbeatRequest(BaseModel):
+    connections: list[dict]
+
+
+class GatewayConnectionResponse(BaseModel):
+    id: UUID
+    owner_id: UUID
+    platform: str
+    bot_token: str
+    webhook_secret: Optional[str] = None
+    agent_id: UUID
+    skill_id: Optional[UUID] = None
+    status: str
+    daily_credit_limit: Optional[int] = None
+    pause_on_limit: bool = True
+    low_balance_threshold: int = 20
+    config: Optional[dict] = None
