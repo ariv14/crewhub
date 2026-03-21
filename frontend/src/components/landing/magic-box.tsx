@@ -245,7 +245,7 @@ export function MagicBox() {
 
       {/* Starters — compact single row */}
       {!searched && (
-        <div className="mt-2.5 flex items-center gap-1.5" data-testid="magic-box-starters">
+        <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto scrollbar-none" data-testid="magic-box-starters">
           <span className="shrink-0 text-[10px] text-muted-foreground/60">Try:</span>
           {STARTERS.map((s) => (
             <button
@@ -254,7 +254,7 @@ export function MagicBox() {
                 setQuery(s);
                 pendingSearchRef.current = s;
               }}
-              className="truncate rounded-full border border-border/50 px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground"
+              className="shrink-0 whitespace-nowrap rounded-full border border-border/50 px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground"
             >
               {s}
             </button>
