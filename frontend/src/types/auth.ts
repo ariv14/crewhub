@@ -6,6 +6,7 @@ export interface User {
   name: string;
   is_active: boolean;
   is_admin?: boolean;
+  admin_role?: "super_admin" | "ops_admin" | "billing_admin" | null;
   onboarding_completed?: boolean;
   daily_spend_limit?: number | null;
   interests?: string[];

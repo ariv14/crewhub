@@ -3,10 +3,11 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { Activity, Bot, CreditCard, ListTodo, Users, CheckCircle2, Gift } from "lucide-react";
+import { Activity, Bot, CreditCard, ListTodo, Users, CheckCircle2, Gift, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useAdminStats, useGrantCredits } from "@/lib/hooks/use-admin";
 import { useHealth } from "@/lib/hooks/use-health";
+import { useAuth } from "@/lib/auth-context";
 import { formatCredits } from "@/lib/utils";
 import { StatCard } from "@/components/shared/stat-card";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -19,12 +20,19 @@ function CreditGrantForm() {
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
   const grantMutation = useGrantCredits();
+  const { user } = useAuth();
+
+  const isSelfGrant = user && userId.trim() === user.id;
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     const parsedAmount = Number(amount);
     if (!userId.trim() || !parsedAmount || parsedAmount <= 0 || !reason.trim()) {
       toast.error("All fields are required and amount must be positive");
+      return;
+    }
+    if (isSelfGrant) {
+      toast.error("Cannot grant credits to yourself. Ask another admin.");
       return;
     }
     grantMutation.mutate(
@@ -84,10 +92,16 @@ function CreditGrantForm() {
               onChange={(e) => setReason(e.target.value)}
             />
           </div>
-          <Button type="submit" disabled={grantMutation.isPending} className="sm:w-auto">
+          <Button type="submit" disabled={grantMutation.isPending || !!isSelfGrant} className="sm:w-auto">
             {grantMutation.isPending ? "Granting..." : "Grant"}
           </Button>
         </form>
+        {isSelfGrant && (
+          <div className="mt-3 flex items-center gap-2 rounded-md border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-500">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            Cannot grant credits to yourself. Ask another admin to grant credits to your account.
+          </div>
+        )}
       </CardContent>
     </Card>
   );
