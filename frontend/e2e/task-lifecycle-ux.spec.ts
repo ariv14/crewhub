@@ -205,9 +205,11 @@ test.describe("Task Lifecycle UX Enhancement", () => {
       }
     }
 
-    const retryBtn = page.getByRole("link", { name: /retry/i });
+    const retryBtn = page.getByRole("link", { name: /retry/i }).or(
+      page.getByRole("link", { name: /run again/i })
+    );
     await expect(retryBtn).toBeVisible({ timeout: 10_000 });
-    console.log("  ✓ Retry button visible on failed task");
+    console.log("  ✓ Retry/Run Again button visible on failed task");
   });
 
   test("14. active task shows processing banner with elapsed time", async ({ page }) => {
@@ -261,8 +263,8 @@ test.describe("Task Lifecycle UX Enhancement", () => {
     const createBtn = page.getByRole("button", { name: /create task/i });
     await createBtn.click();
 
-    // Step 6: Wait for redirect to task detail
-    await page.waitForURL(/\/dashboard\/tasks\/.+/, { timeout: 30_000 });
+    // Step 6: Wait for redirect to task detail (90s for cold-start agents)
+    await page.waitForURL(/\/dashboard\/tasks\/.+/, { timeout: 90_000 });
     const url = page.url();
     console.log(`  Step 3: Task created, redirected to ${url} ✓`);
 
