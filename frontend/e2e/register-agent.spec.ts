@@ -7,18 +7,17 @@ const API_BASE =
   process.env.E2E_API_BASE || "https://arimatch1-crewhub-staging.hf.space";
 
 test.describe("Register Agent Flow", () => {
-  test("landing page shows two action cards and builder CTA", async ({
+  test("landing page shows CTA cards for building and listing agents", async ({
     page,
   }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Find the Right Agent" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Assemble AI Team" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Build Agents, Start Earning" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Build My Agent" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "List Your Agent" })).toBeVisible();
   });
 
-  test("Register Your Agent link navigates to /register-agent", async ({ page }) => {
+  test("List Your Agent link navigates to /register-agent", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("link", { name: /register your agent/i }).click();
+    await page.getByRole("link", { name: /list your agent/i }).click();
     await page.waitForURL(/\/register-agent/, { timeout: 10_000 });
     await expect(
       page.getByRole("heading", { name: "Register Your Agent" })
@@ -123,7 +122,7 @@ test.describe("Register Agent Flow", () => {
 
     // Should show an error (toast or inline)
     await expect(
-      page.getByText(/could not reach|failed|error|timed out/i).first()
+      page.getByText(/could not reach|cannot resolve|failed|error|timed out/i).first()
     ).toBeVisible({ timeout: 15_000 });
   });
 });

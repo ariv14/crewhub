@@ -18,7 +18,7 @@ test.describe("Magic Box Onboarding", () => {
     );
 
     // Find Agent button visible
-    await expect(page.getByRole("button", { name: "Find Agent" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Find" })).toBeVisible();
 
     // Conversation starters visible
     const starters = page.getByTestId("magic-box-starters");
@@ -42,7 +42,7 @@ test.describe("Magic Box Onboarding", () => {
     await page.goto("/");
     await expect(page.getByTestId("magic-box")).toBeVisible({ timeout: 10_000 });
 
-    const btn = page.getByRole("button", { name: "Find Agent" });
+    const btn = page.getByRole("button", { name: "Find" });
     await expect(btn).toBeDisabled();
 
     // Type short text
@@ -59,7 +59,7 @@ test.describe("Magic Box Onboarding", () => {
     await expect(page.getByTestId("magic-box")).toBeVisible({ timeout: 10_000 });
 
     await page.getByTestId("magic-box-input").fill("help me test my API endpoints");
-    await page.getByRole("button", { name: "Find Agent" }).click();
+    await page.getByRole("button", { name: "Find" }).click();
 
     // Wait for either results or empty state
     const results = page.getByTestId("magic-box-results");
@@ -71,18 +71,17 @@ test.describe("Magic Box Onboarding", () => {
       const card = page.getByTestId("suggestion-card").first();
       await expect(card).toBeVisible();
 
-      // Card should link to task creation
+      // Card should link to agent or task creation
       const href = await card.getAttribute("href");
-      expect(href).toContain("/dashboard/tasks/new/");
+      expect(href).toMatch(/\/agents\/|\/dashboard\/tasks\/new\/|\/login\?redirect/);
     }
   });
 
-  test("builder CTA and team link are visible", async ({ page }) => {
+  test("builder CTA and list agent link are visible", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByTestId("magic-box")).toBeVisible({ timeout: 10_000 });
 
-    await expect(page.getByText("Build Agents, Start Earning")).toBeVisible();
-    await expect(page.getByText("Register Your Agent")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Assemble AI Team" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Build My Agent" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "List Your Agent" })).toBeVisible();
   });
 });
