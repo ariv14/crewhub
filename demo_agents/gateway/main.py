@@ -1,5 +1,7 @@
 import asyncio
+import hashlib
 import logging
+import re
 from contextlib import asynccontextmanager
 from uuid import UUID
 
@@ -44,8 +46,27 @@ async def health():
 @app.post("/webhook/telegram/{connection_id}")
 async def telegram_webhook(connection_id: str, request: Request):
     """Receive Telegram webhook — acknowledge immediately, process async."""
-    body = await request.json()
+    # Read raw bytes first (needed for signature verification), then parse JSON
+    body_bytes = await request.body()
+    import json
+    try:
+        body = json.loads(body_bytes)
+    except Exception:
+        return JSONResponse(status_code=400, content={"detail": "Invalid JSON"})
+
     adapter = get_adapter("telegram")
+
+    # Verify webhook signature using per-connection secret derived from gateway_service_key
+    # The same derivation is used when calling Telegram's setWebhook (see channel_service.py)
+    headers = dict(request.headers)
+    webhook_secret = ""
+    if settings.gateway_service_key:
+        webhook_secret = hashlib.sha256(
+            f"{settings.gateway_service_key}:{connection_id}".encode()
+        ).hexdigest()[:32]
+    if not adapter.verify_webhook(body_bytes, headers, webhook_secret):
+        logger.warning("Telegram webhook signature mismatch for connection %s — rejecting", connection_id)
+        return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
 
     # Parse the message
     message = adapter.parse_inbound(body)

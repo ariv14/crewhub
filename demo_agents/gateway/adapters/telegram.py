@@ -1,3 +1,4 @@
+import hmac
 import logging
 import httpx
 from .base import AbstractPlatformAdapter, NormalizedMessage
@@ -7,9 +8,17 @@ logger = logging.getLogger(__name__)
 TELEGRAM_API = "https://api.telegram.org/bot{token}"
 
 class TelegramAdapter(AbstractPlatformAdapter):
-    def verify_webhook(self, request_body: bytes, headers: dict) -> bool:
-        # Telegram doesn't sign webhooks — security is via secret URL path
-        return True
+    def verify_webhook(self, request_body: bytes, headers: dict, expected_secret: str = "") -> bool:
+        """Verify Telegram webhook using X-Telegram-Bot-Api-Secret-Token header.
+
+        Telegram sends the secret_token (set at setWebhook time) as this header
+        on every webhook call. We use hmac.compare_digest for timing-safe comparison.
+        """
+        if not expected_secret:
+            logger.warning("Telegram webhook received with no expected_secret configured — accepting but INSECURE")
+            return True
+        header_secret = headers.get("x-telegram-bot-api-secret-token", "")
+        return hmac.compare_digest(header_secret, expected_secret)
 
     def parse_inbound(self, body: dict) -> NormalizedMessage | None:
         """Parse a Telegram Update object into a NormalizedMessage."""

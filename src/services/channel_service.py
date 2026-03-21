@@ -2,6 +2,7 @@
 # Proprietary and confidential. See LICENSE for details.
 """Channel service — CRUD and analytics for multi-channel gateway connections."""
 
+import hashlib
 import os
 import uuid
 from datetime import datetime
@@ -167,16 +168,30 @@ class ChannelService:
         # For auto-managed platforms (Telegram), register webhook
         if data.platform in ("telegram",):
             import httpx
+            from src.config import settings as app_settings
 
             bot_token_raw = credentials.get("bot_token", "")
+
+            # Derive per-connection webhook secret (same logic as gateway/main.py verify_webhook)
+            # Telegram will send this as X-Telegram-Bot-Api-Secret-Token on every webhook call
+            telegram_secret_token = ""
+            if app_settings.gateway_service_key:
+                telegram_secret_token = hashlib.sha256(
+                    f"{app_settings.gateway_service_key}:{str(ch.id)}".encode()
+                ).hexdigest()[:32]
+
+            set_webhook_payload: dict = {
+                "url": webhook_url,
+                "allowed_updates": ["message", "edited_message"],
+                "drop_pending_updates": True,
+            }
+            if telegram_secret_token:
+                set_webhook_payload["secret_token"] = telegram_secret_token
+
             async with httpx.AsyncClient(timeout=15) as client:
                 resp = await client.post(
                     f"https://api.telegram.org/bot{bot_token_raw}/setWebhook",
-                    json={
-                        "url": webhook_url,
-                        "allowed_updates": ["message", "edited_message"],
-                        "drop_pending_updates": True,
-                    },
+                    json=set_webhook_payload,
                 )
                 if resp.status_code == 200 and resp.json().get("ok"):
                     ch.status = "active"
