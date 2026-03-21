@@ -2,7 +2,8 @@
 // Proprietary and confidential. See LICENSE for details.
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Copy,
   Key,
@@ -52,8 +53,15 @@ const PROVIDERS = [
   { id: "ollama", name: "Ollama", hint: "Local — no key needed" },
 ];
 
+const VALID_TABS = ["profile", "api-keys", "builder", "llm-keys", "channels"];
+
 export default function SettingsPage() {
   const { user, logout } = useAuth();
+  const searchParams = useSearchParams();
+  const initialTab = useMemo(() => {
+    const tab = searchParams.get("tab");
+    return tab && VALID_TABS.includes(tab) ? tab : "profile";
+  }, [searchParams]);
   const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
 
   // Spending limit state
@@ -237,7 +245,7 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="profile">
+      <Tabs defaultValue={initialTab}>
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="api-keys">API Keys</TabsTrigger>
