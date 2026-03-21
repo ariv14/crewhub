@@ -7,6 +7,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.audit import audit_log
 from src.core.auth import resolve_db_user_id
 from src.database import get_db
 from src.schemas.channel import (
@@ -46,6 +47,7 @@ async def create_channel(
 ):
     service = ChannelService(db)
     ch = await service.create_channel(data, owner_id)
+    await audit_log(db, action="channel.create", actor_user_id=str(owner_id), target_type="channel", target_id=ch.id)
     await db.commit()
     stats = await service._get_today_stats(ch.id)
     return {**ch.__dict__, **stats}
@@ -82,6 +84,7 @@ async def update_channel(
 ):
     service = ChannelService(db)
     ch = await service.update_channel(channel_id, owner_id, data)
+    await audit_log(db, action="channel.update", actor_user_id=str(owner_id), target_type="channel", target_id=channel_id)
     await db.commit()
     stats = await service._get_today_stats(ch.id)
     return {**ch.__dict__, **stats}
@@ -95,6 +98,7 @@ async def delete_channel(
 ):
     service = ChannelService(db)
     await service.delete_channel(channel_id, owner_id)
+    await audit_log(db, action="channel.delete", actor_user_id=str(owner_id), target_type="channel", target_id=channel_id)
     await db.commit()
 
 
@@ -119,6 +123,7 @@ async def rotate_channel_token(
     """Rotate bot token for an existing channel connection."""
     service = ChannelService(db)
     conn = await service.rotate_token(channel_id, user_id, credentials)
+    await audit_log(db, action="channel.rotate_token", actor_user_id=str(user_id), target_type="channel", target_id=channel_id)
     await db.commit()
     stats = await service._get_today_stats(conn.id)
     return ChannelResponse.model_validate({**conn.__dict__, **stats})

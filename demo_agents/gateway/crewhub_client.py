@@ -44,12 +44,11 @@ class CrewHubClient:
             return None
         return resp.json().get("bot_token")
 
-    async def charge_credits(self, connection_id: str, owner_id: str, credits: float, message_text: str, daily_credit_limit: int | None = None) -> dict:
+    async def charge_credits(self, connection_id: str, owner_id: str, credits: float, daily_credit_limit: int | None = None) -> dict:
         resp = await self._client.post("/gateway/charge", json={
             "connection_id": connection_id,
             "platform_user_id": "system",
             "credits": credits,
-            "message_text": message_text,
             "daily_credit_limit": daily_credit_limit,
         })
         return resp.json()

@@ -3,11 +3,14 @@
 """Channel service — CRUD and analytics for multi-channel gateway connections."""
 
 import hashlib
+import logging
 import os
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import select, func
+
+logger = logging.getLogger(__name__)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.channel import ChannelConnection, ChannelMessage
@@ -107,8 +110,9 @@ class ChannelService:
                     return {"platform_bot_id": phone_id}
         except BadRequestError:
             raise
-        except Exception as e:
-            raise BadRequestError(f"Token validation failed: {str(e)}")
+        except Exception:
+            logger.exception("Token validation error for platform %s", platform)
+            raise BadRequestError("Token validation failed. Please check your credentials and try again.")
 
         return {}
 
@@ -221,7 +225,7 @@ class ChannelService:
         return enriched, len(channels)
 
     async def _get_today_stats(self, channel_id: uuid.UUID):
-        today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
         result = await self.db.execute(
             select(
                 func.count(ChannelMessage.id),
@@ -309,7 +313,7 @@ class ChannelService:
         ch = await self._get_or_404(channel_id)
         self._check_ownership(ch, owner_id)
 
-        from datetime import datetime, timezone, timedelta
+        from datetime import timedelta
         cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         result = await self.db.execute(
             select(
