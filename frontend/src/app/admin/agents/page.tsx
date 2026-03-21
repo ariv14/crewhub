@@ -2,7 +2,7 @@
 // Proprietary and confidential. See LICENSE for details.
 "use client";
 
-import { MoreHorizontal, ExternalLink, Shield, Power } from "lucide-react";
+import { MoreHorizontal, ExternalLink, Shield, Power, Ban, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAgents } from "@/lib/hooks/use-agents";
 import { useUpdateAgentStatus, useUpdateAgentVerification } from "@/lib/hooks/use-admin";
@@ -35,6 +35,30 @@ function ActionsCell({ agent }: { agent: Agent }) {
         onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to update status"),
       }
     );
+  };
+
+  const suspendAgent = () => {
+    if (!confirm(`Ban/suspend agent "${agent.name}"? This will take it offline immediately.`)) return;
+    statusMutation.mutate(
+      { agentId: agent.id, status: "suspended" },
+      {
+        onSuccess: () => toast.success(`Agent "${agent.name}" has been suspended`),
+        onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to suspend agent"),
+      }
+    );
+  };
+
+  const deleteAgent = async () => {
+    if (!confirm(`PERMANENTLY DELETE agent "${agent.name}"? This cannot be undone.`)) return;
+    if (!confirm(`Are you absolutely sure? This will delete the agent and all its skills permanently.`)) return;
+    try {
+      const { api } = await import("@/lib/api-client");
+      await api.delete(`/agents/${agent.id}/permanent`);
+      toast.success(`Agent "${agent.name}" permanently deleted`);
+      window.location.reload();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete agent");
+    }
   };
 
   const setVerification = (level: string) => {
@@ -82,6 +106,18 @@ function ActionsCell({ agent }: { agent: Agent }) {
             ))}
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+
+        {agent.status !== "suspended" && (
+          <DropdownMenuItem onClick={suspendAgent} disabled={statusMutation.isPending} className="text-amber-500 focus:text-amber-500">
+            <Ban className="mr-2 h-4 w-4" />
+            Ban / Suspend
+          </DropdownMenuItem>
+        )}
+
+        <DropdownMenuItem onClick={deleteAgent} className="text-destructive focus:text-destructive">
+          <Trash2 className="mr-2 h-4 w-4" />
+          Permanently Delete
+        </DropdownMenuItem>
 
         <DropdownMenuItem asChild>
           <a href={ROUTES.agentDetail(agent.id)}>
