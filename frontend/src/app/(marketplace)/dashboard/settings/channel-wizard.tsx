@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   Copy,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -138,6 +139,9 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
   const [skillId, setSkillId] = useState("");
   const [whatsappAck, setWhatsappAck] = useState(false);
   const [createdChannel, setCreatedChannel] = useState<Channel | null>(null);
+  const [dailyLimit, setDailyLimit] = useState(100);
+  const [lowBalance, setLowBalance] = useState(20);
+  const [pauseOnLimit, setPauseOnLimit] = useState(true);
 
   // Fetch user's agents for step 3
   const { data: agentsData } = useAgents({
@@ -158,6 +162,9 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
     setSkillId("");
     setWhatsappAck(false);
     setCreatedChannel(null);
+    setDailyLimit(100);
+    setLowBalance(20);
+    setPauseOnLimit(true);
   }
 
   function handleClose(open: boolean) {
@@ -191,9 +198,9 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
         bot_name: botName.trim(),
         agent_id: agentId,
         skill_id: skillId || undefined,
-        daily_credit_limit: 100,
-        low_balance_threshold: 20,
-        pause_on_limit: true,
+        daily_credit_limit: dailyLimit || undefined,
+        low_balance_threshold: lowBalance,
+        pause_on_limit: pauseOnLimit,
       });
       setCreatedChannel(channel);
       setStep(3);
@@ -456,11 +463,41 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
               </div>
             )}
 
-            {/* Budget defaults note */}
-            <div className="rounded-lg border border-muted-foreground/20 bg-muted/20 p-3">
-              <p className="text-xs text-muted-foreground">
-                You can adjust spending limits later in channel settings.
-              </p>
+            {/* Budget controls */}
+            <div className="space-y-4 rounded-lg border p-4">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Budget Controls</p>
+              <div className="space-y-2">
+                <Label htmlFor="daily-limit">Daily Credit Limit</Label>
+                <Input
+                  id="daily-limit"
+                  type="number"
+                  min={0}
+                  value={dailyLimit}
+                  onChange={(e) => setDailyLimit(Number(e.target.value))}
+                />
+                <p className="text-xs text-muted-foreground">Max credits per day (0 = unlimited)</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="low-balance">Low Balance Alert</Label>
+                <Input
+                  id="low-balance"
+                  type="number"
+                  min={0}
+                  value={lowBalance}
+                  onChange={(e) => setLowBalance(Number(e.target.value))}
+                />
+                <p className="text-xs text-muted-foreground">Notify when account credits drop below</p>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="pause-on-limit">Auto-pause when daily limit reached</Label>
+                </div>
+                <Switch
+                  id="pause-on-limit"
+                  checked={pauseOnLimit}
+                  onCheckedChange={setPauseOnLimit}
+                />
+              </div>
             </div>
           </div>
         )}

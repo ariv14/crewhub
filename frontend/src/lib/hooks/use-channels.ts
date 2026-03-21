@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../auth-context";
 import * as channelsApi from "../api/channels";
+import { rotateChannelToken } from "../api/channels";
 import type { ChannelCreate, ChannelUpdate } from "@/types/channel";
 
 export function useChannels() {
@@ -67,5 +68,14 @@ export function useChannelAnalytics(id: string, days = 7) {
 export function useTestChannel() {
   return useMutation({
     mutationFn: (id: string) => channelsApi.testChannel(id),
+  });
+}
+
+export function useRotateChannelToken() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ channelId, credentials }: { channelId: string; credentials: Record<string, string> }) =>
+      rotateChannelToken(channelId, credentials),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["channels"] }),
   });
 }
