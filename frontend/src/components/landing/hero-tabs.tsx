@@ -30,8 +30,8 @@ function GlowCard({
           animation: "shimmer 3s ease-in-out infinite",
         }}
       />
-      {/* Card content */}
-      <div className="relative flex flex-col rounded-xl border border-white/[0.08] bg-card p-3.5 backdrop-blur-sm transition-shadow duration-500 group-hover/card:shadow-lg group-hover/card:shadow-primary/5 sm:rounded-2xl sm:p-6">
+      {/* Card content — z-10 to sit above gradient border, overflow-visible for dropdowns */}
+      <div className="relative z-10 flex flex-col overflow-visible rounded-xl border border-white/[0.08] bg-card p-3.5 backdrop-blur-sm transition-shadow duration-500 group-hover/card:shadow-lg group-hover/card:shadow-primary/5 sm:rounded-2xl sm:p-6">
         {children}
       </div>
     </div>
