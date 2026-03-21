@@ -2,12 +2,97 @@
 // Proprietary and confidential. See LICENSE for details.
 "use client";
 
+import { MoreHorizontal, ExternalLink, Shield, Power } from "lucide-react";
+import { toast } from "sonner";
 import { useAgents } from "@/lib/hooks/use-agents";
+import { useUpdateAgentStatus, useUpdateAgentVerification } from "@/lib/hooks/use-admin";
 import { AGENT_STATUS_COLORS, VERIFICATION_COLORS, ROUTES } from "@/lib/constants";
 import { cn, formatRelativeTime } from "@/lib/utils";
 import { DataTable, SortableHeader, type ColumnDef } from "@/components/shared/data-table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { Agent } from "@/types/agent";
+
+function ActionsCell({ agent }: { agent: Agent }) {
+  const statusMutation = useUpdateAgentStatus();
+  const verificationMutation = useUpdateAgentVerification();
+
+  const toggleStatus = () => {
+    const newStatus = agent.status === "active" ? "inactive" : "active";
+    statusMutation.mutate(
+      { agentId: agent.id, status: newStatus },
+      {
+        onSuccess: () => toast.success(`Agent status changed to ${newStatus}`),
+        onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to update status"),
+      }
+    );
+  };
+
+  const setVerification = (level: string) => {
+    verificationMutation.mutate(
+      { agentId: agent.id, level },
+      {
+        onSuccess: () => toast.success(`Verification set to ${level}`),
+        onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to update verification"),
+      }
+    );
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <MoreHorizontal className="h-4 w-4" />
+          <span className="sr-only">Actions</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={toggleStatus} disabled={statusMutation.isPending}>
+          <Power className="mr-2 h-4 w-4" />
+          {agent.status === "active" ? "Set Inactive" : "Set Active"}
+        </DropdownMenuItem>
+
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <Shield className="mr-2 h-4 w-4" />
+            Set Verification
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            {(["new", "verified", "certified"] as const).map((level) => (
+              <DropdownMenuItem
+                key={level}
+                onClick={() => setVerification(level)}
+                disabled={verificationMutation.isPending || agent.verification_level === level}
+                className="capitalize"
+              >
+                {level}
+                {agent.verification_level === level && (
+                  <span className="ml-2 text-muted-foreground">(current)</span>
+                )}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+
+        <DropdownMenuItem asChild>
+          <a href={ROUTES.agentDetail(agent.id)}>
+            <ExternalLink className="mr-2 h-4 w-4" />
+            View Agent
+          </a>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 const columns: ColumnDef<Agent, unknown>[] = [
   {
@@ -76,6 +161,11 @@ const columns: ColumnDef<Agent, unknown>[] = [
         {formatRelativeTime(row.original.created_at)}
       </span>
     ),
+  },
+  {
+    id: "actions",
+    header: "Actions",
+    cell: ({ row }) => <ActionsCell agent={row.original} />,
   },
 ];
 

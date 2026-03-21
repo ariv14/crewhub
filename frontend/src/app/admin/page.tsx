@@ -2,11 +2,96 @@
 // Proprietary and confidential. See LICENSE for details.
 "use client";
 
-import { Activity, Bot, CreditCard, ListTodo, Users, CheckCircle2, XCircle } from "lucide-react";
-import { useAdminStats } from "@/lib/hooks/use-admin";
+import { useState, type FormEvent } from "react";
+import { Activity, Bot, CreditCard, ListTodo, Users, CheckCircle2, Gift } from "lucide-react";
+import { toast } from "sonner";
+import { useAdminStats, useGrantCredits } from "@/lib/hooks/use-admin";
 import { useHealth } from "@/lib/hooks/use-health";
 import { formatCredits } from "@/lib/utils";
 import { StatCard } from "@/components/shared/stat-card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+function CreditGrantForm() {
+  const [userId, setUserId] = useState("");
+  const [amount, setAmount] = useState("");
+  const [reason, setReason] = useState("");
+  const grantMutation = useGrantCredits();
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    const parsedAmount = Number(amount);
+    if (!userId.trim() || !parsedAmount || parsedAmount <= 0 || !reason.trim()) {
+      toast.error("All fields are required and amount must be positive");
+      return;
+    }
+    grantMutation.mutate(
+      { userId: userId.trim(), amount: parsedAmount, reason: reason.trim() },
+      {
+        onSuccess: () => {
+          toast.success(`Granted ${parsedAmount} credits to user`);
+          setUserId("");
+          setAmount("");
+          setReason("");
+        },
+        onError: (err) =>
+          toast.error(err instanceof Error ? err.message : "Failed to grant credits"),
+      }
+    );
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Gift className="h-5 w-5" />
+          Grant Credits
+        </CardTitle>
+        <CardDescription>
+          Manually add credits to a user account
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 sm:flex-row sm:items-end">
+          <div className="grid flex-1 gap-1.5">
+            <Label htmlFor="grant-user-id">User ID</Label>
+            <Input
+              id="grant-user-id"
+              placeholder="User UUID"
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
+            />
+          </div>
+          <div className="grid w-full gap-1.5 sm:w-32">
+            <Label htmlFor="grant-amount">Amount</Label>
+            <Input
+              id="grant-amount"
+              type="number"
+              min={1}
+              placeholder="100"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+            />
+          </div>
+          <div className="grid flex-1 gap-1.5">
+            <Label htmlFor="grant-reason">Reason</Label>
+            <Input
+              id="grant-reason"
+              placeholder="e.g. Promotional bonus"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </div>
+          <Button type="submit" disabled={grantMutation.isPending} className="sm:w-auto">
+            {grantMutation.isPending ? "Granting..." : "Grant"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function AdminPage() {
   const { data: stats, isLoading: statsLoading } = useAdminStats();
@@ -79,6 +164,8 @@ export default function AdminPage() {
           icon={CheckCircle2}
         />
       </div>
+
+      <CreditGrantForm />
     </div>
   );
 }
