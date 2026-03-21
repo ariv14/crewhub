@@ -235,6 +235,7 @@ app = FastAPI(
     lifespan=lifespan,
     docs_url="/docs" if settings.debug else None,
     redoc_url="/redoc" if settings.debug else None,
+    openapi_url="/openapi.json" if settings.debug else None,
     # Disable automatic 307 redirects for trailing slashes. Behind HF Spaces
     # reverse proxy the Location header uses http:// causing Mixed Content
     # errors on the HTTPS frontend. Accept both /path and /path/ as-is.
