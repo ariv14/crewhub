@@ -251,6 +251,18 @@ class ChannelService:
     async def delete_channel(self, channel_id: uuid.UUID, owner_id: uuid.UUID):
         ch = await self._get_or_404(channel_id)
         self._check_ownership(ch, owner_id)
+
+        # Clean up Telegram webhook before deletion
+        if ch.platform == "telegram" and ch.bot_token:
+            from src.core.encryption import decrypt_value
+            import httpx
+            try:
+                token = decrypt_value(ch.bot_token)
+                async with httpx.AsyncClient(timeout=10) as client:
+                    await client.post(f"https://api.telegram.org/bot{token}/deleteWebhook")
+            except Exception:
+                pass  # best-effort cleanup
+
         await self.db.delete(ch)
         await self.db.flush()
 
@@ -281,17 +293,23 @@ class ChannelService:
     ):
         ch = await self._get_or_404(channel_id)
         self._check_ownership(ch, owner_id)
-        # Return placeholder analytics — full implementation in Phase 5
+
+        from datetime import datetime, timezone, timedelta
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+        result = await self.db.execute(
+            select(
+                func.date(ChannelMessage.created_at).label("date"),
+                func.count().label("messages"),
+                func.sum(ChannelMessage.credits_charged).label("credits"),
+            )
+            .where(ChannelMessage.connection_id == channel_id)
+            .where(ChannelMessage.created_at >= cutoff)
+            .group_by(func.date(ChannelMessage.created_at))
+            .order_by(func.date(ChannelMessage.created_at))
+        )
+        rows = result.all()
         return {
-            "channel_id": str(channel_id),
-            "period_days": days,
-            "daily_messages": [],
-            "daily_credits": [],
-            "top_users": [],
-            "cost_breakdown": {
-                "agent_processing": 0,
-                "platform_surcharge": 0,
-                "total": 0,
-                "avg_per_message": 0,
-            },
+            "daily": [{"date": str(r.date), "messages": r.messages, "credits": float(r.credits or 0)} for r in rows],
+            "total_messages": sum(r.messages for r in rows),
+            "total_credits": sum(float(r.credits or 0) for r in rows),
         }
