@@ -204,7 +204,7 @@ export function MagicBox() {
   const showCreateCta = searched && (createAvailable || suggestions.length === 0 || suggestions.every(s => s.confidence < 0.5)) && !error;
 
   return (
-    <div className="relative mx-auto w-full overflow-hidden" ref={containerRef} data-testid="magic-box">
+    <div className="relative mx-auto w-full" ref={containerRef} data-testid="magic-box">
       {/* Search input */}
       <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 shadow-sm transition-all focus-within:border-primary/40 focus-within:shadow-md focus-within:shadow-primary/5">
         <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
