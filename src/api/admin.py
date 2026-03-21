@@ -587,6 +587,33 @@ async def update_agent_verification(
 
 
 # ---------------------------------------------------------------------------
+# Admin agent delete (bypasses ownership check)
+# ---------------------------------------------------------------------------
+
+
+@router.delete("/agents/{agent_id}", status_code=204)
+async def admin_delete_agent(
+    agent_id: UUID,
+    request: Request,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """Permanently delete any agent — admin only, bypasses ownership check."""
+    result = await db.execute(select(Agent).where(Agent.id == agent_id))
+    agent = result.scalar_one_or_none()
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    await audit_log(
+        db, action="admin.delete_agent", actor_user_id=str(admin.id),
+        target_type="agent", target_id=agent_id,
+        old_value={"name": agent.name, "owner_id": str(agent.owner_id)},
+        new_value=None, request=request,
+    )
+    await db.delete(agent)
+    await db.commit()
+
+
+# ---------------------------------------------------------------------------
 # Credit grants (admin only)
 # ---------------------------------------------------------------------------
 
