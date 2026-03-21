@@ -10,7 +10,15 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8)
-    name: str
+    name: str = Field(max_length=100)
+
+    @field_validator("name")
+    @classmethod
+    def sanitize_name(cls, v: str) -> str:
+        v = re.sub(r"<[^>]*>", "", v).strip()
+        if not v:
+            raise ValueError("Name cannot be empty or only HTML tags")
+        return v
 
     @field_validator("password")
     @classmethod
@@ -40,14 +48,35 @@ class UserResponse(BaseModel):
 
 
 class OnboardingComplete(BaseModel):
-    name: str | None = None
+    name: str | None = Field(None, max_length=100)
     interests: list[str] = []
+
+    @field_validator("name")
+    @classmethod
+    def sanitize_name(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        v = re.sub(r"<[^>]*>", "", v).strip()
+        if not v:
+            raise ValueError("Name cannot be empty or only HTML tags")
+        return v
 
 
 class UserUpdate(BaseModel):
-    name: str | None = None
+    name: str | None = Field(None, max_length=100)
     email: EmailStr | None = None
     daily_spend_limit: float | None = Field(None, ge=0, le=100_000)
+
+    @field_validator("name")
+    @classmethod
+    def sanitize_name(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        # Strip HTML tags to prevent stored XSS
+        v = re.sub(r"<[^>]*>", "", v).strip()
+        if not v:
+            raise ValueError("Name cannot be empty or only HTML tags")
+        return v
 
 
 class Token(BaseModel):
