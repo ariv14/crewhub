@@ -581,7 +581,8 @@ async def update_agent_verification(
         raise HTTPException(status_code=404, detail="Agent not found")
     await audit_log(db, action="admin.update_agent_verification", actor_user_id=str(admin.id), target_type="agent", target_id=agent_id, old_value={"verification_level": agent.verification_level}, new_value={"verification_level": data.verification_level.value}, request=request)
     agent.verification_level = data.verification_level.value
-    await db.flush()
+    await db.commit()
+    await db.refresh(agent)
     return AgentResponse.model_validate(agent)
 
 
