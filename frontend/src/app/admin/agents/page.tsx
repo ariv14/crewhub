@@ -53,7 +53,7 @@ function ActionsCell({ agent }: { agent: Agent }) {
     if (!confirm(`Are you absolutely sure? This will delete the agent and all its skills permanently.`)) return;
     try {
       const { api } = await import("@/lib/api-client");
-      await api.delete(`/agents/${agent.id}/permanent`);
+      await api.delete(`/admin/agents/${agent.id}`);
       toast.success(`Agent "${agent.name}" permanently deleted`);
       window.location.reload();
     } catch (err) {
