@@ -292,10 +292,24 @@ See `docs/plans/2026-03-20-health-monitor-fix.md` for full gap analysis.
 | Data Processing Agreement (DPA) | Document | ✅ Created (Mar 21) — `docs/compliance/data-processing-agreement.md` |
 | SOC 2 controls mapping (CC1-CC9) | Document | ✅ Created (Mar 21) — `docs/compliance/soc2-controls-mapping.md` |
 
+**Staging verified (Mar 21):** 13/14 backend API tests PASS, 6/6 frontend browser tests PASS.
+- Consent endpoint: accept/decline/no-auth/invalid-body all correct
+- CORS: explicit methods returned, disallowed origins blocked
+- GDPR export: consent fields populated from new endpoint
+- Frontend: banner, settings cookie preferences, danger zone all render
+- No console errors related to consent changes
+
+**Penetration test completed (Mar 21):** 51 tests across OWASP Top 10.
+- Staging: 45/51 PASS, 6 findings (0 critical, 0 high, 3 medium, 3 low)
+- All 6 findings remediated and retested: admin self-grant block, name sanitization, HSTS/CSP headers, openapi.json hidden
+- Production retest: 6/6 previously failed/skipped items now PASS
+- Full report: `docs/compliance/penetration-test-report-2026-03-21.md`
+- Second admin account (`aidigitalcrew@gmail.com`) promoted for SOC 2 separation of duties
+
 **Next step: Engage SOC 2 auditor for readiness assessment.**
+- [x] ~~Commission penetration test~~ — completed Mar 21 (0 open findings)
 - [ ] Select and contact SOC 2 auditor
 - [ ] Schedule scoping call
-- [ ] Commission penetration test (recommended before audit)
 
 ### Multi-Channel Gateway (Mar 18) — DESIGNED, NOT YET IMPLEMENTED
 - [x] Full design spec: `docs/superpowers/specs/2026-03-18-multi-channel-gateway-design.md`
