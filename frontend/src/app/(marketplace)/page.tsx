@@ -95,7 +95,7 @@ export default function HomePage() {
           {/* Merged CTA strip — Build My Agent + List Your Agent */}
           <div className="mx-auto mt-8 max-w-5xl">
             <div className="grid gap-0 overflow-hidden rounded-xl border-2 border-primary/20 sm:grid-cols-2">
-              <a href="/community-agents?create=true" className="group flex items-center justify-between gap-4 border-b border-primary/10 p-5 transition-colors hover:bg-primary/5 sm:border-b-0 sm:border-r">
+              <a href="/dashboard/builder" className="group flex items-center justify-between gap-4 border-b border-primary/10 p-5 transition-colors hover:bg-primary/5 sm:border-b-0 sm:border-r">
                 <div className="flex items-center gap-4">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                     <Sparkles className="h-5 w-5" />
@@ -103,9 +103,9 @@ export default function HomePage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold">Build My Agent</h3>
-                      <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">5 credits</span>
+                      <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">No-Code</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">Describe what you need — we build it in seconds</p>
+                    <p className="text-sm text-muted-foreground">Visual builder powered by Langflow — no coding required</p>
                   </div>
                 </div>
                 <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1" />
