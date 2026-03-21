@@ -56,3 +56,26 @@ export function useUpdateAgentStatus() {
     },
   });
 }
+
+export function useUpdateAgentVerification() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ agentId, level }: { agentId: string; level: string }) =>
+      adminApi.updateAgentVerification(agentId, level),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["agents"] });
+      qc.invalidateQueries({ queryKey: ["admin", "stats"] });
+    },
+  });
+}
+
+export function useGrantCredits() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, amount, reason }: { userId: string; amount: number; reason: string }) =>
+      adminApi.grantCredits(userId, amount, reason),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "stats"] });
+    },
+  });
+}
