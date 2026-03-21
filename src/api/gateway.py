@@ -10,6 +10,7 @@ These endpoints are called by the external Multi-Channel Gateway service to:
 - Receive task completion callbacks
 """
 
+import hmac
 import logging
 from datetime import datetime, timezone
 from uuid import UUID
@@ -28,6 +29,7 @@ from src.schemas.channel import (
     GatewayChargeRequest,
     GatewayChargeResponse,
     GatewayConnectionResponse,
+    GatewayCreateTaskRequest,
     GatewayHeartbeatRequest,
     GatewayLogMessageRequest,
 )
@@ -54,7 +56,7 @@ async def require_gateway_key(x_gateway_key: str = Header(..., alias="X-Gateway-
             status_code=503,
             detail="Gateway authentication not configured on this server.",
         )
-    if x_gateway_key != settings.gateway_service_key:
+    if not hmac.compare_digest(x_gateway_key, settings.gateway_service_key):
         raise HTTPException(status_code=401, detail="Invalid gateway key.")
 
 
@@ -209,23 +211,12 @@ async def heartbeat(
     """
     updated = 0
     for item in req.connections:
-        raw_id = item.get("connection_id")
-        if not raw_id:
-            continue
-        try:
-            conn_id = UUID(str(raw_id))
-        except (ValueError, AttributeError):
-            logger.warning("Gateway heartbeat: invalid connection_id %r — skipping", raw_id)
-            continue
-
-        connection = await db.get(ChannelConnection, conn_id)
+        connection = await db.get(ChannelConnection, item.connection_id)
         if not connection:
             continue
 
-        if "status" in item:
-            connection.status = item["status"]
-        if "error_message" in item:
-            connection.error_message = item["error_message"]
+        connection.status = item.status
+        connection.error_message = item.error_message
 
         updated += 1
 
@@ -277,6 +268,44 @@ async def log_message(
         req.direction,
     )
     return {"status": "ok"}
+
+
+@router.post("/create-task", status_code=201)
+async def gateway_create_task(
+    req: GatewayCreateTaskRequest,
+    _: None = Depends(require_gateway_key),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Create a task on behalf of a channel user, authenticated via X-Gateway-Key.
+
+    The gateway supplies ``owner_id`` (the CrewHub user whose credits fund the
+    task) so that no user-facing auth token is required.  This endpoint is the
+    authoritative way for the gateway service to create tasks — it avoids the
+    fabricated-API-key anti-pattern and keeps gateway→backend auth consistent.
+    """
+    from src.schemas.task import TaskCreate, TaskMessage, MessagePart
+    from src.services.task_broker import TaskBrokerService
+
+    task_data = TaskCreate(
+        provider_agent_id=req.provider_agent_id,
+        skill_id=req.skill_id,
+        messages=[
+            TaskMessage(
+                role="user",
+                parts=[MessagePart(type="text", text=req.message)],
+            )
+        ],
+        confirmed=True,  # gateway pre-approves cost; credit check still applies
+    )
+    service = TaskBrokerService(db)
+    task = await service.create_task(data=task_data, user_id=req.owner_id)
+    logger.info(
+        "Gateway create-task: task_id=%s owner=%s agent=%s",
+        task.id,
+        req.owner_id,
+        req.provider_agent_id,
+    )
+    return {"task_id": str(task.id), "status": task.status}
 
 
 @router.post("/task-callback", status_code=200)

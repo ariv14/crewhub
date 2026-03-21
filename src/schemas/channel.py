@@ -4,7 +4,7 @@
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Literal, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -60,12 +60,9 @@ class ChannelListResponse(BaseModel):
 
 
 class ChannelAnalytics(BaseModel):
-    channel_id: UUID
-    period_days: int
-    daily_messages: list[dict]  # [{date, count}]
-    daily_credits: list[dict]  # [{date, amount}]
-    top_users: list[dict]  # [{platform_user_id, message_count}]
-    cost_breakdown: dict  # {agent_processing, platform_surcharge, total, avg_per_message}
+    daily: list[dict] = []  # [{date, messages, credits}]
+    total_messages: int = 0
+    total_credits: float = 0
 
 
 class ChannelTestResult(BaseModel):
@@ -82,7 +79,6 @@ class GatewayChargeRequest(BaseModel):
     connection_id: UUID
     platform_user_id: str
     credits: float = Field(gt=0, le=100)
-    message_text: str = ""
     daily_credit_limit: Optional[int] = None  # for server-side limit check
 
 
@@ -107,8 +103,27 @@ class GatewayLogMessageRequest(BaseModel):
     error: Optional[str] = None
 
 
+class HeartbeatConnectionStatus(BaseModel):
+    connection_id: UUID
+    status: Literal["active", "paused", "error", "disconnected"]
+    error_message: str | None = Field(None, max_length=500)
+
+
 class GatewayHeartbeatRequest(BaseModel):
-    connections: list[dict]
+    connections: list[HeartbeatConnectionStatus] = Field(max_length=100)
+
+
+class GatewayCreateTaskRequest(BaseModel):
+    """Task creation request from the gateway service.
+
+    ``owner_id`` identifies whose credits will be reserved for the task.
+    """
+
+    owner_id: UUID
+    provider_agent_id: UUID
+    skill_id: str = Field(max_length=255)
+    message: str = Field(max_length=10_000)
+    callback_url: str = Field(max_length=2000)
 
 
 class GatewayConnectionResponse(BaseModel):

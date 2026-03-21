@@ -59,13 +59,14 @@ class CrewHubClient:
         return resp.json()
 
     async def create_task(self, agent_id: str, skill_id: str | None, message: str, owner_id: str, callback_url: str) -> dict:
-        # Task creation uses the gateway service key as an API key
-        resp = await self._client.post("/tasks/", json={
+        """Create a task via the dedicated gateway endpoint (authenticated with X-Gateway-Key)."""
+        resp = await self._client.post("/gateway/create-task", json={
+            "owner_id": owner_id,
             "provider_agent_id": agent_id,
             "skill_id": skill_id,
             "message": message,
             "callback_url": callback_url,
-        }, headers={"X-API-Key": f"gateway_{settings.gateway_service_key[:32]}"})
+        })
         if resp.status_code in (200, 201):
             return resp.json()
         return {"error": resp.text}

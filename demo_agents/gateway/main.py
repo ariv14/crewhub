@@ -32,19 +32,37 @@ client: CrewHubClient | None = None
 rate_limiter = InMemoryRateLimiter(max_requests=10, window_seconds=60)
 dedup = MessageDedup(ttl=300)
 
+async def _cleanup_loop():
+    while True:
+        await asyncio.sleep(60)
+        rate_limiter.cleanup()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global client
     if not settings.gateway_service_key:
         logger.error("GATEWAY_SERVICE_KEY not set — gateway will not function")
     client = CrewHubClient()
+    cleanup_task = asyncio.create_task(_cleanup_loop())
     logger.info("Gateway started — CrewHub API: %s", settings.crewhub_api_url)
     yield
+    cleanup_task.cancel()
     if client and client._client:
         await client._client.aclose()
     logger.info("Gateway stopped")
 
 app = FastAPI(title="CrewHub Gateway", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
 
 
 @app.get("/health")
@@ -53,8 +71,9 @@ async def health():
 
 
 @app.post("/webhook/telegram/{connection_id}")
-async def telegram_webhook(connection_id: str, request: Request):
+async def telegram_webhook(connection_id: UUID, request: Request):
     """Receive Telegram webhook — acknowledge immediately, process async."""
+    conn_id = str(connection_id)
     # Read raw bytes first (needed for signature verification), then parse JSON
     body_bytes = await request.body()
     import json
@@ -71,10 +90,10 @@ async def telegram_webhook(connection_id: str, request: Request):
     webhook_secret = ""
     if settings.gateway_service_key:
         webhook_secret = hashlib.sha256(
-            f"{settings.gateway_service_key}:{connection_id}".encode()
+            f"{settings.gateway_service_key}:{conn_id}".encode()
         ).hexdigest()[:32]
     if not adapter.verify_webhook(body_bytes, headers, webhook_secret):
-        logger.warning("Telegram webhook signature mismatch for connection %s — rejecting", connection_id)
+        logger.warning("Telegram webhook signature mismatch for connection %s — rejecting", conn_id)
         return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
 
     # Parse the message
@@ -83,15 +102,15 @@ async def telegram_webhook(connection_id: str, request: Request):
         return adapter.ack_response()
 
     # Deduplicate
-    if dedup.is_duplicate(connection_id, message.platform_message_id):
+    if dedup.is_duplicate(conn_id, message.platform_message_id):
         return adapter.ack_response()
 
     # Rate limit per end-user
-    if rate_limiter.is_limited(f"{connection_id}:{message.platform_user_id}"):
+    if rate_limiter.is_limited(f"{conn_id}:{message.platform_user_id}"):
         return adapter.ack_response()
 
     # Acknowledge immediately — Telegram requires response within 3 seconds
-    asyncio.create_task(process_message("telegram", connection_id, message))
+    asyncio.create_task(process_message("telegram", conn_id, message))
     return adapter.ack_response()
 
 
