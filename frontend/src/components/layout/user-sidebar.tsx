@@ -15,6 +15,7 @@ import {
   MessageCircle,
   BookOpen,
   Sparkles,
+  Radio,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ROUTES, DISCORD_URL } from "@/lib/constants";
@@ -40,6 +41,7 @@ const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
     items: [
       { href: ROUTES.myWorkflows, label: "Workflows", icon: GitBranch },
       { href: ROUTES.mySchedules, label: "Schedules", icon: Clock },
+      { href: "/dashboard/settings?tab=channels", label: "Channels", icon: Radio },
       { href: "/dashboard/builder", label: "Build Agent", icon: Sparkles },
     ],
   },
