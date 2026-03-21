@@ -3,7 +3,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 
 interface AuthGuardProps {
@@ -15,13 +15,16 @@ export function AuthGuard({ children, requireAdmin = false }: AuthGuardProps) {
   const { user, loading, isAdmin } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     if (loading) return;
 
     if (!user) {
+      const search = searchParams.toString();
+      const fullPath = search ? `${pathname}?${search}` : pathname;
       const params = new URLSearchParams();
-      params.set("redirect", pathname);
+      params.set("redirect", fullPath);
       router.replace(`/login?${params.toString()}`);
       return;
     }
@@ -29,7 +32,7 @@ export function AuthGuard({ children, requireAdmin = false }: AuthGuardProps) {
     if (requireAdmin && !isAdmin) {
       router.replace("/dashboard");
     }
-  }, [user, loading, isAdmin, requireAdmin, router, pathname]);
+  }, [user, loading, isAdmin, requireAdmin, router, pathname, searchParams]);
 
   if (loading) {
     return (
