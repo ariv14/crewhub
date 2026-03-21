@@ -95,16 +95,23 @@ async def require_admin(
     return user
 
 
+async def require_super_admin(admin: User = Depends(require_admin)) -> User:
+    """Require super_admin role. Used for user management and role changes."""
+    if admin.admin_role != "super_admin":
+        raise HTTPException(status_code=403, detail="Requires super_admin role")
+    return admin
+
+
 async def require_ops_or_super(admin: User = Depends(require_admin)) -> User:
-    """Require ops_admin or super_admin role."""
-    if admin.admin_role not in ("super_admin", "ops_admin") and admin.admin_role is not None:
+    """Require ops_admin or super_admin role. Used for agent/submission management."""
+    if admin.admin_role not in ("super_admin", "ops_admin"):
         raise HTTPException(status_code=403, detail="Requires ops_admin or super_admin role")
     return admin
 
 
 async def require_billing_or_super(admin: User = Depends(require_admin)) -> User:
-    """Require billing_admin or super_admin role."""
-    if admin.admin_role not in ("super_admin", "billing_admin") and admin.admin_role is not None:
+    """Require billing_admin or super_admin role. Used for credits/transactions."""
+    if admin.admin_role not in ("super_admin", "billing_admin"):
         raise HTTPException(status_code=403, detail="Requires billing_admin or super_admin role")
     return admin
 
@@ -119,7 +126,7 @@ async def list_pending_submissions(
     status: str = Query("pending_review"),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
-    admin: "User" = Depends(require_admin),
+    admin: "User" = Depends(require_ops_or_super),
     db: AsyncSession = Depends(get_db),
 ):
     """List agent submissions for review."""
@@ -151,7 +158,7 @@ async def list_pending_submissions(
 async def approve_submission(
     submission_id: UUID,
     request: Request,
-    admin: "User" = Depends(require_admin),
+    admin: "User" = Depends(require_ops_or_super),
     db: AsyncSession = Depends(get_db),
 ):
     """Approve a submission — registers it as a marketplace agent."""
@@ -226,7 +233,7 @@ async def approve_submission(
 async def reject_submission(
     submission_id: UUID,
     request: Request,
-    admin: "User" = Depends(require_admin),
+    admin: "User" = Depends(require_ops_or_super),
     db: AsyncSession = Depends(get_db),
     notes: str = Query(..., min_length=1, description="Reason for rejection"),
 ):
@@ -254,7 +261,7 @@ async def reject_submission(
 async def revoke_submission(
     submission_id: UUID,
     request: Request,
-    admin: "User" = Depends(require_admin),
+    admin: "User" = Depends(require_ops_or_super),
     db: AsyncSession = Depends(get_db),
 ):
     """Revoke a previously approved submission — takes agent offline."""
@@ -299,7 +306,7 @@ class BulkPricingRequest(BaseModel):
 async def bulk_update_pricing(
     data: BulkPricingRequest,
     request: Request,
-    admin: "User" = Depends(require_admin),
+    admin: "User" = Depends(require_ops_or_super),
     db: AsyncSession = Depends(get_db),
 ):
     """Update pricing for multiple agents at once. Admin only."""
@@ -402,7 +409,7 @@ class AdminUserListResponse(BaseModel):
 async def list_users(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_super_admin),
     db: AsyncSession = Depends(get_db),
 ) -> AdminUserListResponse:
     """List all platform users (admin only)."""
@@ -426,7 +433,7 @@ async def update_user_status(
     user_id: UUID,
     data: UserStatusUpdate,
     request: Request,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_super_admin),
     db: AsyncSession = Depends(get_db),
 ) -> UserResponse:
     """Activate/deactivate a user, grant/revoke admin, or set account tier (admin only)."""
@@ -447,6 +454,63 @@ async def update_user_status(
     return UserResponse.model_validate(user)
 
 
+VALID_ADMIN_ROLES = ("super_admin", "ops_admin", "billing_admin")
+
+
+class AdminRoleUpdate(BaseModel):
+    admin_role: str = Field(..., description="One of: super_admin, ops_admin, billing_admin")
+
+
+@router.put("/users/{user_id}/role", response_model=UserResponse)
+async def update_user_role(
+    user_id: UUID,
+    data: AdminRoleUpdate,
+    request: Request,
+    admin: User = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> UserResponse:
+    """Change an admin's role or demote to non-admin (super_admin only).
+
+    Set admin_role to a valid role to change it, or "none" to revoke admin access.
+    Only super_admins can change roles. Cannot change your own role.
+    """
+    if data.admin_role != "none" and data.admin_role not in VALID_ADMIN_ROLES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"admin_role must be one of: {', '.join(VALID_ADMIN_ROLES)}, or 'none' to demote",
+        )
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Cannot change your own role (prevent self-demotion lockout)
+    if user.id == admin.id:
+        raise HTTPException(status_code=403, detail="Cannot change your own role. Ask another super_admin.")
+
+    old_role = {"is_admin": user.is_admin, "admin_role": user.admin_role}
+
+    if data.admin_role == "none":
+        # Demote: revoke admin access entirely
+        user.is_admin = False
+        user.admin_role = None
+    else:
+        # Promote or change role
+        user.is_admin = True
+        user.admin_role = data.admin_role
+
+    await audit_log(
+        db, action="admin.update_user_role", actor_user_id=str(admin.id),
+        target_type="user", target_id=user_id,
+        old_value=old_role,
+        new_value={"is_admin": user.is_admin, "admin_role": user.admin_role},
+        request=request,
+    )
+    await db.flush()
+    return UserResponse.model_validate(user)
+
+
 # ---------------------------------------------------------------------------
 # All tasks (not user-scoped)
 # ---------------------------------------------------------------------------
@@ -457,7 +521,7 @@ async def list_all_tasks(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     status: str | None = Query(None),
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_billing_or_super),
     db: AsyncSession = Depends(get_db),
 ) -> TaskListResponse:
     """List all tasks across the platform (admin only)."""
@@ -487,7 +551,7 @@ async def list_all_transactions(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     type: str | None = Query(None, description="Filter by transaction type"),
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_billing_or_super),
     db: AsyncSession = Depends(get_db),
 ) -> TransactionListResponse:
     """List all transactions across the platform (admin only)."""
@@ -521,7 +585,7 @@ async def update_agent_status(
     agent_id: UUID,
     data: AgentStatusUpdate,
     request: Request,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_ops_or_super),
     db: AsyncSession = Depends(get_db),
 ) -> AgentResponse:
     """Override agent status (suspend/activate) — admin only."""
@@ -547,7 +611,7 @@ async def update_agent_pricing(
     agent_id: UUID,
     data: AgentPricingUpdate,
     request: Request,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_ops_or_super),
     db: AsyncSession = Depends(get_db),
 ) -> AgentResponse:
     """Override agent pricing — admin only."""
@@ -571,7 +635,7 @@ async def update_agent_verification(
     agent_id: UUID,
     data: AgentVerificationUpdate,
     request: Request,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_ops_or_super),
     db: AsyncSession = Depends(get_db),
 ) -> AgentResponse:
     """Override agent verification level — admin only."""
@@ -595,7 +659,7 @@ async def update_agent_verification(
 async def admin_delete_agent(
     agent_id: UUID,
     request: Request,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_ops_or_super),
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """Permanently delete any agent — admin only, bypasses ownership check."""
@@ -628,7 +692,7 @@ class AdminCreditGrant(BaseModel):
 async def grant_credits(
     data: AdminCreditGrant,
     request: Request,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_billing_or_super),
     db: AsyncSession = Depends(get_db),
 ):
     """Grant bonus credits to a user (admin only).
@@ -673,7 +737,7 @@ async def grant_credits(
 @router.post("/re-embed-skills")
 async def re_embed_skills(
     request: Request,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_ops_or_super),
     db: AsyncSession = Depends(get_db),
 ):
     """Re-generate embeddings for all skills using current embedding provider.
@@ -709,7 +773,7 @@ async def re_embed_skills(
 
 @router.get("/health/overview")
 async def health_overview(
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_ops_or_super),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Aggregate health stats — active, unavailable, failing agents."""
@@ -721,7 +785,7 @@ async def health_overview(
 @router.post("/agents/bulk-reactivate")
 async def bulk_reactivate(
     request: Request,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_ops_or_super),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Reactivate all UNAVAILABLE agents back to ACTIVE."""

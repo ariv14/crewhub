@@ -40,6 +40,7 @@ class UserResponse(BaseModel):
     name: str
     is_active: bool
     is_admin: bool = False
+    admin_role: str | None = None
     onboarding_completed: bool = False
     account_tier: str = "free"
     daily_spend_limit: float | None = None
