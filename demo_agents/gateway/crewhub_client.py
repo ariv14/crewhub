@@ -2,6 +2,12 @@ import time
 import httpx
 from config import settings
 
+# Fields that are safe to cache — excludes secrets
+_SAFE_CONNECTION_FIELDS = {
+    "id", "owner_id", "platform", "agent_id", "skill_id", "status",
+    "daily_credit_limit", "pause_on_limit", "low_balance_threshold", "config",
+}
+
 class CrewHubClient:
     def __init__(self):
         self._client = httpx.AsyncClient(
@@ -13,7 +19,11 @@ class CrewHubClient:
         self._cache_ttl = 60  # seconds
 
     async def get_connection(self, connection_id: str) -> dict | None:
-        # Check cache
+        """Return non-sensitive connection fields, cached for 60 s.
+
+        bot_token and webhook_secret are intentionally excluded from the cache
+        to avoid exposing secrets in a plain-dict memory structure.
+        """
         cached = self._connection_cache.get(connection_id)
         if cached and time.time() - cached[1] < self._cache_ttl:
             return cached[0]
@@ -22,8 +32,17 @@ class CrewHubClient:
         if resp.status_code != 200:
             return None
         data = resp.json()
-        self._connection_cache[connection_id] = (data, time.time())
-        return data
+        # Strip sensitive fields before caching
+        safe_data = {k: v for k, v in data.items() if k in _SAFE_CONNECTION_FIELDS}
+        self._connection_cache[connection_id] = (safe_data, time.time())
+        return safe_data
+
+    async def get_bot_token(self, connection_id: str) -> str | None:
+        """Fetch the decrypted bot token on-demand. Never cached."""
+        resp = await self._client.get(f"/gateway/connections/{connection_id}")
+        if resp.status_code != 200:
+            return None
+        return resp.json().get("bot_token")
 
     async def charge_credits(self, connection_id: str, owner_id: str, credits: float, message_text: str, daily_credit_limit: int | None = None) -> dict:
         resp = await self._client.post("/gateway/charge", json={

@@ -97,7 +97,8 @@ async def process_message(platform: str, connection_id: str, message):
             logger.warning("Connection %s not found or inactive", connection_id)
             return
 
-        bot_token = connection.get("bot_token", "")
+        # Fetch bot token on-demand — never read from the (non-sensitive) cache
+        bot_token = await client.get_bot_token(connection_id) or ""
 
         # Send typing indicator while processing
         await adapter.send_typing(bot_token, message.platform_chat_id)
@@ -126,8 +127,8 @@ async def process_message(platform: str, connection_id: str, message):
             "media_type": message.media_type,
         })
 
-        # Create task with callback URL
-        callback_url = f"{settings.gateway_public_url}/internal/task-callback/{connection_id}/{message.platform_chat_id}"
+        # Create task with callback URL (renamed from /internal/ to /callback/)
+        callback_url = f"{settings.gateway_public_url}/callback/task-result/{connection_id}/{message.platform_chat_id}"
         task = await client.create_task(
             agent_id=str(connection["agent_id"]),
             skill_id=str(connection["skill_id"]) if connection.get("skill_id") else None,
@@ -148,9 +149,13 @@ async def process_message(platform: str, connection_id: str, message):
         logger.exception("Error processing message for connection %s: %s", connection_id, e)
 
 
-@app.post("/internal/task-callback/{connection_id}/{chat_id}")
-async def task_callback(connection_id: str, chat_id: str, request: Request):
+@app.post("/callback/task-result/{connection_id}/{chat_id}")
+async def task_callback(connection_id: UUID, chat_id: str, request: Request):
     """Receive task completion callback from CrewHub backend."""
+    # Validate chat_id — Telegram chat IDs are integers (optionally negative for groups)
+    if not re.match(r'^-?\d+$', chat_id):
+        return JSONResponse(status_code=400, content={"detail": "Invalid chat_id format"})
+
     # Verify shared secret
     gateway_key = request.headers.get("X-Gateway-Key", "")
     if not settings.gateway_service_key or gateway_key != settings.gateway_service_key:
@@ -158,14 +163,15 @@ async def task_callback(connection_id: str, chat_id: str, request: Request):
 
     body = await request.json()
 
-    # Get connection to find platform + bot token
-    connection = await client.get_connection(connection_id)
+    # Get connection to find platform (non-sensitive fields only)
+    connection = await client.get_connection(str(connection_id))
     if not connection:
         logger.warning("Callback for unknown connection %s", connection_id)
         return {"status": "connection_not_found"}
 
     adapter = get_adapter(connection["platform"])
-    bot_token = connection.get("bot_token", "")
+    # Fetch bot token on-demand — never from the cache
+    bot_token = await client.get_bot_token(str(connection_id)) or ""
 
     # Extract response text from task result
     # The callback body has: {task_id, status, artifacts: [{parts: [{type: "text", content: "..."}]}]}
@@ -183,7 +189,7 @@ async def task_callback(connection_id: str, chat_id: str, request: Request):
 
     # Log outbound message
     await client.log_message({
-        "connection_id": connection_id,
+        "connection_id": str(connection_id),
         "platform_user_id": "agent",
         "platform_message_id": f"cb-{body.get('task_id', 'unknown')}",
         "platform_chat_id": chat_id,
