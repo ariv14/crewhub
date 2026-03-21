@@ -311,6 +311,21 @@ See `docs/plans/2026-03-20-health-monitor-fix.md` for full gap analysis.
 - [ ] Select and contact SOC 2 auditor
 - [ ] Schedule scoping call
 
+### RBAC Enforcement (Mar 21) — LIVE
+- [x] **3-tier role hierarchy** enforced on all 18 admin endpoints:
+  - `super_admin` (2): user management, role changes
+  - `ops_admin` (12): submissions, agent management, health, re-embed
+  - `billing_admin` (3): credits/grant, transactions, tasks list
+  - `any admin` (1): platform stats (read-only)
+- [x] Fixed NULL `admin_role` bypass — legacy admins no longer skip role checks
+- [x] `PUT /admin/users/{id}/role` — promote, demote, or change admin roles
+- [x] Self-role-change blocked (prevents lockout)
+- [x] `admin_role` exposed in UserResponse schema
+- [x] **Admin UI**: color-coded role badges (Super Admin red, Ops blue, Billing amber)
+- [x] **Admin UI**: credit grant form detects self-grant, disables button, shows amber warning
+- [x] Two-admin setup: `arimatch1` (super_admin) + `aidigitalcrew` (ops_admin)
+- [x] All changes verified on staging (9/9 RBAC tests + 2/2 UI tests PASS)
+
 ### Multi-Channel Gateway (Mar 18) — DESIGNED, NOT YET IMPLEMENTED
 - [x] Full design spec: `docs/superpowers/specs/2026-03-18-multi-channel-gateway-design.md`
 - [x] 5 platforms (Slack, Discord, Telegram, WhatsApp, email), developer-pays model
@@ -503,3 +518,5 @@ Clients → CF Worker (gateway) → Primary (HF Space) / Secondary (Railway/Fly)
 | 2026-03-21 | Incident response procedure | Complete |
 | 2026-03-21 | Data Processing Agreement (DPA) | Complete |
 | 2026-03-21 | SOC 2 controls mapping (CC1-CC9 + supplemental) | Complete |
+| 2026-03-21 | Penetration test report (51 tests, OWASP Top 10) | Complete (0 open findings) |
+| 2026-03-21 | RBAC 3-tier enforcement + role management API + admin UI | Complete |
