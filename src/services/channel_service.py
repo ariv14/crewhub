@@ -254,6 +254,28 @@ class ChannelService:
         await self.db.delete(ch)
         await self.db.flush()
 
+    async def rotate_token(self, connection_id: uuid.UUID, owner_id: uuid.UUID, credentials: dict) -> ChannelConnection:
+        """Rotate bot token for an existing channel. Validates new token against platform API."""
+        ch = await self._get_or_404(connection_id)
+        self._check_ownership(ch, owner_id)
+
+        platform = ch.platform
+        bot_token = credentials.get("bot_token", "")
+        if not bot_token:
+            raise BadRequestError("bot_token is required")
+
+        is_valid = await self._validate_token(platform, credentials)
+        if not is_valid:
+            raise BadRequestError(f"Invalid {platform} token")
+
+        ch.bot_token = encrypt_value(bot_token)
+        if credentials.get("signing_secret"):
+            ch.webhook_secret = encrypt_value(credentials["signing_secret"])
+        ch.status = "active"
+        ch.error_message = None
+        await self.db.flush()
+        return ch
+
     async def get_analytics(
         self, channel_id: uuid.UUID, owner_id: uuid.UUID, days: int = 7
     ):

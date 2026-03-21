@@ -109,6 +109,21 @@ async def get_analytics(
     return await service.get_analytics(channel_id, owner_id, days)
 
 
+@router.post("/{channel_id}/rotate-token", response_model=ChannelResponse)
+async def rotate_channel_token(
+    channel_id: UUID,
+    credentials: dict,
+    user_id: UUID = Depends(resolve_db_user_id),
+    db: AsyncSession = Depends(get_db),
+) -> ChannelResponse:
+    """Rotate bot token for an existing channel connection."""
+    service = ChannelService(db)
+    conn = await service.rotate_token(channel_id, user_id, credentials)
+    await db.commit()
+    stats = await service._get_today_stats(conn.id)
+    return ChannelResponse.model_validate({**conn.__dict__, **stats})
+
+
 @router.post("/{channel_id}/test", response_model=ChannelTestResult)
 async def test_channel(
     channel_id: UUID,
