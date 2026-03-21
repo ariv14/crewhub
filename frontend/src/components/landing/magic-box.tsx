@@ -204,7 +204,7 @@ export function MagicBox() {
   const showCreateCta = searched && (createAvailable || suggestions.length === 0 || suggestions.every(s => s.confidence < 0.5)) && !error;
 
   return (
-    <div className="relative mx-auto w-full" ref={containerRef} data-testid="magic-box">
+    <div className="relative mx-auto w-full overflow-hidden" ref={containerRef} data-testid="magic-box">
       {/* Search input */}
       <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 shadow-sm transition-all focus-within:border-primary/40 focus-within:shadow-md focus-within:shadow-primary/5">
         <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -254,7 +254,7 @@ export function MagicBox() {
                 setQuery(s);
                 pendingSearchRef.current = s;
               }}
-              className="shrink-0 whitespace-nowrap rounded-full border border-border/50 px-2.5 py-2 text-[11px] text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground sm:py-1"
+              className="shrink-0 whitespace-nowrap rounded-full border border-border/50 px-3 py-2.5 text-xs text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground sm:px-2.5 sm:py-1 sm:text-[11px]"
             >
               {s}
             </button>
