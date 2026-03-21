@@ -40,3 +40,7 @@ export async function createApiKey(data: ApiKeyCreate): Promise<ApiKeyResponse> 
 export async function revokeApiKey(): Promise<void> {
   return api.post("/auth/revoke-api-key", {});
 }
+
+export async function recordConsent(consentGiven: boolean, consentVersion: string = "v1.0"): Promise<void> {
+  return api.post("/auth/consent", { consent_given: consentGiven, consent_version: consentVersion });
+}

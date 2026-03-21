@@ -278,29 +278,24 @@ See `docs/plans/2026-03-20-health-monitor-fix.md` for full gap analysis.
 
 ## Current Sprint
 
-### Compliance Readiness Summary (as of Mar 21)
+### Compliance Readiness — FULLY COMPLETE (Mar 21)
 
-**Technical compliance: 64/64 findings resolved (100%). All critical, high, and medium issues fixed.**
+**All technical AND documentation compliance work is complete.**
 
-Remaining items are documentation/process only:
+| Item | Type | Status |
+|------|------|--------|
+| 64/64 security findings | Code | ✅ Resolved |
+| Server-side consent logging (`POST /auth/consent`) | Code | ✅ Built (Mar 21) |
+| CORS `allow_methods` restricted | Code | ✅ Fixed (Mar 21) — explicit methods + headers |
+| `compliance.txt` language | Copy | ✅ Fixed (Mar 21) — "aligned with" not "certified" |
+| Incident response procedure | Document | ✅ Created (Mar 21) — `docs/compliance/incident-response-procedure.md` |
+| Data Processing Agreement (DPA) | Document | ✅ Created (Mar 21) — `docs/compliance/data-processing-agreement.md` |
+| SOC 2 controls mapping (CC1-CC9) | Document | ✅ Created (Mar 21) — `docs/compliance/soc2-controls-mapping.md` |
 
-| Item | Type | Status | Blocker? |
-|------|------|--------|----------|
-| Server-side consent logging (`POST /auth/consent`) | Code | Not built | No — client-side consent works, server-side is defense-in-depth |
-| CORS `allow_methods=["*"]` | Code | Overly permissive | Low risk — restrict to GET/POST/PUT/DELETE/PATCH/OPTIONS |
-| DPA template for enterprise customers | Document | Not created | SOC 2 auditor engagement blocker |
-| Incident response / breach notification procedure | Document | Not created | SOC 2 auditor engagement blocker |
-| SOC 2 controls mapping (CC1-CC9) | Document | Not created | Auditor engagement blocker |
-
-**What an auditor would flag today:**
-1. Missing incident response plan (required for SOC 2 CC7.4)
-2. Missing DPA (required for GDPR Art. 28 when processing EU customer data)
-3. `compliance.txt` claims SOC 2 Type II / GDPR certified / HIPAA assessed — **these certifications have not been obtained yet**. Update to "pursuing" or "aligned with" to avoid misrepresentation.
-
-### Cookie & Privacy — Phase 3 (remaining)
-- [ ] `POST /api/v1/auth/consent` endpoint — stores timestamp, version, IP
-- [ ] Call from handleAccept() in posthog-provider
-- [ ] Version the consent key (analytics_consent_v1.0)
+**Next step: Engage SOC 2 auditor for readiness assessment.**
+- [ ] Select and contact SOC 2 auditor
+- [ ] Schedule scoping call
+- [ ] Commission penetration test (recommended before audit)
 
 ### Multi-Channel Gateway (Mar 18) — DESIGNED, NOT YET IMPLEMENTED
 - [x] Full design spec: `docs/superpowers/specs/2026-03-18-multi-channel-gateway-design.md`
@@ -311,8 +306,6 @@ Remaining items are documentation/process only:
 ### Near-Term
 - [ ] Delegation accuracy analytics query (data captured, no reporting endpoint)
 - [ ] Redis-backed embedding rate limiter (current: in-memory, single-process only)
-- [ ] CORS: restrict `allow_methods` to actual methods used (currently `["*"]`)
-- [ ] Fix `compliance.txt` — change "has completed" / "is certified" to "pursuing" / "aligned with"
 
 ### Backlog
 - [ ] x402/OpenClaw payment integration (design: `2026-02-27-x402-openclaw-design.md`)
@@ -493,3 +486,6 @@ Clients → CF Worker (gateway) → Primary (HF Space) / Secondary (Railway/Fly)
 | 2026-03-20 | Landing page redesign spec (search-first, 45% shorter) | Complete |
 | 2026-03-21 | Admin platform control suite (10 pages) | Complete |
 | 2026-03-21 | E2E test refresh (50/60 pass) | Complete |
+| 2026-03-21 | Incident response procedure | Complete |
+| 2026-03-21 | Data Processing Agreement (DPA) | Complete |
+| 2026-03-21 | SOC 2 controls mapping (CC1-CC9 + supplemental) | Complete |

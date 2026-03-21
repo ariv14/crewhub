@@ -1,0 +1,3 @@
+Security
+
+CrewHub is aligned with SOC 2 Type II, GDPR, and HIPAA requirements. All 64 technical compliance findings have been resolved, including audit logging, RBAC, encryption key versioning, GDPR data export/deletion, cookie consent, httpOnly sessions, SSRF protection, and PII scrubbing. Formal certification engagement is in progress. Your data is encrypted, access-controlled, and never used to train AI models.

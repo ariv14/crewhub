@@ -155,12 +155,20 @@ export function PostHogProvider() {
     localStorage.setItem(CONSENT_KEY, "true");
     setConsent(true);
     setShowBanner(false);
+    // Server-side consent logging (fire-and-forget, don't block UX)
+    import("@/lib/api/auth").then(({ recordConsent }) => {
+      recordConsent(true).catch(() => {});
+    });
   }
 
   function handleDecline() {
     localStorage.setItem(CONSENT_KEY, "false");
     setConsent(false);
     setShowBanner(false);
+    // Server-side consent logging (fire-and-forget)
+    import("@/lib/api/auth").then(({ recordConsent }) => {
+      recordConsent(false).catch(() => {});
+    });
   }
 
   if (!showBanner) return null;
