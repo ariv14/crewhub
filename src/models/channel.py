@@ -73,7 +73,7 @@ class ChannelMessage(Base):
     platform_message_id: Mapped[str] = mapped_column(String(200), nullable=False)
     platform_chat_id: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     direction: Mapped[str] = mapped_column(String(10), nullable=False)  # inbound|outbound|system
-    message_text: Mapped[str] = mapped_column(Text, nullable=False)
+    message_text: Mapped[str] = mapped_column(String(2000), nullable=False)  # Retained for 90 days, auto-purged
     media_type: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     task_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         Uuid, ForeignKey("tasks.id", ondelete="SET NULL"), nullable=True

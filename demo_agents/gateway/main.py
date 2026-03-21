@@ -1,5 +1,6 @@
 import asyncio
 import hashlib
+import hmac
 import logging
 import re
 from contextlib import asynccontextmanager
@@ -17,6 +18,14 @@ from adapters import get_adapter
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger("gateway")
+
+
+def pseudonymize_user_id(platform_user_id: str, connection_id: str) -> str:
+    """HMAC-based pseudonymization of platform user IDs for GDPR compliance (Art. 25).
+
+    The raw ID is used only in-memory (rate limiter). Storage receives the hash.
+    """
+    return hashlib.sha256(f"{connection_id}:{platform_user_id}".encode()).hexdigest()[:16]
 
 # Global instances
 client: CrewHubClient | None = None
@@ -105,7 +114,7 @@ async def process_message(platform: str, connection_id: str, message):
 
         # Check credits + charge atomically
         surcharge = 2.0 if platform == "whatsapp" else 0.0
-        ok, error = await check_and_charge(client, connection, message.text, surcharge)
+        ok, error = await check_and_charge(client, connection, surcharge)
         if not ok:
             error_msgs = {
                 "daily_limit": "Daily message limit reached. Service will resume tomorrow.",
@@ -116,10 +125,10 @@ async def process_message(platform: str, connection_id: str, message):
                                        error_msgs.get(error, "Service temporarily unavailable."))
             return
 
-        # Log inbound message
+        # Log inbound message — store pseudonymized user ID (GDPR Art. 25)
         await client.log_message({
             "connection_id": connection_id,
-            "platform_user_id": message.platform_user_id,
+            "platform_user_id": pseudonymize_user_id(message.platform_user_id, connection_id),
             "platform_message_id": message.platform_message_id,
             "platform_chat_id": message.platform_chat_id,
             "direction": "inbound",
@@ -158,7 +167,7 @@ async def task_callback(connection_id: UUID, chat_id: str, request: Request):
 
     # Verify shared secret
     gateway_key = request.headers.get("X-Gateway-Key", "")
-    if not settings.gateway_service_key or gateway_key != settings.gateway_service_key:
+    if not settings.gateway_service_key or not hmac.compare_digest(gateway_key, settings.gateway_service_key):
         return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
 
     body = await request.json()

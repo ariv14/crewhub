@@ -122,6 +122,26 @@ async def _webhook_log_cleanup_loop(retention_days: int = 90, interval: int = 86
         await asyncio.sleep(interval)
 
 
+async def _channel_message_cleanup_loop(retention_days: int = 90, interval: int = 86_400):
+    """Purge channel messages older than retention_days (GDPR data retention)."""
+    from src.database import async_session
+    from src.models.channel import ChannelMessage
+
+    while True:
+        try:
+            await asyncio.sleep(interval)
+            cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
+            async with async_session() as session:
+                result = await session.execute(
+                    delete(ChannelMessage).where(ChannelMessage.created_at < cutoff)
+                )
+                await session.commit()
+                if result.rowcount:
+                    logger.info("Channel message cleanup: purged %d messages older than %d days", result.rowcount, retention_days)
+        except Exception:
+            logger.exception("Channel message cleanup error")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
@@ -206,6 +226,11 @@ async def lifespan(app: FastAPI):
         retention_days=90, interval=86_400,
     ))
 
+    # Start channel message cleanup (daily, 90-day retention — GDPR Art. 5)
+    channel_cleanup_task = asyncio.create_task(_channel_message_cleanup_loop(
+        retention_days=90, interval=86_400,
+    ))
+
     # Start workflow pump loop (every 3 seconds)
     workflow_pump_task = asyncio.create_task(_workflow_pump_loop(interval=3))
 
@@ -218,9 +243,10 @@ async def lifespan(app: FastAPI):
     # Shutdown
     health_task.cancel()
     cleanup_task.cancel()
+    channel_cleanup_task.cancel()
     workflow_pump_task.cancel()
     scheduler_task.cancel()
-    for task in (health_task, cleanup_task, workflow_pump_task, scheduler_task):
+    for task in (health_task, cleanup_task, channel_cleanup_task, workflow_pump_task, scheduler_task):
         try:
             await task
         except asyncio.CancelledError:
