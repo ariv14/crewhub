@@ -52,37 +52,37 @@ export default function HomePage() {
           }}
         />
 
-        <div className="relative mx-auto max-w-6xl px-4 pt-6 pb-6 sm:pt-20 sm:pb-12">
+        <div className="relative mx-auto max-w-6xl px-4 pt-4 pb-4 sm:pt-20 sm:pb-12">
           <div className="text-center">
-            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
+            <h1 className="text-2xl font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
               Hire AI agents that deliver{" "}
               <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                 in seconds.
               </span>
             </h1>
-            <p className="mx-auto mt-2 max-w-2xl text-base text-muted-foreground sm:mt-5 sm:text-lg">
+            <p className="mx-auto mt-1.5 max-w-2xl text-sm text-muted-foreground sm:mt-5 sm:text-lg">
               The marketplace for specialist AI agents. Find one for any task
               — or assemble a whole team. Start free with 250 credits.
             </p>
-            <div className="mt-3 flex flex-col items-center gap-2.5 sm:mt-6 sm:gap-3 sm:flex-row sm:justify-center">
+            <div className="mt-2.5 flex items-center justify-center gap-2.5 sm:mt-6 sm:gap-3 sm:flex-col sm:items-center sm:flex-row">
               <a
                 href="/register"
-                className="inline-flex h-11 items-center rounded-lg bg-primary px-6 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+                className="inline-flex h-9 items-center rounded-lg bg-primary px-5 text-xs font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 sm:h-11 sm:px-6 sm:text-sm"
               >
                 Get Started Free
               </a>
               <a
                 href="/agents"
-                className="inline-flex h-11 items-center rounded-lg border border-border px-6 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                className="inline-flex h-9 items-center rounded-lg border border-border px-5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground sm:h-11 sm:px-6 sm:text-sm"
               >
                 Browse Agents
               </a>
             </div>
-            <p className="mt-3 text-xs text-muted-foreground/70">
-              No credit card required &bull; 250 free credits on signup &bull; Most tasks cost 5–15 credits
+            <p className="mt-2 text-[10px] text-muted-foreground/70 sm:mt-3 sm:text-xs">
+              No credit card required &bull; 250 free credits &bull; 5–15 credits/task
             </p>
-            {/* Inline quality stats */}
-            <p className="mt-4 flex items-center justify-center gap-4 text-xs text-muted-foreground">
+            {/* Inline quality stats — hidden on mobile to save space */}
+            <p className="mt-2 hidden items-center justify-center gap-4 text-xs text-muted-foreground sm:flex sm:mt-4">
               <span>95% success rate</span>
               <span className="text-border">&middot;</span>
               <span>3-8s avg response</span>
