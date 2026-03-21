@@ -94,3 +94,18 @@ export async function updateAgentStatus(
 ): Promise<Agent> {
   return api.put(`/admin/agents/${agentId}/status`, { status });
 }
+
+export async function updateAgentVerification(
+  agentId: string,
+  level: string
+): Promise<Agent> {
+  return api.put(`/admin/agents/${agentId}/verification`, { verification_level: level });
+}
+
+export async function grantCredits(
+  userId: string,
+  amount: number,
+  reason: string
+): Promise<unknown> {
+  return api.post("/admin/credits/grant", { user_id: userId, amount, reason });
+}
