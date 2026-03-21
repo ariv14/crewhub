@@ -1,6 +1,6 @@
 # CrewHub Development Roadmap
 
-**Last updated:** 2026-03-20
+**Last updated:** 2026-03-21
 **Staging:** marketplace-staging.aidigitalcrew.com | arimatch1-crewhub-staging.hf.space
 **Production:** crewhubai.com | arimatch1/crewhub (HF Space)
 **API:** api.crewhubai.com (prod) | api-staging.crewhubai.com (staging)
@@ -232,6 +232,42 @@ See `docs/plans/2026-03-20-health-monitor-fix.md` for full gap analysis.
   `health_failures`, `health_reason`, `last_health_check_at`, `last_healthy_at`,
   `last_health_latency_ms`), JSONB `_health_failures` cleanup
 
+### Admin Platform Control Suite (Mar 20-21) — LIVE
+- [x] **Admin Overview Dashboard** (`/admin`) — platform KPIs (users, agents, tasks, transactions), task completion rate, credit grant form, auto-refresh 30s
+- [x] **Agent Management** (`/admin/agents`) — sortable listing, dropdown actions per agent (toggle status, set verification, ban/suspend, permanent delete)
+- [x] **Governance Verification** (`/admin/governance`) — pending agent queue, bulk verify/certify/demote controls
+- [x] **Submissions Review** (`/admin/submissions`) — approve/reject/revoke Langflow-built agents, flow ID tracking
+- [x] **Agent Detail** (`/admin/agents/[id]`) — skills tab, pricing tab, raw JSON viewer, error handling
+- [x] **Additional Admin Tabs**: Users, Tasks, Transactions, Health, LLM Calls, Settings
+- [x] Admin can delete any agent — new admin delete endpoint bypasses ownership check
+- [x] MissingGreenlet fix on admin verification update — commit+refresh before serialize
+
+### Landing Page Redesign v2 (Mar 20-21) — LIVE
+- [x] **Search-First Hero** — MagicBox elevated to primary position, CTAs demoted to secondary text links
+- [x] **Side-by-Side Panels** — Find an Agent + Build a Workflow, equal 1:1 width split on desktop
+- [x] **Smart Search UX** — auto-search on chip click, 3-char hint threshold, query passthrough to browse
+- [x] **45% Page Reduction** — cut redundant sections, CTA consolidation (15 → 3)
+- [x] P1/P2 Polish: pricing clarity, A2A tone, trending skeleton, elevated Magic Box
+- [x] Design spec: `docs/superpowers/specs/2026-03-21-landing-page-redesign.md`
+
+### E2E Test Refresh (Mar 21) — LIVE
+- [x] Updated tests for current UI — 50/60 pass, 3 flaky, 6 skipped
+- [x] Deprecated `team-mode.spec.ts` removed (replaced by workflows)
+- [x] Updated: agent-try-it, magic-box, register-agent, task-lifecycle-ux
+
+### Bug Fixes & Polish (Mar 20-21)
+- [x] Build My Agent redirects to Langflow builder page
+- [x] Workflow detail page freeze — private workflows returned 404 for owner
+- [x] Auth credentials passed properly for private workflow access
+- [x] CF Worker CORS — replace wildcard `*` with specific origin
+- [x] Error state handling for admin agent detail and agent settings pages
+- [x] Trailing slashes on dashboard routes + `<a>` tags in welcome cards
+- [x] Wrangler version pinned to 3.114.0 for CF Pages deploy stability
+- [x] Auth redirect preserves query params — workflow pattern selection survives login flow
+  - Middleware: `pathname + request.nextUrl.search` instead of `pathname` alone
+  - AuthGuard: `useSearchParams()` wrapped in `<Suspense>` for static export compatibility
+  - All 3 patterns verified in browser: manual, hierarchical, supervisor
+
 ### Stripe Dashboard Manual Steps (Pending)
 - [ ] **Staging**: Enable Stripe Connect (test mode), add `account.updated` webhook event
 - [ ] **Staging**: Remove 4 stale subscription webhook events
@@ -242,82 +278,24 @@ See `docs/plans/2026-03-20-health-monitor-fix.md` for full gap analysis.
 
 ## Current Sprint
 
-### Compliance Certification — ALL TECHNICAL WORK COMPLETE (see `2026-03-19-compliance-certification-plan-v2.md`)
+### Compliance Readiness — FULLY COMPLETE (Mar 21)
 
-**Week 1 — COMPLETE (Mar 19):** 40 of 64 findings resolved
-- [x] XSS prevention: rehype-sanitize on all markdown, image URL validation
-- [x] SSRF protection: URL validator blocking private IPs on detect/validate
-- [x] Auth: workflow run endpoints require ownership, E2E bypass gated
-- [x] Security headers: CSP, HSTS, X-Frame-Options via Cloudflare _headers
-- [x] Cookie hardening: Secure flag on all auth cookies
-- [x] Webhook enforcement: reject unsigned webhooks in production
-- [x] Audit logging: AuditLog model + migration + wired into all 11 admin endpoints
-- [x] Sentry PII scrubbing: EventScrubber denylist, send_default_pii=False
-- [x] Rate limiting: real IP extraction (CF-Connecting-IP), added to feedback/telemetry/supervisor/bootstrap
-- [x] Telemetry batch cap: max 100 events per request
-- [x] PostHog maskAllInputs: true
-- [x] global-error.tsx for root layout crashes
-- [x] Bug fixes: AsyncSessionLocal import, abuse_detector import path
+**All technical AND documentation compliance work is complete.**
 
-**Week 2 — COMPLETE (Mar 19):** 47 of 64 findings resolved
-- [x] httpOnly session cookie: POST /auth/session + /auth/session/logout endpoints
-- [x] Backend get_current_user reads __session cookie as 3rd auth path
-- [x] CSRF protection: Origin header validation for cookie-authenticated mutations
-- [x] credentials:include conditional on same-site (production only)
-- [x] Cookie consent banner gating PostHog (Accept/Decline + Privacy Policy link)
-- [x] PostHog respects navigator.doNotTrack — skips loading when DNT=1
-- [x] posthog.identify() only runs after consent
-- [x] Privacy policy updated: removed false claims about PII tracking and DNT
-- [x] autoComplete attributes on login/register forms
-- [x] Terms + Privacy links on registration form
-- [x] Staging frontend added to CORS allow_origins
+| Item | Type | Status |
+|------|------|--------|
+| 64/64 security findings | Code | ✅ Resolved |
+| Server-side consent logging (`POST /auth/consent`) | Code | ✅ Built (Mar 21) |
+| CORS `allow_methods` restricted | Code | ✅ Fixed (Mar 21) — explicit methods + headers |
+| `compliance.txt` language | Copy | ✅ Fixed (Mar 21) — "aligned with" not "certified" |
+| Incident response procedure | Document | ✅ Created (Mar 21) — `docs/compliance/incident-response-procedure.md` |
+| Data Processing Agreement (DPA) | Document | ✅ Created (Mar 21) — `docs/compliance/data-processing-agreement.md` |
+| SOC 2 controls mapping (CC1-CC9) | Document | ✅ Created (Mar 21) — `docs/compliance/soc2-controls-mapping.md` |
 
-**Week 3 Day 1 — COMPLETE (Mar 19):** 57 of 64 findings resolved
-- [x] GET /workflows/{id}: restrict to public-only (private returns 404)
-- [x] GET /crews/{id}: restrict to public-only (private returns 404)
-- [x] GET /analytics/delegation-accuracy: requires auth
-- [x] POST /builder/verify-code: rate limited
-- [x] Redis: startup warning in production if REDIS_URL unset
-- [x] pip-audit: dependency scanning step added to CI
-- [x] /validate timeout: reduced from 30s to 10s
-- [x] Login page: Terms + Privacy Policy text below OAuth buttons
-- [x] Submission model + schema tracked (was untracked, broke CI)
-
-**Week 3 Day 2-3 — COMPLETE (Mar 19):** 64 of 64 findings resolved (100%)
-- [x] GET /auth/me/export — GDPR data export (profile, agents, tasks, transactions, workflows)
-- [x] DELETE /auth/me — account deletion with immediate PII scrub + confirmation
-- [x] Migration 031: consent tracking columns (consent_version, consent_given_at, consent_ip)
-- [x] Migration 032: admin_role column + backfill existing admins → super_admin
-- [x] RBAC: require_ops_or_super + require_billing_or_super dependencies
-- [x] Encryption key versioning: v1: prefix, separate ENCRYPTION_KEY, backward-compat decrypt
-- [x] Settings UI: Danger Zone card with Download Data + Delete Account (type DELETE to confirm)
-
-**COMPLIANCE CERTIFICATION: 64/64 findings resolved. 0 critical, 0 high, 0 medium.**
-
-- [ ] **Week 4**: DPA template, incident response docs, auditor engagement (documentation only)
-
-### Agent Submissions Flow (Mar 19) — COMPLETE
-- [x] Langflow proxy: POST /langflow/run/{flow_id} — A2A-to-Langflow adapter
-- [x] Approved agents get endpoint auto-set to proxy URL (task dispatch works)
-- [x] Auto-generate primary skill with embedding on approval (search works)
-- [x] Re-submission endpoint: POST /builder/submissions/{id}/resubmit
-- [x] Status change notifications via localStorage-diff toast
-- [x] CSP fix: added apis.google.com + *.firebaseapp.com to script-src/frame-src
-- [x] staging.crewhubai.com set as canonical staging frontend (Firebase authorized)
-- [x] Builder submissions use resolve_db_user_id (Firebase UID compat)
-
-### E2E Test Audit (Mar 19) — COMPLETE
-- [x] Comprehensive E2E test plan: 37 pages, 120+ API endpoints, 71 paths mapped
-- [x] Trailing slash audit: all admin list pages verified working
-- [x] Fixed: admin submissions trailing slash 404, security_schemes validation, builder CSP
-- [x] Full E2E tested: builder → publish → admin approve → agent live with endpoint + skill
-
-### Cookie & Privacy Compliance (Mar 19) — Phases 1-2 + UX COMPLETE (see Completed Work above)
-
-**Phase 3: Server-side consent logging (remaining)**
-- [ ] `POST /api/v1/auth/consent` endpoint — stores timestamp, version, IP
-- [ ] Call from handleAccept() in posthog-provider
-- [ ] Version the consent key (analytics_consent_v1.0)
+**Next step: Engage SOC 2 auditor for readiness assessment.**
+- [ ] Select and contact SOC 2 auditor
+- [ ] Schedule scoping call
+- [ ] Commission penetration test (recommended before audit)
 
 ### Multi-Channel Gateway (Mar 18) — DESIGNED, NOT YET IMPLEMENTED
 - [x] Full design spec: `docs/superpowers/specs/2026-03-18-multi-channel-gateway-design.md`
@@ -505,3 +483,9 @@ Clients → CF Worker (gateway) → Primary (HF Space) / Secondary (Railway/Fly)
 | 2026-03-19 | Agent submissions gap fixes | Complete (5 gaps fixed) |
 | 2026-03-19 | E2E test plan — 37 pages, 120+ endpoints | Complete |
 | 2026-03-20 | Health monitor fix — post-incident (18 gaps) | Complete (all 4 phases) |
+| 2026-03-20 | Landing page redesign spec (search-first, 45% shorter) | Complete |
+| 2026-03-21 | Admin platform control suite (10 pages) | Complete |
+| 2026-03-21 | E2E test refresh (50/60 pass) | Complete |
+| 2026-03-21 | Incident response procedure | Complete |
+| 2026-03-21 | Data Processing Agreement (DPA) | Complete |
+| 2026-03-21 | SOC 2 controls mapping (CC1-CC9 + supplemental) | Complete |

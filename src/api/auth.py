@@ -11,7 +11,7 @@ Supports two modes:
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -658,3 +658,56 @@ async def delete_my_account(
     response.delete_cookie(**{k: v for k, v in _session_cookie_kwargs().items() if k != "max_age"})
 
     return {"message": "Account deletion processed. PII has been scrubbed. Transactions retained for compliance."}
+
+
+# ---------------------------------------------------------------------------
+# GDPR Consent Recording (server-side)
+# ---------------------------------------------------------------------------
+
+
+class ConsentRequest(BaseModel):
+    """Request body for recording user consent."""
+    consent_given: bool
+    consent_version: str = "v1.0"
+
+
+@router.post("/consent", status_code=200, dependencies=[Depends(rate_limit_by_ip)])
+async def record_consent(
+    data: ConsentRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Record user's analytics consent decision server-side (GDPR Article 6).
+
+    Called from the cookie consent banner when the user accepts or declines.
+    Stores the consent version, timestamp, and IP for audit purposes.
+    """
+    firebase_uid = current_user.get("firebase_uid")
+    if firebase_uid:
+        result = await db.execute(select(User).where(User.firebase_uid == firebase_uid))
+    else:
+        result = await db.execute(select(User).where(User.id == UUID(current_user["id"])))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Extract real client IP (Cloudflare → X-Forwarded-For → direct)
+    client_ip = (
+        request.headers.get("cf-connecting-ip")
+        or request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or (request.client.host if request.client else "unknown")
+    )
+
+    if data.consent_given:
+        user.consent_version = data.consent_version
+        user.consent_given_at = datetime.now(timezone.utc)
+        user.consent_ip = client_ip
+    else:
+        # Record decline: clear consent fields but keep the version for audit
+        user.consent_version = f"{data.consent_version}-declined"
+        user.consent_given_at = datetime.now(timezone.utc)
+        user.consent_ip = client_ip
+
+    await db.flush()
+    return {"message": "Consent recorded", "consent_version": user.consent_version}

@@ -282,11 +282,18 @@ MAX_BODY_SIZE = 10 * 1024 * 1024
 
 
 @app.middleware("http")
-async def limit_body_size(request: Request, call_next):
+async def security_headers(request: Request, call_next):
+    """Add security headers to all responses (HSTS, CSP, X-headers)."""
     content_length = request.headers.get("content-length")
     if content_length and int(content_length) > MAX_BODY_SIZE:
         return JSONResponse(status_code=413, content={"detail": "Request body too large"})
-    return await call_next(request)
+    response = await call_next(request)
+    response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
 
 
 # CORS — allow the dashboard and existing site
@@ -312,8 +319,8 @@ app.add_middleware(
         "https://tauri.localhost",
     ],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-API-Key", "X-Requested-With", "sentry-trace", "baggage"],
 )
 
 

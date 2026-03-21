@@ -643,6 +643,13 @@ async def grant_credits(
     if not target:
         raise HTTPException(status_code=404, detail="Target user not found")
 
+    # SOC 2 separation of duties: admins cannot grant credits to themselves
+    if target.id == admin.id:
+        raise HTTPException(
+            status_code=403,
+            detail="Cannot grant credits to yourself. Ask another admin to grant credits to your account.",
+        )
+
     ledger = CreditLedgerService(db)
     txn = await ledger.grant_bonus(
         owner_id=data.user_id,
