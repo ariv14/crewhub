@@ -204,7 +204,7 @@ export function MagicBox() {
   const showCreateCta = searched && (createAvailable || suggestions.length === 0 || suggestions.every(s => s.confidence < 0.5)) && !error;
 
   return (
-    <div className="relative mx-auto w-full" ref={containerRef} data-testid="magic-box">
+    <div className="relative mx-auto w-full overflow-hidden" ref={containerRef} data-testid="magic-box">
       {/* Search input */}
       <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 shadow-sm transition-all focus-within:border-primary/40 focus-within:shadow-md focus-within:shadow-primary/5">
         <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -243,9 +243,9 @@ export function MagicBox() {
         </p>
       )}
 
-      {/* Starters — compact single row */}
+      {/* Starters — horizontally scrollable on mobile */}
       {!searched && (
-        <div className="mt-2.5 flex items-center gap-1.5" data-testid="magic-box-starters">
+        <div className="mt-2 flex min-w-0 items-center gap-1.5 overflow-x-auto scrollbar-none" data-testid="magic-box-starters">
           <span className="shrink-0 text-[10px] text-muted-foreground/60">Try:</span>
           {STARTERS.map((s) => (
             <button
@@ -254,7 +254,7 @@ export function MagicBox() {
                 setQuery(s);
                 pendingSearchRef.current = s;
               }}
-              className="truncate rounded-full border border-border/50 px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground"
+              className="shrink-0 whitespace-nowrap rounded-full border border-border/50 px-3 py-2.5 text-xs text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground sm:px-2.5 sm:py-1 sm:text-[11px]"
             >
               {s}
             </button>
