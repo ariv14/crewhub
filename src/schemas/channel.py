@@ -139,3 +139,60 @@ class GatewayConnectionResponse(BaseModel):
     pause_on_limit: bool = True
     low_balance_threshold: int = 20
     config: Optional[dict] = None
+
+
+# ---------------------------------------------------------------------------
+# Contact management schemas
+# ---------------------------------------------------------------------------
+
+class ChannelContactResponse(BaseModel):
+    platform_user_id_hash: str
+    message_count: int
+    last_seen: datetime
+    first_seen: datetime
+    is_blocked: bool = False
+
+
+class ChannelContactListResponse(BaseModel):
+    contacts: list[ChannelContactResponse]
+    total: int
+
+
+class ChannelMessageResponse(BaseModel):
+    id: UUID
+    direction: str
+    platform_user_id_hash: str
+    message_text: str | None = None
+    credits_charged: float
+    response_time_ms: int | None = None
+    created_at: datetime
+
+
+class ChannelMessageListResponse(BaseModel):
+    messages: list[ChannelMessageResponse]
+    cursor: str | None = None
+    has_more: bool = False
+
+
+class AdminChannelResponse(ChannelResponse):
+    owner_email: str = ""
+    owner_name: str = ""
+    owner_credit_balance: float = 0
+    owner_account_tier: str = "free"
+
+
+class ChannelAnalyticsResponse(BaseModel):
+    daily: list[dict] = []
+    total_messages: int = 0
+    total_credits: float = 0
+    avg_response_ms: float | None = None
+
+
+class GDPRErasureResponse(BaseModel):
+    deleted_messages: int
+    user_hash: str
+    channel_id: UUID
+
+
+class AdminMessageAccessRequest(BaseModel):
+    justification: Literal["abuse_report", "developer_support", "legal_request", "compliance_check"]

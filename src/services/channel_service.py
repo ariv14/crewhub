@@ -8,12 +8,12 @@ import os
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, delete
 
 logger = logging.getLogger(__name__)
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.models.channel import ChannelConnection, ChannelMessage
+from src.models.channel import ChannelConnection, ChannelMessage, ChannelContactBlock
 from src.models.agent import Agent
 from src.models.skill import AgentSkill
 from src.core.exceptions import NotFoundError, ForbiddenError, BadRequestError
@@ -217,10 +217,26 @@ class ChannelService:
         )
         channels = list(result.scalars().all())
 
-        # Compute today's stats for each channel
+        # Single batch query for today's stats (avoids N+1)
+        today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        stats_result = await self.db.execute(
+            select(
+                ChannelMessage.connection_id,
+                func.count().label("messages_today"),
+                func.coalesce(func.sum(ChannelMessage.credits_charged), 0).label("credits_today"),
+            )
+            .where(ChannelMessage.created_at >= today)
+            .where(ChannelMessage.connection_id.in_([ch.id for ch in channels]))
+            .group_by(ChannelMessage.connection_id)
+        )
+        stats_map = {
+            str(r.connection_id): {"messages_today": r.messages_today, "credits_today": float(r.credits_today)}
+            for r in stats_result.all()
+        }
+
         enriched = []
         for ch in channels:
-            stats = await self._get_today_stats(ch.id)
+            stats = stats_map.get(str(ch.id), {"messages_today": 0, "credits_today": 0.0})
             enriched.append((ch, stats))
         return enriched, len(channels)
 
@@ -332,3 +348,124 @@ class ChannelService:
             "total_messages": sum(r.messages for r in rows),
             "total_credits": sum(float(r.credits or 0) for r in rows),
         }
+
+    async def get_contacts(self, connection_id, owner_id, limit=50, offset=0):
+        conn = await self.get_channel(connection_id, owner_id)
+        if not conn:
+            return None
+
+        # Aggregate contacts from messages
+        result = await self.db.execute(
+            select(
+                ChannelMessage.platform_user_id_hash,
+                func.count().label("message_count"),
+                func.max(ChannelMessage.created_at).label("last_seen"),
+                func.min(ChannelMessage.created_at).label("first_seen"),
+            )
+            .where(ChannelMessage.connection_id == connection_id)
+            .group_by(ChannelMessage.platform_user_id_hash)
+            .order_by(func.max(ChannelMessage.created_at).desc())
+            .limit(limit).offset(offset)
+        )
+        rows = result.all()
+
+        # Get blocked users
+        blocked_result = await self.db.execute(
+            select(ChannelContactBlock.platform_user_id_hash)
+            .where(ChannelContactBlock.connection_id == connection_id)
+        )
+        blocked_set = {r[0] for r in blocked_result.all()}
+
+        # Count total unique contacts
+        count_result = await self.db.execute(
+            select(func.count(func.distinct(ChannelMessage.platform_user_id_hash)))
+            .where(ChannelMessage.connection_id == connection_id)
+        )
+        total = count_result.scalar_one()
+
+        contacts = [{
+            "platform_user_id_hash": r.platform_user_id_hash,
+            "message_count": r.message_count,
+            "last_seen": r.last_seen.isoformat() if r.last_seen else None,
+            "first_seen": r.first_seen.isoformat() if r.first_seen else None,
+            "is_blocked": r.platform_user_id_hash in blocked_set,
+        } for r in rows]
+
+        return {"contacts": contacts, "total": total}
+
+    async def get_channel_messages(self, connection_id, owner_id, direction=None, cursor=None, limit=20):
+        conn = await self.get_channel(connection_id, owner_id)
+        if not conn:
+            return None
+
+        from src.core.message_crypto import decrypt_message
+
+        query = select(ChannelMessage).where(ChannelMessage.connection_id == connection_id)
+        if direction:
+            query = query.where(ChannelMessage.direction == direction)
+        if cursor:
+            from datetime import datetime as dt
+            query = query.where(ChannelMessage.created_at < dt.fromisoformat(cursor))
+        query = query.order_by(ChannelMessage.created_at.desc()).limit(limit + 1)
+
+        result = await self.db.execute(query)
+        rows = result.scalars().all()
+        has_more = len(rows) > limit
+        messages = rows[:limit]
+
+        return {
+            "messages": [{
+                "id": str(m.id),
+                "direction": m.direction,
+                "platform_user_id_hash": m.platform_user_id_hash,
+                "message_text": decrypt_message(m.message_text) if m.direction == "outbound" else None,
+                "credits_charged": float(m.credits_charged),
+                "response_time_ms": m.response_time_ms,
+                "created_at": m.created_at.isoformat(),
+            } for m in messages],
+            "cursor": messages[-1].created_at.isoformat() if messages else None,
+            "has_more": has_more,
+        }
+
+    async def block_contact(self, connection_id, owner_id, user_hash, blocked_by, reason=None):
+        conn = await self.get_channel(connection_id, owner_id)
+        if not conn:
+            return None
+        block = ChannelContactBlock(
+            connection_id=connection_id, platform_user_id_hash=user_hash,
+            blocked_by=blocked_by, reason=reason
+        )
+        self.db.add(block)
+        await self.db.flush()
+        return block
+
+    async def unblock_contact(self, connection_id, owner_id, user_hash):
+        conn = await self.get_channel(connection_id, owner_id)
+        if not conn:
+            return None
+        await self.db.execute(
+            delete(ChannelContactBlock)
+            .where(ChannelContactBlock.connection_id == connection_id)
+            .where(ChannelContactBlock.platform_user_id_hash == user_hash)
+        )
+        await self.db.flush()
+        return True
+
+    async def delete_contact_data(self, connection_id, owner_id, user_hash):
+        """GDPR erasure: delete all messages and block records for a contact."""
+        conn = await self.get_channel(connection_id, owner_id)
+        if not conn:
+            return None
+        result = await self.db.execute(
+            delete(ChannelMessage)
+            .where(ChannelMessage.connection_id == connection_id)
+            .where(ChannelMessage.platform_user_id_hash == user_hash)
+        )
+        # Also remove any block
+        await self.db.execute(
+            delete(ChannelContactBlock)
+            .where(ChannelContactBlock.connection_id == connection_id)
+            .where(ChannelContactBlock.platform_user_id_hash == user_hash)
+        )
+        await self.db.flush()
+        return {"deleted_messages": result.rowcount, "user_hash": user_hash, "channel_id": str(connection_id)}
