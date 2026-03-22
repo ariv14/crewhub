@@ -40,8 +40,16 @@ class ChannelService:
     async def _validate_token(self, platform: str, credentials: dict) -> dict:
         """Validate bot token by calling platform API. Returns bot info or raises BadRequestError."""
         import httpx
+        from src.config import settings as _cfg
 
         token = credentials.get("bot_token") or credentials.get("access_token", "")
+
+        # DEBUG bypass: HF Spaces staging can't reach external APIs (DNS blocked).
+        # Skip validation on staging — token format is still checked client-side.
+        if _cfg.debug and platform == "telegram" and token and ":" in token:
+            logger.info("DEBUG mode: skipping Telegram token validation (HF Spaces DNS issue)")
+            bot_id = token.split(":")[0]
+            return {"platform_bot_id": bot_id, "bot_name": f"bot_{bot_id}"}
 
         # HF Spaces Docker containers sometimes have DNS resolution issues.
         # Use httpx with a custom nameserver fallback via environment.
