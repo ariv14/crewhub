@@ -134,10 +134,12 @@ async def telegram_webhook(connection_id: str, request: Request):
         result = await _process_telegram_message(
             connection_id, platform_user_id, platform_msg_id, chat_id, text
         )
-        return {"ok": True, "debug": result, "parsed": {"user": platform_user_id, "msg_id": platform_msg_id, "text": text[:50]}}
+        return {"ok": True, "debug": result or "returned_none", "parsed": {"user": platform_user_id, "msg_id": platform_msg_id, "text": text[:50], "conn_id": connection_id}}
     except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
         logger.exception("Webhook processing failed: %s", e)
-        return {"ok": True, "debug_error": f"{type(e).__name__}: {e}"}
+        return {"ok": True, "debug_error": f"{type(e).__name__}: {e}", "traceback": tb[-500:]}
 
 
 async def _process_telegram_message(
