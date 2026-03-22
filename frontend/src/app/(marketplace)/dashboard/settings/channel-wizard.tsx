@@ -457,7 +457,7 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
                   <SelectValue placeholder="Select an agent" />
                 </SelectTrigger>
                 <SelectContent>
-                  {agents.map((agent) => (
+                  {agents.filter((agent) => agent.id).map((agent) => (
                     <SelectItem key={agent.id} value={agent.id}>
                       {agent.name}
                     </SelectItem>
@@ -475,13 +475,13 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
             {skills.length > 0 && (
               <div className="space-y-2">
                 <Label>Skill (Optional)</Label>
-                <Select value={skillId} onValueChange={setSkillId}>
+                <Select value={skillId || "__all__"} onValueChange={(v) => setSkillId(v === "__all__" ? "" : v)}>
                   <SelectTrigger>
                     <SelectValue placeholder="All skills (default)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All skills</SelectItem>
-                    {skills.map((skill) => (
+                    <SelectItem value="__all__">All skills</SelectItem>
+                    {skills.filter((skill) => skill.id).map((skill) => (
                       <SelectItem key={skill.id} value={skill.id}>
                         {skill.name}
                       </SelectItem>
