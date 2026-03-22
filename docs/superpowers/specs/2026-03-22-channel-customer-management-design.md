@@ -324,7 +324,29 @@ settings/channels-tab.tsx              — DELETE (replaced)
 
 ---
 
-## 7. Compliance Requirements
+## 7. Cross-Border Data Transfers (GDPR Art. 46)
+
+### Data Residency
+
+Supabase project region: **US East (us-east-1, AWS Virginia)**. All channel data (connections, messages, contacts) resides in this region.
+
+### EU End-User Coverage
+
+If EU-based end-users interact with developer bots, personal data (pseudonymized user IDs, encrypted outbound text, metadata) is transferred to the US. This is covered by:
+
+1. **Standard Contractual Clauses (SCCs):** Supabase's DPA includes EU SCCs (Module 2: Controller-to-Processor). CrewHub's DPA with developers extends this chain.
+2. **Data minimization mitigations:** Inbound message text is NOT stored. User IDs are pseudonymized (HMAC-SHA256). These reduce the sensitivity of transferred data.
+
+### Developer Disclosure
+
+The channel wizard step 2 displays a data residency note:
+> "Channel data is processed and stored in the United States. If your users are in the EU, ensure your privacy notice discloses this."
+
+This is included as part of the `privacy_notice_url` requirement — developers must provide a privacy notice that covers data residency.
+
+---
+
+## 8. Compliance Requirements
 
 ### P0 — Must ship with feature
 
@@ -349,7 +371,7 @@ settings/channels-tab.tsx              — DELETE (replaced)
 
 ---
 
-## 8. Performance Optimizations
+## 9. Performance Optimizations
 
 | Concern | Solution |
 |---------|----------|
@@ -361,7 +383,7 @@ settings/channels-tab.tsx              — DELETE (replaced)
 
 ---
 
-## 9. Phase Ordering (Critical — from review)
+## 10. Phase Ordering (Critical — from review)
 
 **Phase A must be sequential, not parallel:**
 
@@ -378,7 +400,7 @@ settings/channels-tab.tsx              — DELETE (replaced)
 
 ---
 
-## 10. Implementation Phases
+## 11. Implementation Phases
 
 ### Phase A: Backend Data + API (3-4 days)
 - Migration 036 (contact_blocks, privacy_notice_url, retention, indexes, rename column)
@@ -410,7 +432,7 @@ settings/channels-tab.tsx              — DELETE (replaced)
 
 ---
 
-## 11. Definition of Done
+## 12. Definition of Done
 
 - [ ] Developer can view all channels at `/dashboard/channels`
 - [ ] Developer can see contacts, messages (outbound decrypted, inbound "[not stored]"), analytics per channel
