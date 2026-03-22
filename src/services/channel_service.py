@@ -110,8 +110,11 @@ class ChannelService:
                     return {"platform_bot_id": phone_id}
         except BadRequestError:
             raise
-        except Exception:
+        except Exception as e:
             logger.exception("Token validation error for platform %s", platform)
+            from src.config import settings
+            if settings.debug:
+                raise BadRequestError(f"Token validation failed: {type(e).__name__}: {e}")
             raise BadRequestError("Token validation failed. Please check your credentials and try again.")
 
         return {}
