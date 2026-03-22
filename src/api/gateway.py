@@ -15,7 +15,7 @@ import logging
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -45,11 +45,15 @@ router = APIRouter(prefix="/gateway", tags=["gateway"])
 # ---------------------------------------------------------------------------
 
 
-async def require_gateway_key(x_gateway_key: str = Header(..., alias="X-Gateway-Key")) -> None:
+async def require_gateway_key(
+    x_gateway_key: str = Header(..., alias="X-Gateway-Key"),
+    request: Request = None,
+    db: AsyncSession = Depends(get_db),
+) -> None:
     """Validate the shared gateway service key.
 
     - 503 if gateway_service_key is not configured (empty).
-    - 401 if the provided key doesn't match.
+    - 401 if the provided key doesn't match (audit-logged).
     """
     if not settings.gateway_service_key:
         raise HTTPException(
@@ -57,7 +61,37 @@ async def require_gateway_key(x_gateway_key: str = Header(..., alias="X-Gateway-
             detail="Gateway authentication not configured on this server.",
         )
     if not hmac.compare_digest(x_gateway_key, settings.gateway_service_key):
+        # Audit log auth failure (SOC 2 CC7.2)
+        try:
+            await _audit_gateway(db, "auth_failure", request=request)
+            await db.commit()
+        except Exception:
+            pass
+        logger.warning("Gateway auth failure from %s", request.client.host if request and request.client else "unknown")
         raise HTTPException(status_code=401, detail="Invalid gateway key.")
+
+
+# ---------------------------------------------------------------------------
+# Rate limiting (backend-side fallback — catches bypasses of CF Worker in-memory limits)
+# ---------------------------------------------------------------------------
+
+from src.core.rate_limiter import rate_limit_by_ip
+
+
+# ---------------------------------------------------------------------------
+# Audit logging for gateway security events
+# ---------------------------------------------------------------------------
+
+async def _audit_gateway(db, action: str, request: Request = None, **kwargs):
+    """Log a gateway security event."""
+    from src.core.audit import audit_log
+    await audit_log(
+        db, action=f"gateway.{action}",
+        actor_user_id="gateway-service",
+        target_type="gateway",
+        request=request,
+        **kwargs,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -65,7 +99,7 @@ async def require_gateway_key(x_gateway_key: str = Header(..., alias="X-Gateway-
 # ---------------------------------------------------------------------------
 
 
-@router.post("/charge", response_model=GatewayChargeResponse)
+@router.post("/charge", response_model=GatewayChargeResponse, dependencies=[Depends(rate_limit_by_ip)])
 async def charge_for_message(
     req: GatewayChargeRequest,
     _: None = Depends(require_gateway_key),
@@ -232,7 +266,7 @@ async def heartbeat(
     return {"updated": updated}
 
 
-@router.post("/log-message", status_code=200)
+@router.post("/log-message", status_code=200, dependencies=[Depends(rate_limit_by_ip)])
 async def log_message(
     req: GatewayLogMessageRequest,
     _: None = Depends(require_gateway_key),
@@ -244,13 +278,22 @@ async def log_message(
     """
     from decimal import Decimal
 
+    # Encrypt outbound message text at rest (GDPR Art. 32 / SOC 2 CC6.1)
+    stored_text = req.message_text
+    if req.direction == "outbound" and stored_text:
+        from src.core.message_crypto import encrypt_message
+        try:
+            stored_text = encrypt_message(stored_text)
+        except Exception:
+            logger.warning("Failed to encrypt outbound message — storing plaintext")
+
     msg = ChannelMessage(
         connection_id=req.connection_id,
         platform_user_id=req.platform_user_id,
         platform_message_id=req.platform_message_id,
         platform_chat_id=req.platform_chat_id,
         direction=req.direction,
-        message_text=req.message_text,
+        message_text=stored_text,
         media_type=req.media_type,
         task_id=req.task_id,
         credits_charged=Decimal(str(req.credits_charged)),
@@ -298,7 +341,7 @@ async def gateway_task_status(
     return result
 
 
-@router.post("/create-task", status_code=201)
+@router.post("/create-task", status_code=201, dependencies=[Depends(rate_limit_by_ip)])
 async def gateway_create_task(
     req: GatewayCreateTaskRequest,
     _: None = Depends(require_gateway_key),
