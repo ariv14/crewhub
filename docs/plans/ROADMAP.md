@@ -530,9 +530,34 @@ to Railway ($5/mo) or contact HF support for Pro DNS fix.
 | 10,000 | ~50,000 | $0 (free tier) |
 | 33,000+ | ~100,000+ | $5/mo (paid tier) |
 
+### Multi-Channel Gateway Phase 3: Slack + Discord (Mar 22) — DEPLOYED
+- [x] **Slack adapter** — Events API handler, HMAC-SHA256 signature verification (timing-safe),
+  `chat.postMessage` with 3000-char chunking, URL verification challenge handler
+- [x] **Discord adapter** — Interactions endpoint, PING/PONG handler, slash command support,
+  `sendMessage` with 2000-char chunking, typing indicator, deferred response (type:5)
+- [x] **Platform-agnostic refactor** — `processMessage()` uses `getPlatformSender()` dispatcher,
+  all hardcoded Telegram calls replaced with platform-aware sender
+- [x] **Auto-activate pending channels** — channels with manual webhook setup (Slack/Discord)
+  auto-activate on first verified event via heartbeat API
+- [x] **Slack E2E verified on production** — created app, connected via wizard, bot responded
+  to messages in Slack channel via AI Agency: Support agent
+- [x] **Comprehensive user guide** — `docs/guides/channel-setup-guide.md` covering
+  Telegram (~2min), Slack (~10min), Discord (~5min) with troubleshooting + FAQ
+- [x] **Wizard steps updated** — Slack now shows 8 detailed steps (scopes, events, invite)
+- [ ] **Discord E2E test** — scheduled for Mar 23
+
+**Platforms live on production:**
+
+| Platform | Adapter | E2E Tested | Webhook | Status |
+|----------|---------|-----------|---------|--------|
+| Telegram | ✅ | ✅ Translator + Design + Support | Auto (via /auto-register) | **LIVE** |
+| Slack | ✅ | ✅ Support agent responded | Manual (paste URL in Event Subscriptions) | **LIVE** |
+| Discord | ✅ | Scheduled Mar 23 | Manual (Interactions Endpoint URL) | **DEPLOYED** |
+| Teams | Phase 4 | — | — | Planned |
+| WhatsApp | Phase 4 | — | — | Planned |
+
 ### Near-Term
-- [ ] **Slack adapter** (Multi-Channel Gateway Phase 3) — add to CF Worker + wizard
-- [ ] **Discord adapter** (Multi-Channel Gateway Phase 3) — add to CF Worker + wizard
+- [ ] **Discord E2E test** (Mar 23)
 - [ ] Move backend to Railway ($5/mo) — eliminates agent dispatch DNS failures permanently
 - [ ] Delegation accuracy analytics — data captured, needs endpoint + UI
 - [ ] Redis-backed embedding rate limiter — in-memory only currently
@@ -742,4 +767,8 @@ Clients → CF Worker (gateway) → Primary (HF Space) / Secondary (Railway/Fly)
 | 2026-03-22 | Production deployment record (pre-deploy checklist, rollback plan) | Complete |
 | 2026-03-22 | Auto webhook registration (browser→CF Worker→Telegram, zero manual steps) | Complete |
 | 2026-03-22 | Production E2E: 3 agents tested (Design, Translator, Support) | Complete |
+| 2026-03-22 | Slack + Discord adapters (Phase 3) — CF Worker + wizard | Complete |
+| 2026-03-22 | Slack E2E: production bot responds in channel | Complete |
+| 2026-03-22 | Auto-activate pending channels on first verified event | Complete |
+| 2026-03-22 | Channel setup guide (Telegram, Slack, Discord) | Complete |
 | 2026-03-22 | Production deployment record (72 commits, 106 audit findings resolved) | Complete |
