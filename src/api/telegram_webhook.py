@@ -144,8 +144,9 @@ async def _process_telegram_message(
     connection_id: str, platform_user_id: str, platform_msg_id: str, chat_id: str, text: str
 ):
     """Process Telegram message: look up connection, charge credits, create task, send response."""
-    debug_info = {"stage": "start"}
+    debug_info = {"stage": "start", "connection_id": connection_id, "text": text[:30]}
     try:
+        debug_info["stage"] = "opening_db"
         async with async_session() as db:
             debug_info["stage"] = "db_connected"
             # Get connection (cast string to UUID)
@@ -182,7 +183,8 @@ async def _process_telegram_message(
                 )
             )
             if blocked.scalar_one_or_none():
-                return  # silently drop
+                debug_info["stage"] = "user_blocked"
+                return debug_info
 
             # Send typing indicator
             await _send_typing(bot_token, chat_id)
