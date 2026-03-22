@@ -44,7 +44,6 @@ class ChannelService:
         at GATEWAY_URL proxies the validation call to the platform API.
         """
         import httpx
-        from src.config import settings as _cfg
 
         token = credentials.get("bot_token") or credentials.get("access_token", "")
 
