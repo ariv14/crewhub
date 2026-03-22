@@ -38,16 +38,40 @@ class ChannelService:
             raise ForbiddenError("You do not own this channel")
 
     async def _validate_token(self, platform: str, credentials: dict) -> dict:
-        """Validate bot token by calling platform API. Returns bot info or raises BadRequestError."""
+        """Validate bot token via CF Worker gateway (which has full DNS).
+
+        HF Spaces can't reach external APIs directly. The CF Worker
+        at GATEWAY_URL proxies the validation call to the platform API.
+        """
         import httpx
         from src.config import settings as _cfg
 
         token = credentials.get("bot_token") or credentials.get("access_token", "")
 
-        # DEBUG bypass: HF Spaces staging can't reach external APIs (DNS blocked).
-        # Skip validation on staging — token format is still checked client-side.
+        # Route Telegram validation through CF Worker gateway (has full DNS)
+        if platform == "telegram" and _cfg.gateway_url and _cfg.gateway_service_key:
+            try:
+                async with httpx.AsyncClient(timeout=15) as client:
+                    resp = await client.post(
+                        f"{_cfg.gateway_url}/validate-token",
+                        json={"platform": "telegram", "bot_token": token},
+                        headers={"X-Gateway-Key": _cfg.gateway_service_key},
+                    )
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        if data.get("valid"):
+                            return {"platform_bot_id": data.get("platform_bot_id", ""), "bot_name": data.get("bot_name", "")}
+                        raise BadRequestError(data.get("error", "Invalid Telegram bot token"))
+                    raise BadRequestError("Token validation service unavailable")
+            except BadRequestError:
+                raise
+            except Exception as e:
+                logger.warning("CF Worker validation failed (%s), trying direct", e)
+                # Fall through to direct validation below
+
+        # DEBUG bypass for when gateway is not configured
         if _cfg.debug and platform == "telegram" and token and ":" in token:
-            logger.info("DEBUG mode: skipping Telegram token validation (HF Spaces DNS issue)")
+            logger.info("DEBUG mode: skipping Telegram token validation")
             bot_id = token.split(":")[0]
             return {"platform_bot_id": bot_id, "bot_name": f"bot_{bot_id}"}
 
@@ -207,36 +231,61 @@ class ChannelService:
         webhook_url = f"{gateway_url}/webhook/{data.platform}/{str(ch.id)}"
         ch.webhook_url = webhook_url
 
-        # For auto-managed platforms (Telegram), register webhook
+        # For auto-managed platforms (Telegram), register webhook via CF Worker
         if data.platform in ("telegram",):
             import httpx
             from src.config import settings as app_settings
 
             bot_token_raw = credentials.get("bot_token", "")
 
-            # Derive per-connection webhook secret (same logic as gateway/main.py verify_webhook)
-            # Telegram will send this as X-Telegram-Bot-Api-Secret-Token on every webhook call
+            # Derive per-connection webhook secret
             telegram_secret_token = ""
             if app_settings.gateway_service_key:
                 telegram_secret_token = hashlib.sha256(
                     f"{app_settings.gateway_service_key}:{str(ch.id)}".encode()
                 ).hexdigest()[:32]
 
-            set_webhook_payload: dict = {
-                "url": webhook_url,
-                "allowed_updates": ["message", "edited_message"],
-                "drop_pending_updates": True,
-            }
-            if telegram_secret_token:
-                set_webhook_payload["secret_token"] = telegram_secret_token
-
-            # DEBUG bypass: HF Spaces staging can't reach api.telegram.org (DNS blocked)
-            if app_settings.debug:
-                logger.info("DEBUG mode: skipping setWebhook (HF Spaces DNS issue). Channel set to pending.")
-                ch.status = "active"  # Treat as active on staging for testing
+            # Route webhook registration through CF Worker (has full DNS to reach Telegram)
+            if app_settings.gateway_url and app_settings.gateway_service_key:
+                try:
+                    async with httpx.AsyncClient(timeout=15) as client:
+                        resp = await client.post(
+                            f"{app_settings.gateway_url}/register-webhook",
+                            json={
+                                "bot_token": bot_token_raw,
+                                "connection_id": str(ch.id),
+                                "webhook_secret": telegram_secret_token,
+                            },
+                            headers={"X-Gateway-Key": app_settings.gateway_service_key},
+                        )
+                        if resp.status_code == 200:
+                            result = resp.json()
+                            if result.get("ok"):
+                                ch.status = "active"
+                                ch.webhook_url = result.get("webhook_url", webhook_url)
+                            else:
+                                ch.status = "error"
+                                ch.error_message = result.get("error", "Webhook registration failed")
+                        else:
+                            ch.status = "error"
+                            ch.error_message = "Gateway webhook registration unavailable"
+                except Exception as e:
+                    logger.error("CF Worker webhook registration failed: %s", e)
+                    ch.status = "error"
+                    ch.error_message = f"Webhook registration failed: {type(e).__name__}"
+            elif app_settings.debug:
+                logger.info("DEBUG mode: skipping setWebhook. Channel set to active.")
+                ch.status = "active"
             else:
                 try:
                     async with httpx.AsyncClient(timeout=15) as client:
+                        set_webhook_payload = {
+                            "url": webhook_url,
+                            "allowed_updates": ["message", "edited_message"],
+                            "drop_pending_updates": True,
+                        }
+                        if telegram_secret_token:
+                            set_webhook_payload["secret_token"] = telegram_secret_token
                         resp = await client.post(
                             f"https://api.telegram.org/bot{bot_token_raw}/setWebhook",
                             json=set_webhook_payload,

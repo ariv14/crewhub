@@ -466,6 +466,58 @@ export default {
       return handleTaskCallback(request, env, callbackMatch[1], callbackMatch[2]);
     }
 
+    // Token validation: POST /validate-token (called by backend)
+    if (url.pathname === "/validate-token" && request.method === "POST") {
+      const body = await request.json();
+      const gatewayKey = request.headers.get("X-Gateway-Key") || "";
+      if (!env.GATEWAY_SERVICE_KEY) return Response.json({ detail: "Not configured" }, { status: 503 });
+      const ek = await sha256Hex(env.GATEWAY_SERVICE_KEY);
+      const ak = await sha256Hex(gatewayKey);
+      if (ek !== ak) return Response.json({ detail: "Unauthorized" }, { status: 401 });
+
+      const { platform, bot_token } = body;
+      if (platform === "telegram" && bot_token) {
+        const result = await telegramApi(bot_token, "getMe", {});
+        if (result && result.ok) {
+          return Response.json({
+            valid: true,
+            platform_bot_id: String(result.result.id),
+            bot_name: result.result.username || result.result.first_name,
+          });
+        }
+        return Response.json({ valid: false, error: "Invalid Telegram bot token" });
+      }
+      return Response.json({ valid: false, error: "Unsupported platform" });
+    }
+
+    // Webhook registration: POST /register-webhook (called by backend)
+    if (url.pathname === "/register-webhook" && request.method === "POST") {
+      const body = await request.json();
+      const gatewayKey = request.headers.get("X-Gateway-Key") || "";
+      if (!env.GATEWAY_SERVICE_KEY) return Response.json({ detail: "Not configured" }, { status: 503 });
+      const ek = await sha256Hex(env.GATEWAY_SERVICE_KEY);
+      const ak = await sha256Hex(gatewayKey);
+      if (ek !== ak) return Response.json({ detail: "Unauthorized" }, { status: 401 });
+
+      const { bot_token, connection_id, webhook_secret } = body;
+      const workerUrl = url.origin;
+      const webhookUrl = `${workerUrl}/webhook/telegram/${connection_id}`;
+
+      const payload = {
+        url: webhookUrl,
+        allowed_updates: ["message", "edited_message"],
+        drop_pending_updates: true,
+      };
+      if (webhook_secret) payload.secret_token = webhook_secret;
+
+      const result = await telegramApi(bot_token, "setWebhook", payload);
+      return Response.json({
+        ok: result && result.ok,
+        webhook_url: webhookUrl,
+        error: result && !result.ok ? result.description : null,
+      });
+    }
+
     // 404 for everything else
     return Response.json({ detail: "Not Found" }, { status: 404 });
   },
