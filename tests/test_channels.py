@@ -4,7 +4,7 @@ from uuid import uuid4
 from src.schemas.channel import (
     GatewayChargeRequest, GatewayChargeResponse,
     GatewayLogMessageRequest, GatewayHeartbeatRequest,
-    GatewayConnectionResponse, ChannelCreate, ChannelResponse,
+    GatewayConnectionResponse,
 )
 
 
