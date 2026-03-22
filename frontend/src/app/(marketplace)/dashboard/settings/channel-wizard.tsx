@@ -207,6 +207,30 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
         privacy_notice_url: privacyUrl.trim() || undefined,
       });
       setCreatedChannel(channel);
+
+      // Auto-register Telegram webhook via CF Worker (browser has full DNS)
+      if (platform === "telegram" && credentials.bot_token && channel.webhook_url) {
+        try {
+          const gatewayUrl = channel.webhook_url.split("/webhook/")[0];
+          const resp = await fetch(`${gatewayUrl}/auto-register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              bot_token: credentials.bot_token,
+              connection_id: channel.id,
+            }),
+          });
+          const result = await resp.json();
+          if (result.ok) {
+            console.log("Telegram webhook registered:", result.webhook_url);
+          } else {
+            console.warn("Webhook registration failed:", result.error);
+          }
+        } catch (e) {
+          console.warn("Auto webhook registration failed (non-blocking):", e);
+        }
+      }
+
       setStep(3);
     } catch {
       toast.error("Failed to create channel. Please check your credentials and try again.");

@@ -74,6 +74,33 @@ export async function deleteContactData(channelId: string, userHash: string): Pr
   return api.delete(`/channels/${channelId}/contacts/${userHash}/messages`);
 }
 
+/**
+ * Register Telegram webhook via CF Worker gateway.
+ * Called from the browser (which has full DNS) after channel creation,
+ * because the HF Space backend can't reach external APIs.
+ */
+export async function registerTelegramWebhook(
+  gatewayUrl: string,
+  gatewayKey: string,
+  botToken: string,
+  connectionId: string,
+  webhookSecret: string,
+): Promise<{ ok: boolean; webhook_url?: string; error?: string }> {
+  const resp = await fetch(`${gatewayUrl}/register-webhook`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Gateway-Key": gatewayKey,
+    },
+    body: JSON.stringify({
+      bot_token: botToken,
+      connection_id: connectionId,
+      webhook_secret: webhookSecret,
+    }),
+  });
+  return resp.json();
+}
+
 // Admin
 export async function getAdminChannels(): Promise<{ channels: AdminChannel[]; total: number }> {
   return api.get("/admin/channels/");

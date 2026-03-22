@@ -518,6 +518,46 @@ export default {
       });
     }
 
+    // Browser-safe webhook registration: POST /auto-register
+    // Auth: validates bot_token via Telegram getMe (token IS the credential)
+    // Called by frontend after channel creation — browser has full DNS
+    if (url.pathname === "/auto-register" && request.method === "POST") {
+      const body = await request.json();
+      const { bot_token, connection_id } = body;
+      if (!bot_token || !connection_id) {
+        return Response.json({ ok: false, error: "bot_token and connection_id required" }, { status: 400 });
+      }
+
+      // Validate token by calling Telegram (proof of ownership)
+      const me = await telegramApi(bot_token, "getMe", {});
+      if (!me || !me.ok) {
+        return Response.json({ ok: false, error: "Invalid bot token" }, { status: 401 });
+      }
+
+      // Derive webhook secret
+      let webhookSecret = "";
+      if (env.GATEWAY_SERVICE_KEY) {
+        webhookSecret = (await sha256Hex(`${env.GATEWAY_SERVICE_KEY}:${connection_id}`)).substring(0, 32);
+      }
+
+      const workerUrl = url.origin;
+      const webhookUrl = `${workerUrl}/webhook/telegram/${connection_id}`;
+
+      const result = await telegramApi(bot_token, "setWebhook", {
+        url: webhookUrl,
+        secret_token: webhookSecret || undefined,
+        allowed_updates: ["message", "edited_message"],
+        drop_pending_updates: false,
+      });
+
+      return Response.json({
+        ok: result && result.ok,
+        webhook_url: webhookUrl,
+        bot_username: me.result?.username,
+        error: result && !result.ok ? result.description : null,
+      });
+    }
+
     // 404 for everything else
     return Response.json({ detail: "Not Found" }, { status: 404 });
   },
