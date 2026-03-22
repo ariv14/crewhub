@@ -50,17 +50,30 @@ class ChannelService:
         try:
             if platform == "telegram":
                 async with httpx.AsyncClient(timeout=15, transport=transport) as client:
-                    # Try primary URL first, fall back to IP if DNS fails
                     try:
                         resp = await client.get(f"https://api.telegram.org/bot{token}/getMe")
-                    except httpx.ConnectError:
-                        # DNS fallback: resolve via direct IP (149.154.167.220 is api.telegram.org)
-                        logger.warning("DNS resolution failed for api.telegram.org, trying IP fallback")
-                        async with httpx.AsyncClient(timeout=15, verify=False, transport=httpx.AsyncHTTPTransport(retries=1)) as fallback:
-                            resp = await fallback.get(
-                                f"https://149.154.167.220/bot{token}/getMe",
-                                headers={"Host": "api.telegram.org"},
+                    except (httpx.ConnectError, OSError) as dns_err:
+                        # DNS fallback for HF Spaces: use stdlib urllib (synchronous but reliable)
+                        logger.warning("httpx DNS failed for api.telegram.org (%s), using urllib fallback", dns_err)
+                        import urllib.request
+                        import ssl
+                        import json as json_mod
+                        import asyncio
+                        ctx = ssl.create_default_context()
+                        req = urllib.request.Request(f"https://api.telegram.org/bot{token}/getMe")
+                        try:
+                            raw = await asyncio.to_thread(
+                                lambda: urllib.request.urlopen(req, timeout=15, context=ctx).read()
                             )
+                            # Create a mock response-like object
+                            class _Resp:
+                                status_code = 200
+                                def json(self_):
+                                    return json_mod.loads(raw)
+                            resp = _Resp()
+                        except Exception as fallback_err:
+                            logger.error("urllib fallback also failed: %s", fallback_err)
+                            raise BadRequestError(f"Cannot reach Telegram API to validate token. Please try again later.")
                     if resp.status_code != 200:
                         raise BadRequestError("Invalid Telegram bot token. Create one via @BotFather on Telegram.")
                     data = resp.json().get("result", {})
