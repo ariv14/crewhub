@@ -476,12 +476,29 @@ Agent HF Spaces (e.g., arimatch1-crewhub-agency-design)
 - [x] Telegram webhook registered to CF Worker URL
 
 **Compliance audit completed (Mar 22):** 12 findings identified, all resolved.
-- 3 CRITICAL: old handler removed (SSL, debug leak, duplicate route)
-- 3 HIGH: timing-safe auth, mandatory key
-- 3 MEDIUM: backend rate limiting, audit logging, DoS protection
-- 2 LOW: outbound encryption, staging SSRF accepted
-- 1 INFO: HIPAA PHI transit documented
 - Full report: `docs/compliance/cf-worker-gateway-audit-2026-03-22.md`
+
+**Fully automated channel creation flow (Mar 22):**
+```
+Developer in browser:
+  1. Wizard: select platform → enter credentials → select agent → Create Channel
+  2. Backend: saves channel to Supabase (token format-validated, no external API call)
+  3. Browser: POST /auto-register → CF Worker → Telegram setWebhook (auto, permanent)
+  4. Done — bot is live, webhook registered, zero manual steps
+```
+- [x] `/auto-register` endpoint on CF Worker (validates bot token via Telegram getMe)
+- [x] Frontend wizard calls `/auto-register` after channel creation (fire-and-forget)
+- [x] CSP `connect-src` includes `*.workers.dev` for browser→CF Worker calls
+- [x] CORS headers on CF Worker for cross-origin browser requests
+- [x] Webhook is permanent — survives all restarts (HF Space, CF Worker, server outages)
+
+**Production E2E verified (Mar 22):**
+- Created channel via UI → webhook auto-registered → bot responded on Telegram
+- Tested with 3 agents: Design ("bakery color palette"), Translator ("Buenos dias"), Support (10-point support list)
+- Response time: ~10-15 seconds
+- Credits deducted automatically
+
+**Production deployment record:** `docs/compliance/production-deployment-2026-03-22.md`
 
 **Known limitation:** HF Spaces has intermittent DNS — agent dispatch (backend → agent HF Space)
 sometimes fails. After a Space restart, DNS works reliably for hours. Long-term fix: move backend
@@ -715,4 +732,7 @@ Clients → CF Worker (gateway) → Primary (HF Space) / Secondary (Railway/Fly)
 | 2026-03-22 | Gateway task-status endpoint (gateway-authenticated polling) | Complete |
 | 2026-03-22 | Platform integration guide (how to add Slack/Discord/WhatsApp) | Complete |
 | 2026-03-22 | CF Worker Gateway compliance audit (12 findings, all resolved) | Complete |
+| 2026-03-22 | Production deployment record (pre-deploy checklist, rollback plan) | Complete |
+| 2026-03-22 | Auto webhook registration (browser→CF Worker→Telegram, zero manual steps) | Complete |
+| 2026-03-22 | Production E2E: 3 agents tested (Design, Translator, Support) | Complete |
 | 2026-03-22 | Production deployment record (72 commits, 106 audit findings resolved) | Complete |
