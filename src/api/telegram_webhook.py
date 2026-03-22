@@ -314,15 +314,13 @@ async def _process_telegram_message(
             success = await _send_telegram(bot_token, chat_id, response_text)
 
             # Log outbound message (encrypted)
-            from src.core.message_crypto import decrypt_message  # noqa: F811
-            # We encrypt before storing
+            from src.core.message_crypto import encrypt_message
             encrypted_text = None
             if response_text:
-                from demo_agents.gateway.message_crypto import encrypt_message
                 try:
                     encrypted_text = encrypt_message(response_text[:2000])
                 except Exception:
-                    encrypted_text = response_text[:2000]  # fallback: store plaintext if crypto fails
+                    encrypted_text = response_text[:2000]
 
             outbound_msg = ChannelMessage(
                 connection_id=conn.id,

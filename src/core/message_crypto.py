@@ -1,4 +1,4 @@
-"""Decrypt outbound message text for display. Backend-side only."""
+"""Encrypt/decrypt outbound channel message text (Fernet, versioned key)."""
 import base64
 import hashlib
 import os
@@ -6,6 +6,23 @@ import logging
 from cryptography.fernet import Fernet, InvalidToken
 
 logger = logging.getLogger(__name__)
+
+
+def _get_fernet() -> Fernet | None:
+    from src.config import settings
+    key = os.environ.get("CHANNEL_MESSAGE_KEY", "") or settings.gateway_service_key
+    if not key:
+        return None
+    derived = hashlib.sha256(key.encode()).digest()
+    return Fernet(base64.urlsafe_b64encode(derived))
+
+
+def encrypt_message(text: str) -> str:
+    f = _get_fernet()
+    if not f:
+        logger.warning("No encryption key — storing plaintext")
+        return text
+    return f"v1:{f.encrypt(text.encode()).decode()}"
 
 
 def decrypt_message(ciphertext: str | None) -> str | None:
