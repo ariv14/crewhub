@@ -428,16 +428,19 @@ See `docs/plans/2026-03-20-health-monitor-fix.md` for full gap analysis.
 - Admin: channel list with developer info, detail with justification gate + audit banner
 - Console: no channel-specific JS errors
 
-### Cloudflare Worker Gateway (Mar 22) — LIVE ON STAGING ✅
+### Cloudflare Worker Gateway (Mar 22) — LIVE ON STAGING + PRODUCTION ✅
 **CF Worker gateway permanently solves HF Spaces DNS restrictions. $0 cost, <1ms latency.**
 
-**E2E verified:** Telegram message → CF Worker → backend → agent → CF Worker → Telegram response in ~10 seconds.
+**E2E verified on staging:** Telegram → CF Worker → backend → agent → CF Worker → Telegram response in ~10 seconds.
+**Production deployed:** `crewhub-gateway-production.arimatch1.workers.dev` — secrets set, auth verified.
 
 **Architecture (reusable for Slack, Discord, WhatsApp):**
 ```
 Platform (Telegram/Slack/Discord)
     ↓ webhook
-CF Worker Gateway (crewhub-gateway-staging.arimatch1.workers.dev)
+CF Worker Gateway
+    Staging:    crewhub-gateway-staging.arimatch1.workers.dev
+    Production: crewhub-gateway-production.arimatch1.workers.dev
     ├── Verifies webhook signature (HMAC per-connection)
     ├── Parses message, dedup, rate limit
     ├── Sends typing indicator to platform
@@ -712,3 +715,4 @@ Clients → CF Worker (gateway) → Primary (HF Space) / Secondary (Railway/Fly)
 | 2026-03-22 | Gateway task-status endpoint (gateway-authenticated polling) | Complete |
 | 2026-03-22 | Platform integration guide (how to add Slack/Discord/WhatsApp) | Complete |
 | 2026-03-22 | CF Worker Gateway compliance audit (12 findings, all resolved) | Complete |
+| 2026-03-22 | Production deployment record (72 commits, 106 audit findings resolved) | Complete |
