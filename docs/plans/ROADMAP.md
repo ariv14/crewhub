@@ -428,7 +428,32 @@ See `docs/plans/2026-03-20-health-monitor-fix.md` for full gap analysis.
 - Admin: channel list with developer info, detail with justification gate + audit banner
 - Console: no channel-specific JS errors
 
-**Known limitation:** HF Spaces staging cannot reach `api.telegram.org` (DNS blocked). Token validation and webhook registration are bypassed on staging (DEBUG=true). Production will use full Telegram API validation.
+**Known limitation:** HF Spaces intentionally blocks outbound DNS to `api.telegram.org` and other external APIs. This affects token validation, webhook registration, agent dispatch, and Telegram message sending.
+
+### Cloudflare Worker Gateway (Mar 22) — IN PROGRESS
+**Rewrite the gateway as a CF Worker to permanently solve HF Spaces DNS restrictions.**
+
+HF Spaces blocks outbound DNS to external APIs (Telegram, custom domains). CF Workers have
+full networking, <1ms edge latency, and $0 cost (free tier handles 100K req/day = ~33K messages/day).
+
+Architecture:
+```
+Telegram → CF Worker (gateway) → HF Space (backend API) → agents
+               ↓                        ↑
+          Full DNS/networking      Receives inbound fine
+          Sends to Telegram        No outbound needed
+```
+
+- [ ] `cloudflare/gateway-worker.js` — webhook handler, Telegram send, rate limit, dedup (~280 lines)
+- [ ] Backend API calls from CF Worker → HF Space (connection lookup, credit charge, task create, message log)
+- [ ] Rate limiting via in-memory Map (CF Worker per-isolate)
+- [ ] Message dedup via Workers KV or in-memory
+- [ ] Remove `src/api/telegram_webhook.py` (replaced by CF Worker)
+- [ ] Remove hardcoded IP hacks and DNS workarounds
+- [ ] Restore SSL cert verification (SOC 2 compliance)
+- [ ] Deploy via wrangler + GitHub Actions
+- [ ] E2E test: Telegram message → CF Worker → backend → agent → CF Worker → Telegram response
+- [ ] Update webhook URL to point to CF Worker
 
 ### Near-Term
 - [ ] Delegation accuracy analytics query (data captured, no reporting endpoint)
