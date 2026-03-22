@@ -293,9 +293,19 @@ async def gateway_create_task(
     from src.schemas.task import TaskCreate, TaskMessage, MessagePart
     from src.services.task_broker import TaskBrokerService
 
+    # If no skill_id, look up the agent's first skill
+    skill_id = req.skill_id
+    if not skill_id:
+        from src.models.skill import AgentSkill
+        skill_result = await db.execute(
+            select(AgentSkill.id).where(AgentSkill.agent_id == req.provider_agent_id).limit(1)
+        )
+        first_skill = skill_result.scalar_one_or_none()
+        skill_id = str(first_skill) if first_skill else ""
+
     task_data = TaskCreate(
         provider_agent_id=req.provider_agent_id,
-        skill_id=req.skill_id,
+        skill_id=skill_id,
         messages=[
             TaskMessage(
                 role="user",

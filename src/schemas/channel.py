@@ -121,9 +121,9 @@ class GatewayCreateTaskRequest(BaseModel):
 
     owner_id: UUID
     provider_agent_id: UUID
-    skill_id: str = Field(max_length=255)
+    skill_id: str | None = Field(None, max_length=255)
     message: str = Field(max_length=10_000)
-    callback_url: str = Field(max_length=2000)
+    callback_url: str | None = Field(None, max_length=2000)
 
 
 class GatewayConnectionResponse(BaseModel):
