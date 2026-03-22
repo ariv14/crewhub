@@ -129,33 +129,44 @@ async def telegram_webhook(connection_id: str, request: Request):
     if _is_rate_limited(f"{connection_id}:{platform_user_id}"):
         return {"ok": True}
 
-    # Ack immediately, process in background
-    asyncio.create_task(_process_telegram_message(
-        connection_id, platform_user_id, platform_msg_id, chat_id, text
-    ))
-    return {"ok": True}
+    # Process synchronously for debugging (Telegram allows up to 60s)
+    # TODO: revert to asyncio.create_task once confirmed working
+    try:
+        result = await _process_telegram_message(
+            connection_id, platform_user_id, platform_msg_id, chat_id, text
+        )
+        return {"ok": True, "debug": result}
+    except Exception as e:
+        logger.exception("Webhook processing failed: %s", e)
+        return {"ok": True, "debug_error": f"{type(e).__name__}: {e}"}
 
 
 async def _process_telegram_message(
     connection_id: str, platform_user_id: str, platform_msg_id: str, chat_id: str, text: str
 ):
-    """Background: look up connection, charge credits, create task, send response."""
+    """Process Telegram message: look up connection, charge credits, create task, send response."""
+    debug_info = {"stage": "start"}
     try:
         async with async_session() as db:
+            debug_info["stage"] = "db_connected"
             # Get connection
             result = await db.execute(
                 select(ChannelConnection).where(ChannelConnection.id == connection_id)
             )
             conn = result.scalar_one_or_none()
             if not conn or conn.status != "active":
-                logger.warning("Connection %s not found or inactive", connection_id)
-                return
+                debug_info["stage"] = "connection_not_found"
+                return debug_info
+
+            debug_info["stage"] = "connection_found"
+            debug_info["conn_status"] = conn.status
 
             # Decrypt bot token
             bot_token = decrypt_value(conn.bot_token) if conn.bot_token else ""
             if not bot_token:
-                logger.error("No bot token for connection %s", connection_id)
-                return
+                debug_info["stage"] = "no_bot_token"
+                return debug_info
+            debug_info["stage"] = "token_decrypted"
 
             # Check if user is blocked
             user_hash = _pseudonymize(platform_user_id, connection_id)
@@ -305,3 +316,5 @@ async def _process_telegram_message(
 
     except Exception as e:
         logger.exception("Error processing Telegram message for %s: %s", connection_id, e)
+        debug_info["error"] = f"{type(e).__name__}: {e}"
+    return debug_info
