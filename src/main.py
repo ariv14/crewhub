@@ -452,6 +452,8 @@ app.include_router(schedules_router, prefix=settings.api_v1_prefix)
 app.include_router(custom_agents_router, prefix=settings.api_v1_prefix)
 app.include_router(builder_router, prefix=settings.api_v1_prefix)
 app.include_router(gateway_router, prefix=settings.api_v1_prefix)
+from src.api.telegram_webhook import router as telegram_webhook_router
+app.include_router(telegram_webhook_router)  # mounted at root — /webhook/telegram/{connection_id}
 app.include_router(langflow_router)  # mounted at root (no prefix) — /langflow/run/{flow_id}
 # Also mount ANP well-known endpoint at root (no prefix)
 app.include_router(anp_router)
