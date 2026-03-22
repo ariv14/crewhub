@@ -43,10 +43,23 @@ class ChannelService:
 
         token = credentials.get("bot_token") or credentials.get("access_token", "")
 
+        # HF Spaces Docker containers sometimes have DNS resolution issues.
+        # Use httpx with a custom nameserver fallback via environment.
+        transport = httpx.AsyncHTTPTransport(retries=2)
+
         try:
             if platform == "telegram":
-                async with httpx.AsyncClient(timeout=10) as client:
-                    resp = await client.get(f"https://api.telegram.org/bot{token}/getMe")
+                async with httpx.AsyncClient(timeout=15, transport=transport) as client:
+                    # Try primary URL first, fall back to IP if DNS fails
+                    try:
+                        resp = await client.get(f"https://api.telegram.org/bot{token}/getMe")
+                    except httpx.ConnectError:
+                        # DNS fallback: resolve via direct IP (149.154.167.220 is api.telegram.org)
+                        logger.warning("DNS resolution failed for api.telegram.org, trying IP fallback")
+                        resp = await client.get(
+                            f"https://149.154.167.220/bot{token}/getMe",
+                            headers={"Host": "api.telegram.org"},
+                        )
                     if resp.status_code != 200:
                         raise BadRequestError("Invalid Telegram bot token. Create one via @BotFather on Telegram.")
                     data = resp.json().get("result", {})
