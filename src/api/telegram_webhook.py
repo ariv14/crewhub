@@ -109,12 +109,12 @@ async def telegram_webhook(connection_id: str, request: Request):
     # Verify webhook secret
     headers = {k.lower(): v for k, v in request.headers.items()}
     if not _verify_secret(connection_id, headers):
-        return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+        return JSONResponse(status_code=401, content={"detail": "Unauthorized", "debug": "secret_mismatch"})
 
     # Parse message
     message = body.get("message") or body.get("edited_message")
     if not message or not message.get("text"):
-        return {"ok": True}
+        return {"ok": True, "debug": "no_text_message", "keys": list(body.keys())}
 
     platform_user_id = str(message["from"]["id"])
     platform_msg_id = str(message["message_id"])
@@ -129,13 +129,12 @@ async def telegram_webhook(connection_id: str, request: Request):
     if _is_rate_limited(f"{connection_id}:{platform_user_id}"):
         return {"ok": True}
 
-    # Process synchronously for debugging (Telegram allows up to 60s)
-    # TODO: revert to asyncio.create_task once confirmed working
+    # Process synchronously for debugging
     try:
         result = await _process_telegram_message(
             connection_id, platform_user_id, platform_msg_id, chat_id, text
         )
-        return {"ok": True, "debug": result}
+        return {"ok": True, "debug": result, "parsed": {"user": platform_user_id, "msg_id": platform_msg_id, "text": text[:50]}}
     except Exception as e:
         logger.exception("Webhook processing failed: %s", e)
         return {"ok": True, "debug_error": f"{type(e).__name__}: {e}"}
