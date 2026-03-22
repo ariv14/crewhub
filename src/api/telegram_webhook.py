@@ -5,7 +5,6 @@
 Receives Telegram messages, creates tasks, sends agent responses back.
 Eliminates network calls between gateway and backend.
 """
-import asyncio
 import hashlib
 import hmac as hmac_mod
 import logging
