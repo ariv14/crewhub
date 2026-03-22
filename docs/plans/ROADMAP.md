@@ -472,6 +472,14 @@ Agent HF Spaces (e.g., arimatch1-crewhub-agency-design)
 - [x] Secrets: `GATEWAY_SERVICE_KEY`, `BACKEND_URL` set via `wrangler secret`
 - [x] Telegram webhook registered to CF Worker URL
 
+**Compliance audit completed (Mar 22):** 12 findings identified, all resolved.
+- 3 CRITICAL: old handler removed (SSL, debug leak, duplicate route)
+- 3 HIGH: timing-safe auth, mandatory key
+- 3 MEDIUM: backend rate limiting, audit logging, DoS protection
+- 2 LOW: outbound encryption, staging SSRF accepted
+- 1 INFO: HIPAA PHI transit documented
+- Full report: `docs/compliance/cf-worker-gateway-audit-2026-03-22.md`
+
 **Known limitation:** HF Spaces has intermittent DNS — agent dispatch (backend → agent HF Space)
 sometimes fails. After a Space restart, DNS works reliably for hours. Long-term fix: move backend
 to Railway ($5/mo) or contact HF support for Pro DNS fix.
@@ -703,3 +711,4 @@ Clients → CF Worker (gateway) → Primary (HF Space) / Secondary (Railway/Fly)
 | 2026-03-22 | CF Worker Gateway — Telegram E2E working (~10s response) | Complete |
 | 2026-03-22 | Gateway task-status endpoint (gateway-authenticated polling) | Complete |
 | 2026-03-22 | Platform integration guide (how to add Slack/Discord/WhatsApp) | Complete |
+| 2026-03-22 | CF Worker Gateway compliance audit (12 findings, all resolved) | Complete |
