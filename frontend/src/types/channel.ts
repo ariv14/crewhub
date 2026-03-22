@@ -70,3 +70,39 @@ export interface ChannelTestResult {
   message: string;
   latency_ms?: number;
 }
+
+export interface ChannelContact {
+  platform_user_id_hash: string;
+  message_count: number;
+  last_seen: string;
+  first_seen: string;
+  is_blocked: boolean;
+}
+
+export interface ChannelContactList {
+  contacts: ChannelContact[];
+  total: number;
+}
+
+export interface ChannelMessage {
+  id: string;
+  direction: "inbound" | "outbound" | "system";
+  platform_user_id_hash: string;
+  message_text: string | null;
+  credits_charged: number;
+  response_time_ms: number | null;
+  created_at: string;
+}
+
+export interface ChannelMessageList {
+  messages: ChannelMessage[];
+  cursor: string | null;
+  has_more: boolean;
+}
+
+export interface AdminChannel extends Channel {
+  owner_email: string;
+  owner_name: string;
+  owner_credit_balance: number;
+  owner_account_tier: string;
+}
