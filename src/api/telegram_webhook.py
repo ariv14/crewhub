@@ -244,14 +244,14 @@ async def _process_telegram_message(
 
             # Create task for the agent
             from src.services.task_broker import TaskBrokerService
-            from src.schemas.task import TaskCreate, TaskMessage
+            from src.schemas.task import TaskCreate, TaskMessage, MessagePart
             broker = TaskBrokerService(db)
             try:
                 task_data = TaskCreate(
                     provider_agent_id=conn.agent_id,
                     skill_id=str(conn.skill_id) if conn.skill_id else "",
-                    messages=[TaskMessage(role="user", content=text)],
-                    confirmed=True,  # bypass high-cost check for channel messages
+                    messages=[TaskMessage(role="user", parts=[MessagePart(type="text", content=text)])],
+                    confirmed=True,
                 )
                 task = await broker.create_task(data=task_data, user_id=conn.owner_id)
                 await db.flush()
