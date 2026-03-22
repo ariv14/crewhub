@@ -66,62 +66,50 @@ def _verify_secret(conn_id: str, headers: dict) -> bool:
     return hmac_mod.compare_digest(actual, expected)
 
 
-@router.post("/telegram-send")
-async def telegram_send_proxy(request: Request):
-    """Internal proxy: forwards Telegram API calls via CF Worker.
-
-    The HF Space can call itself (localhost) but can't reach external hosts.
-    This endpoint receives the call from _telegram_api() on localhost,
-    then forwards to the CF Worker proxy which CAN reach api.telegram.org.
-    """
-    import urllib.request
-    import ssl
-    import json as j
-    import asyncio as aio
-
-    body = await request.json()
-    token = body.get("token", "")
-    method = body.get("method", "")
-    payload = body.get("payload", {})
-
-    import os
-    proxy_base = os.environ.get("TELEGRAM_PROXY_URL", "")
-    if proxy_base:
-        url = f"{proxy_base}/bot{token}/{method}"
-    else:
-        url = f"https://api.telegram.org/bot{token}/{method}"
-
-    data = j.dumps(payload).encode()
-    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
-    ctx = ssl.create_default_context()
-
-    try:
-        raw = await aio.to_thread(lambda: urllib.request.urlopen(req, timeout=15, context=ctx).read())
-        return j.loads(raw)
-    except Exception as e:
-        logger.error("Telegram proxy send failed: %s", e)
-        return {"ok": False, "error": str(e)}
-
-
 async def _telegram_api(token: str, method: str, payload: dict) -> dict | None:
-    """Call Telegram Bot API — routes through localhost proxy → CF Worker → Telegram."""
-    import urllib.request
+    """Call Telegram Bot API using IP address directly (bypasses DNS resolution).
+
+    HF Spaces Docker containers cannot resolve external hostnames.
+    We hardcode Telegram's API server IP and use the Host header.
+    """
     import json as j
     import asyncio as aio
+    import http.client
+    import ssl
 
-    # Call ourselves on localhost — this endpoint then calls the CF Worker
-    import os
-    port = os.environ.get("PORT", "7860")
-    url = f"http://127.0.0.1:{port}/telegram-send"
-    data = j.dumps({"token": token, "method": method, "payload": payload}).encode()
-    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+    # Telegram Bot API server IPs (api.telegram.org)
+    TELEGRAM_IPS = ["149.154.167.220", "149.154.167.198"]
+    data = j.dumps(payload).encode()
+    path = f"/bot{token}/{method}"
 
-    try:
-        raw = await aio.to_thread(lambda: urllib.request.urlopen(req, timeout=30).read())
-        return j.loads(raw)
-    except Exception as e:
-        logger.error("Telegram API %s via localhost proxy failed: %s", method, e)
-        return None
+    async def _do_request(ip: str) -> dict | None:
+        def _sync():
+            ctx = ssl.create_default_context()
+            # IMPORTANT: disable hostname check since we're connecting to IP
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            conn = http.client.HTTPSConnection(ip, timeout=20, context=ctx)
+            conn.request("POST", path, body=data, headers={
+                "Content-Type": "application/json",
+                "Host": "api.telegram.org",
+            })
+            resp = conn.getresponse()
+            raw = resp.read()
+            conn.close()
+            return j.loads(raw)
+        return await aio.to_thread(_sync)
+
+    for ip in TELEGRAM_IPS:
+        try:
+            result = await _do_request(ip)
+            if result:
+                return result
+        except Exception as e:
+            logger.warning("Telegram API %s via %s failed: %s", method, ip, e)
+            continue
+
+    logger.error("All Telegram API IPs failed for %s", method)
+    return None
 
 
 async def _send_telegram(token: str, chat_id: str, text: str) -> bool:
