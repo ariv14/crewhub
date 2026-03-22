@@ -241,19 +241,65 @@ async function processMessage(ctx) {
   }
 
   const taskId = task.task_id;
-  console.log("Task created:", taskId, "— will be delivered by cron poller");
+  console.log("Task created:", taskId, "— polling for up to 25s, then cron takes over");
 
-  // Store pending delivery info in backend via a special endpoint
-  // The cron trigger will pick up completed tasks and send Telegram responses
-  await backendCall(env, "/gateway/log-message", "POST", {
-    connection_id: connectionId,
-    platform_user_id_hash: userHash,
-    platform_message_id: `pending-${msgId}`,
-    platform_chat_id: chatId,
-    direction: "system",
-    message_text: taskId, // store task_id in system message for cron to pick up
-    task_id: taskId,
-  });
+  // Quick poll (25s) — catches most tasks that complete in 20-30s
+  let responseText = null;
+  const startTime = Date.now();
+  while (Date.now() - startTime < 25000) {
+    await new Promise(r => setTimeout(r, 3000));
+    try {
+      const taskStatus = await backendCall(env, `/tasks/${taskId}`);
+      if (!taskStatus) continue;
+      const status = taskStatus.status;
+      if (status === "completed") {
+        for (const art of (taskStatus.artifacts || [])) {
+          for (const part of (art.parts || [])) {
+            if (part.type === "text" && part.content) {
+              responseText = part.content;
+              break;
+            }
+          }
+          if (responseText) break;
+        }
+        if (!responseText) responseText = "Task completed.";
+        break;
+      } else if (status === "failed" || status === "canceled") {
+        responseText = "Sorry, I couldn't complete your request.";
+        break;
+      }
+    } catch (err) {
+      console.error("Poll error:", err);
+    }
+  }
+
+  if (responseText) {
+    // Task completed within 25s — send immediately
+    await sendTelegram(botToken, chatId, responseText);
+    await logMessage(env, {
+      connection_id: connectionId,
+      platform_user_id_hash: "agent",
+      platform_message_id: `reply-${msgId}`,
+      platform_chat_id: chatId,
+      direction: "outbound",
+      message_text: responseText.substring(0, 2000),
+      task_id: taskId,
+      credits_charged: 1,
+    });
+    console.log("Response delivered immediately for task", taskId);
+  } else {
+    // Task still processing — store for cron delivery
+    console.log("Task", taskId, "still processing — storing for cron delivery");
+    await logMessage(env, {
+      connection_id: connectionId,
+      platform_user_id_hash: userHash,
+      platform_message_id: `pending-${msgId}`,
+      platform_chat_id: chatId,
+      direction: "system",
+      message_text: taskId,
+      task_id: taskId,
+    });
+  }
 }
 
 // --- Task Callback (agent response) ---
