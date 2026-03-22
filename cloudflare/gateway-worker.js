@@ -438,6 +438,34 @@ async function deliverPendingResponses(env) {
   }
 }
 
+// --- CORS helpers ---
+
+const ALLOWED_ORIGINS = [
+  "https://crewhubai.com",
+  "https://www.crewhubai.com",
+  "https://marketplace-staging.aidigitalcrew.com",
+  "http://localhost:3000",
+];
+
+function corsHeaders(origin) {
+  const headers = {
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Max-Age": "86400",
+  };
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    headers["Access-Control-Allow-Origin"] = origin;
+  }
+  return headers;
+}
+
+function addCorsHeaders(response, origin) {
+  if (!origin || !ALLOWED_ORIGINS.includes(origin)) return response;
+  const newResp = new Response(response.body, response);
+  newResp.headers.set("Access-Control-Allow-Origin", origin);
+  return newResp;
+}
+
 // --- Main Worker ---
 
 export default {
@@ -448,6 +476,12 @@ export default {
 
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const origin = request.headers.get("Origin") || "";
+
+    // CORS preflight for /auto-register
+    if (request.method === "OPTIONS" && url.pathname === "/auto-register") {
+      return new Response(null, { status: 204, headers: corsHeaders(origin) });
+    }
 
     // Health check
     if (url.pathname === "/health") {
@@ -525,13 +559,19 @@ export default {
       const body = await request.json();
       const { bot_token, connection_id } = body;
       if (!bot_token || !connection_id) {
-        return Response.json({ ok: false, error: "bot_token and connection_id required" }, { status: 400 });
+        return addCorsHeaders(
+          Response.json({ ok: false, error: "bot_token and connection_id required" }, { status: 400 }),
+          origin
+        );
       }
 
       // Validate token by calling Telegram (proof of ownership)
       const me = await telegramApi(bot_token, "getMe", {});
       if (!me || !me.ok) {
-        return Response.json({ ok: false, error: "Invalid bot token" }, { status: 401 });
+        return addCorsHeaders(
+          Response.json({ ok: false, error: "Invalid bot token" }, { status: 401 }),
+          origin
+        );
       }
 
       // Derive webhook secret
@@ -550,12 +590,15 @@ export default {
         drop_pending_updates: false,
       });
 
-      return Response.json({
-        ok: result && result.ok,
-        webhook_url: webhookUrl,
-        bot_username: me.result?.username,
-        error: result && !result.ok ? result.description : null,
-      });
+      return addCorsHeaders(
+        Response.json({
+          ok: result && result.ok,
+          webhook_url: webhookUrl,
+          bot_username: me.result?.username,
+          error: result && !result.ok ? result.description : null,
+        }),
+        origin
+      );
     }
 
     // 404 for everything else
