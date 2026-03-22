@@ -280,7 +280,17 @@ async function handleSlackWebhook(request, env, ctx, connectionId) {
 
   // Get connection to get signing secret
   const conn = await getConnection(env, connectionId);
-  if (!conn || conn.status !== "active") {
+  if (!conn) {
+    return Response.json({ ok: true });
+  }
+  // Auto-activate pending channels on first verified event
+  if (conn.status === "pending") {
+    await backendCall(env, "/gateway/heartbeat", "POST", {
+      connections: [{ connection_id: connectionId, status: "active" }],
+    });
+    conn.status = "active";
+  }
+  if (conn.status !== "active") {
     return Response.json({ ok: true });
   }
 
@@ -374,8 +384,18 @@ async function processMessage(ctx) {
 
   // Get connection config (includes decrypted bot token)
   const conn = await getConnection(env, connectionId);
-  if (!conn || !conn.bot_token || conn.status !== "active") {
-    console.log("Connection not found or inactive:", connectionId);
+  if (!conn || !conn.bot_token) {
+    console.log("Connection not found:", connectionId);
+    return;
+  }
+  // Auto-activate pending channels
+  if (conn.status === "pending") {
+    await backendCall(env, "/gateway/heartbeat", "POST", {
+      connections: [{ connection_id: connectionId, status: "active" }],
+    });
+  }
+  if (conn.status !== "active" && conn.status !== "pending") {
+    console.log("Connection inactive:", connectionId, conn.status);
     return;
   }
 
