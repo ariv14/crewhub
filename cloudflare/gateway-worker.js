@@ -129,7 +129,7 @@ async function createTask(env, agentId, skillId, message, ownerId) {
 
 // --- Webhook Handler ---
 
-async function handleTelegramWebhook(request, env, connectionId) {
+async function handleTelegramWebhook(request, env, ctx, connectionId) {
   const bodyText = await request.text();
   let body;
   try {
@@ -168,22 +168,10 @@ async function handleTelegramWebhook(request, env, connectionId) {
     return Response.json({ ok: true });
   }
 
-  // Process in background (Telegram needs response within 3 seconds)
-  const ctx = { env, connectionId, userId, msgId, chatId, text };
-  // Use waitUntil to process after returning 200
-  if (request.cf) {
-    // In production CF Workers, use event.waitUntil — but we don't have ctx here
-    // Instead, process synchronously but fast (the backend does the heavy lifting)
-  }
-
-  // Process async — return 200 immediately
-  // CF Workers have a 30s execution limit, so we process inline
-  // but the actual agent processing happens on the backend
-  try {
-    await processMessage(ctx);
-  } catch (err) {
-    console.error("Process error:", err);
-  }
+  // Return 200 immediately (Telegram requires <3s response)
+  // Process in background via ctx.waitUntil — keeps Worker alive after response
+  const promise = processMessage({ env, connectionId, userId, msgId, chatId, text });
+  ctx.waitUntil(promise);
 
   return Response.json({ ok: true });
 }
@@ -235,15 +223,12 @@ async function processMessage(ctx) {
     media_type: "text",
   });
 
-  // Create task with callback URL — backend will POST result here when agent finishes
-  const callbackUrl = `https://crewhub-gateway-staging.arimatch1.workers.dev/callback/${connectionId}/${chatId}`;
+  // Create task (no callback — CF Worker will poll for completion)
   const skillId = conn.skill_id || null;
-
   const taskBody = {
     owner_id: conn.owner_id,
     provider_agent_id: conn.agent_id,
     message: text,
-    callback_url: callbackUrl,
   };
   if (skillId) taskBody.skill_id = skillId;
 
@@ -255,7 +240,62 @@ async function processMessage(ctx) {
     return;
   }
 
-  console.log("Task created:", task.task_id, "— agent will respond via callback to", callbackUrl);
+  const taskId = task.task_id;
+  console.log("Task created:", taskId, "— polling for completion");
+
+  // Poll for task completion (CF Worker can run up to 30s on free, 6min on routes)
+  let responseText = null;
+  const startTime = Date.now();
+  const maxPoll = 120000; // 120 seconds max
+
+  while (Date.now() - startTime < maxPoll) {
+    await new Promise(r => setTimeout(r, 4000)); // poll every 4s
+
+    try {
+      const taskStatus = await backendCall(env, `/tasks/${taskId}`);
+      if (!taskStatus || !taskStatus.status) continue;
+
+      const status = taskStatus.status;
+      if (status === "completed") {
+        const artifacts = taskStatus.artifacts || [];
+        for (const artifact of artifacts) {
+          for (const part of (artifact.parts || [])) {
+            if (part.type === "text" && part.content) {
+              responseText = part.content;
+              break;
+            }
+          }
+          if (responseText) break;
+        }
+        if (!responseText) responseText = "Task completed successfully.";
+        break;
+      } else if (status === "failed" || status === "canceled") {
+        responseText = "Sorry, I couldn't complete your request.";
+        break;
+      }
+    } catch (err) {
+      console.error("Poll error:", err);
+    }
+  }
+
+  if (!responseText) {
+    responseText = "Request is taking longer than expected. Please try again in a moment.";
+  }
+
+  // Send response to Telegram
+  await sendTelegram(botToken, chatId, responseText);
+
+  // Log outbound message
+  await logMessage(env, {
+    connection_id: connectionId,
+    platform_user_id_hash: "agent",
+    platform_message_id: `reply-${msgId}`,
+    platform_chat_id: chatId,
+    direction: "outbound",
+    message_text: responseText.substring(0, 2000),
+    task_id: taskId,
+    credits_charged: 1,
+  });
 }
 
 // --- Task Callback (agent response) ---
@@ -318,7 +358,7 @@ async function handleTaskCallback(request, env, connectionId, chatId) {
 // --- Main Worker ---
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
     // Health check
@@ -329,7 +369,7 @@ export default {
     // Telegram webhook: POST /webhook/telegram/{connectionId}
     const telegramMatch = url.pathname.match(/^\/webhook\/telegram\/([0-9a-f-]+)$/);
     if (telegramMatch && request.method === "POST") {
-      return handleTelegramWebhook(request, env, telegramMatch[1]);
+      return handleTelegramWebhook(request, env, ctx, telegramMatch[1]);
     }
 
     // Task completion callback: POST /callback/{connectionId}/{chatId}
