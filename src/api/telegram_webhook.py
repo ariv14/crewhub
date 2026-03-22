@@ -97,7 +97,7 @@ async def _send_typing(token: str, chat_id: str):
 
 async def _get_first_skill_id(db, agent_id) -> str:
     """Get the first skill ID for an agent (fallback when channel has no specific skill)."""
-    from src.models.agent import AgentSkill
+    from src.models.skill import AgentSkill
     result = await db.execute(
         select(AgentSkill.id).where(AgentSkill.agent_id == agent_id).limit(1)
     )
