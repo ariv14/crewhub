@@ -10,7 +10,6 @@ import hmac as hmac_mod
 import logging
 import time
 
-import httpx
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy import select, func
