@@ -2,6 +2,8 @@
 // Proprietary and confidential. See LICENSE for details.
 import AdminChannelDetailClient from "./admin-channel-detail-client";
 
+export const dynamicParams = false;
+
 export async function generateStaticParams() {
   return [{ id: "__fallback" }];
 }

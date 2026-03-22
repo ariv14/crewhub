@@ -4,7 +4,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams, usePathname } from "next/navigation";
 import {
   ArrowLeft,
   Send,
@@ -82,7 +82,19 @@ interface ChannelDetailClientProps {
 
 export default function ChannelDetailClient({ channelId }: ChannelDetailClientProps) {
   const router = useRouter();
-  const { data: channel, isLoading } = useChannel(channelId);
+  const params = useParams();
+  const pathname = usePathname();
+
+  // Resolve real channel ID — on Cloudflare static export the server-side
+  // param is "__fallback", so fall back to useParams() or the URL path.
+  const pathId = pathname.split("/").filter(Boolean).pop();
+  const resolvedId =
+    (channelId !== "__fallback" ? channelId : null) ??
+    (params?.id && params.id !== "__fallback" ? (params.id as string) : null) ??
+    (pathId && pathId !== "__fallback" ? pathId : null) ??
+    channelId;
+
+  const { data: channel, isLoading } = useChannel(resolvedId);
   const updateChannel = useUpdateChannel();
   const deleteChannel = useDeleteChannel();
   const rotateToken = useRotateChannelToken();
