@@ -67,31 +67,39 @@ def _verify_secret(conn_id: str, headers: dict) -> bool:
     return hmac_mod.compare_digest(actual, expected)
 
 
+async def _telegram_api(token: str, method: str, payload: dict) -> dict | None:
+    """Call Telegram Bot API using urllib (stdlib) to bypass httpx DNS issues on HF Spaces."""
+    import urllib.request
+    import ssl
+    import json as j
+    import asyncio as aio
+
+    url = f"https://api.telegram.org/bot{token}/{method}"
+    data = j.dumps(payload).encode()
+    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+    ctx = ssl.create_default_context()
+
+    try:
+        raw = await aio.to_thread(lambda: urllib.request.urlopen(req, timeout=15, context=ctx).read())
+        return j.loads(raw)
+    except Exception as e:
+        logger.error("Telegram API %s failed: %s", method, e)
+        return None
+
+
 async def _send_telegram(token: str, chat_id: str, text: str) -> bool:
     """Send a message via Telegram Bot API."""
-    url = f"https://api.telegram.org/bot{token}/sendMessage"
     chunks = [text[i:i + 4000] for i in range(0, len(text), 4000)]
-    try:
-        async with httpx.AsyncClient(timeout=15) as client:
-            for chunk in chunks:
-                resp = await client.post(url, json={"chat_id": chat_id, "text": chunk, "parse_mode": "Markdown"})
-                if resp.status_code != 200:
-                    await client.post(url, json={"chat_id": chat_id, "text": chunk})
-        return True
-    except Exception as e:
-        logger.error("Telegram send failed: %s", e)
-        return False
+    for chunk in chunks:
+        result = await _telegram_api(token, "sendMessage", {"chat_id": chat_id, "text": chunk, "parse_mode": "Markdown"})
+        if not result or not result.get("ok"):
+            # Retry without Markdown
+            result = await _telegram_api(token, "sendMessage", {"chat_id": chat_id, "text": chunk})
+    return True
 
 
 async def _send_typing(token: str, chat_id: str):
-    try:
-        async with httpx.AsyncClient(timeout=5) as client:
-            await client.post(
-                f"https://api.telegram.org/bot{token}/sendChatAction",
-                json={"chat_id": chat_id, "action": "typing"},
-            )
-    except Exception:
-        pass
+    await _telegram_api(token, "sendChatAction", {"chat_id": chat_id, "action": "typing"})
 
 
 async def _get_first_skill_id(db, agent_id) -> str:
