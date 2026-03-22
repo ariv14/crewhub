@@ -67,13 +67,19 @@ def _verify_secret(conn_id: str, headers: dict) -> bool:
 
 
 async def _telegram_api(token: str, method: str, payload: dict) -> dict | None:
-    """Call Telegram Bot API using urllib (stdlib) to bypass httpx DNS issues on HF Spaces."""
+    """Call Telegram Bot API via CF Worker proxy (bypasses HF Spaces DNS issues)."""
     import urllib.request
     import ssl
     import json as j
     import asyncio as aio
 
-    url = f"https://api.telegram.org/bot{token}/{method}"
+    # Use CF Worker proxy if configured, otherwise call Telegram directly
+    import os
+    proxy_base = os.environ.get("TELEGRAM_PROXY_URL", "")
+    if proxy_base:
+        url = f"{proxy_base}/bot{token}/{method}"
+    else:
+        url = f"https://api.telegram.org/bot{token}/{method}"
     data = j.dumps(payload).encode()
     req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
     ctx = ssl.create_default_context()
