@@ -95,6 +95,16 @@ async def _send_typing(token: str, chat_id: str):
         pass
 
 
+async def _get_first_skill_id(db, agent_id) -> str:
+    """Get the first skill ID for an agent (fallback when channel has no specific skill)."""
+    from src.models.agent import AgentSkill
+    result = await db.execute(
+        select(AgentSkill.id).where(AgentSkill.agent_id == agent_id).limit(1)
+    )
+    skill = result.scalar_one_or_none()
+    return str(skill) if skill else ""
+
+
 @router.post("/webhook/telegram/{connection_id}")
 async def telegram_webhook(connection_id: str, request: Request):
     """Receive Telegram webhook — ack immediately, process in background."""
@@ -249,7 +259,7 @@ async def _process_telegram_message(
             try:
                 task_data = TaskCreate(
                     provider_agent_id=conn.agent_id,
-                    skill_id=str(conn.skill_id) if conn.skill_id else "",
+                    skill_id=str(conn.skill_id) if conn.skill_id else await _get_first_skill_id(db, conn.agent_id),
                     messages=[TaskMessage(role="user", parts=[MessagePart(type="text", content=text)])],
                     confirmed=True,
                 )
