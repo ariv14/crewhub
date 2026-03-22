@@ -316,11 +316,18 @@ async def gateway_create_task(
     )
     service = TaskBrokerService(db)
     task = await service.create_task(data=task_data, user_id=req.owner_id)
+
+    # Set callback URL if provided — backend will POST result when task completes
+    if req.callback_url:
+        task.callback_url = req.callback_url
+        await db.flush()
+
     logger.info(
-        "Gateway create-task: task_id=%s owner=%s agent=%s",
+        "Gateway create-task: task_id=%s owner=%s agent=%s callback=%s",
         task.id,
         req.owner_id,
         req.provider_agent_id,
+        bool(req.callback_url),
     )
     return {"task_id": str(task.id), "status": task.status}
 

@@ -235,9 +235,19 @@ async function processMessage(ctx) {
     media_type: "text",
   });
 
-  // Create task
+  // Create task with callback URL — backend will POST result here when agent finishes
+  const callbackUrl = `https://crewhub-gateway-staging.arimatch1.workers.dev/callback/${connectionId}/${chatId}`;
   const skillId = conn.skill_id || null;
-  const task = await createTask(env, conn.agent_id, skillId, text, conn.owner_id);
+
+  const taskBody = {
+    owner_id: conn.owner_id,
+    provider_agent_id: conn.agent_id,
+    message: text,
+    callback_url: callbackUrl,
+  };
+  if (skillId) taskBody.skill_id = skillId;
+
+  const task = await backendCall(env, "/gateway/create-task", "POST", taskBody);
 
   if (task.error || task.detail) {
     console.error("Task creation failed:", task.error || task.detail);
@@ -245,44 +255,46 @@ async function processMessage(ctx) {
     return;
   }
 
-  const taskId = task.id || task.task_id;
+  console.log("Task created:", task.task_id, "— agent will respond via callback to", callbackUrl);
+}
 
-  // Poll for task completion (up to 90 seconds — CF Worker limit is 30s on free, but 6min on paid/routes)
-  let responseText = null;
-  const startTime = Date.now();
-  const timeout = 25000; // 25 seconds (safe for CF Worker free tier)
+// --- Task Callback (agent response) ---
 
-  while (Date.now() - startTime < timeout) {
-    await new Promise(r => setTimeout(r, 3000)); // poll every 3s
-
-    // Check task status via backend
-    const taskStatus = await backendCall(env, `/tasks/${taskId}`, "GET");
-    if (!taskStatus || !taskStatus.status) break;
-
-    const status = taskStatus.status;
-    if (status === "completed") {
-      // Extract response text from artifacts
-      const artifacts = taskStatus.artifacts || [];
-      for (const artifact of artifacts) {
-        const parts = artifact.parts || [];
-        for (const part of parts) {
-          if (part.type === "text" && part.content) {
-            responseText = part.content;
-            break;
-          }
-        }
-        if (responseText) break;
-      }
-      if (!responseText) responseText = "Task completed successfully.";
-      break;
-    } else if (status === "failed" || status === "canceled") {
-      responseText = "Sorry, I couldn't complete your request.";
-      break;
-    }
+async function handleTaskCallback(request, env, connectionId, chatId) {
+  // Verify the callback is from our backend
+  const gatewayKey = request.headers.get("X-Gateway-Key") || "";
+  if (env.GATEWAY_SERVICE_KEY && gatewayKey !== env.GATEWAY_SERVICE_KEY) {
+    return Response.json({ detail: "Unauthorized" }, { status: 401 });
   }
 
-  if (!responseText) {
-    responseText = "Request is taking longer than expected. Your task is still being processed.";
+  const body = await request.json();
+
+  // Get connection to get bot token
+  const conn = await getConnection(env, connectionId);
+  if (!conn || !conn.bot_token) {
+    return Response.json({ status: "connection_not_found" });
+  }
+
+  const botToken = conn.bot_token;
+
+  // Extract response text from task result
+  let responseText = "Task completed.";
+  const status = body.status || "";
+  const artifacts = body.artifacts || [];
+
+  if (status === "failed" || status === "canceled") {
+    responseText = "Sorry, I couldn't complete your request.";
+  } else {
+    for (const artifact of artifacts) {
+      const parts = (artifact.parts || []);
+      for (const part of parts) {
+        if (part.type === "text" && part.content) {
+          responseText = part.content;
+          break;
+        }
+      }
+      if (responseText !== "Task completed.") break;
+    }
   }
 
   // Send response to Telegram
@@ -292,13 +304,15 @@ async function processMessage(ctx) {
   await logMessage(env, {
     connection_id: connectionId,
     platform_user_id_hash: "agent",
-    platform_message_id: `reply-${msgId}`,
+    platform_message_id: `cb-${body.task_id || "unknown"}`,
     platform_chat_id: chatId,
     direction: "outbound",
     message_text: responseText.substring(0, 2000),
-    task_id: taskId,
+    task_id: body.task_id,
     credits_charged: 1,
   });
+
+  return Response.json({ status: "delivered" });
 }
 
 // --- Main Worker ---
@@ -316,6 +330,12 @@ export default {
     const telegramMatch = url.pathname.match(/^\/webhook\/telegram\/([0-9a-f-]+)$/);
     if (telegramMatch && request.method === "POST") {
       return handleTelegramWebhook(request, env, telegramMatch[1]);
+    }
+
+    // Task completion callback: POST /callback/{connectionId}/{chatId}
+    const callbackMatch = url.pathname.match(/^\/callback\/([0-9a-f-]+)\/(-?\d+)$/);
+    if (callbackMatch && request.method === "POST") {
+      return handleTaskCallback(request, env, callbackMatch[1], callbackMatch[2]);
     }
 
     // 404 for everything else
