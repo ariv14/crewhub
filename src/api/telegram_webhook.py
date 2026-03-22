@@ -203,19 +203,26 @@ async def _process_telegram_message(
                 today_usage = float(usage_result.scalar_one())
                 if today_usage >= conn.daily_credit_limit:
                     await _send_telegram(bot_token, chat_id, "Daily message limit reached. Service will resume tomorrow.")
-                    return
+                    debug_info["stage"] = "daily_limit_hit"
+                    return debug_info
 
             # Check credit balance
             from src.models.user import User
             owner = await db.get(User, conn.owner_id)
             if not owner or not owner.account:
+                debug_info["stage"] = "no_owner_or_account"
+                debug_info["owner_found"] = owner is not None
+                debug_info["has_account"] = bool(owner.account) if owner else False
                 await _send_telegram(bot_token, chat_id, "Service temporarily unavailable.")
-                return
+                return debug_info
 
             balance = float(owner.account.balance)
+            debug_info["stage"] = "balance_checked"
+            debug_info["balance"] = balance
             if balance < 1:
                 await _send_telegram(bot_token, chat_id, "Service temporarily unavailable.")
-                return
+                debug_info["stage"] = "insufficient_balance"
+                return debug_info
 
             # Log inbound message (text = NULL for privacy)
             inbound_msg = ChannelMessage(
@@ -232,7 +239,8 @@ async def _process_telegram_message(
                 await db.flush()
             except IntegrityError:
                 await db.rollback()
-                return  # duplicate
+                debug_info["stage"] = "duplicate_message"
+                return debug_info
 
             # Create task for the agent
             from src.services.task_broker import TaskBrokerService
@@ -249,7 +257,9 @@ async def _process_telegram_message(
             except Exception as e:
                 logger.error("Task creation failed: %s", e)
                 await _send_telegram(bot_token, chat_id, "Sorry, I couldn't process your request. Please try again.")
-                return
+                debug_info["stage"] = "task_creation_failed"
+                debug_info["error"] = f"{type(e).__name__}: {e}"
+                return debug_info
 
             # Wait for task completion (poll with timeout)
             # The task broker dispatches to the agent asynchronously.
