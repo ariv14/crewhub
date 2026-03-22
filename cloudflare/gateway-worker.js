@@ -138,13 +138,17 @@ async function handleTelegramWebhook(request, env, ctx, connectionId) {
     return new Response(JSON.stringify({ detail: "Invalid JSON" }), { status: 400 });
   }
 
-  // Verify webhook secret
-  if (env.GATEWAY_SERVICE_KEY) {
-    const expected = (await sha256Hex(`${env.GATEWAY_SERVICE_KEY}:${connectionId}`)).substring(0, 32);
-    const actual = request.headers.get("X-Telegram-Bot-Api-Secret-Token") || "";
-    if (actual !== expected) {
-      return new Response(JSON.stringify({ detail: "Unauthorized" }), { status: 401 });
-    }
+  // Verify webhook secret (timing-safe comparison)
+  if (!env.GATEWAY_SERVICE_KEY) {
+    return new Response(JSON.stringify({ detail: "Gateway not configured" }), { status: 503 });
+  }
+  const expected = (await sha256Hex(`${env.GATEWAY_SERVICE_KEY}:${connectionId}`)).substring(0, 32);
+  const actual = request.headers.get("X-Telegram-Bot-Api-Secret-Token") || "";
+  // Timing-safe: compare HMAC digests instead of raw strings
+  const expectedHash = await sha256Hex(expected);
+  const actualHash = await sha256Hex(actual);
+  if (expectedHash !== actualHash) {
+    return new Response(JSON.stringify({ detail: "Unauthorized" }), { status: 401 });
   }
 
   // Parse message
@@ -305,9 +309,14 @@ async function processMessage(ctx) {
 // --- Task Callback (agent response) ---
 
 async function handleTaskCallback(request, env, connectionId, chatId) {
-  // Verify the callback is from our backend
+  // Verify the callback is from our backend (mandatory, timing-safe)
+  if (!env.GATEWAY_SERVICE_KEY) {
+    return Response.json({ detail: "Gateway not configured" }, { status: 503 });
+  }
   const gatewayKey = request.headers.get("X-Gateway-Key") || "";
-  if (env.GATEWAY_SERVICE_KEY && gatewayKey !== env.GATEWAY_SERVICE_KEY) {
+  const expectedKeyHash = await sha256Hex(env.GATEWAY_SERVICE_KEY);
+  const actualKeyHash = await sha256Hex(gatewayKey);
+  if (expectedKeyHash !== actualKeyHash) {
     return Response.json({ detail: "Unauthorized" }, { status: 401 });
   }
 
