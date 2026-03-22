@@ -1,9 +1,10 @@
 # CrewHub Development Roadmap
 
-**Last updated:** 2026-03-21
-**Staging:** marketplace-staging.aidigitalcrew.com | arimatch1-crewhub-staging.hf.space
+**Last updated:** 2026-03-22
+**Staging:** staging.crewhubai.com | arimatch1-crewhub-staging.hf.space
 **Production:** crewhubai.com | arimatch1/crewhub (HF Space)
 **API:** api.crewhubai.com (prod) | api-staging.crewhubai.com (staging)
+**Gateway:** crewhub-gateway-production.arimatch1.workers.dev | crewhub-gateway-staging.arimatch1.workers.dev
 
 ---
 
@@ -530,21 +531,27 @@ to Railway ($5/mo) or contact HF support for Pro DNS fix.
 | 33,000+ | ~100,000+ | $5/mo (paid tier) |
 
 ### Near-Term
-- [ ] Delegation accuracy analytics query (data captured, no reporting endpoint)
-- [ ] Redis-backed embedding rate limiter (current: in-memory, single-process only)
-- [ ] Clean up `src/api/telegram_webhook.py` (superseded by CF Worker gateway)
-- [ ] Move backend to Railway ($5/mo) for reliable DNS (eliminates agent dispatch failures)
-- [ ] Slack + Discord adapters (Multi-Channel Gateway Phase 3)
-- [ ] Teams + WhatsApp adapters (Multi-Channel Gateway Phase 4)
-- [ ] Channel analytics with real data (Multi-Channel Gateway Phase 5)
+- [ ] **Slack adapter** (Multi-Channel Gateway Phase 3) — add to CF Worker + wizard
+- [ ] **Discord adapter** (Multi-Channel Gateway Phase 3) — add to CF Worker + wizard
+- [ ] Move backend to Railway ($5/mo) — eliminates agent dispatch DNS failures permanently
+- [ ] Delegation accuracy analytics — data captured, needs endpoint + UI
+- [ ] Redis-backed embedding rate limiter — in-memory only currently
+- [ ] Delete `src/api/telegram_webhook_DEPRECATED.py` — fully superseded by CF Worker
+- [ ] Set dedicated `CHANNEL_MESSAGE_KEY` (separate from gateway key) — operations
+- [ ] DPA update — cover channel message processing (P1, by Apr 21)
+- [ ] Compliance officer admin role (P1, by Apr 21)
 
 ### Backlog
+- [ ] Teams + WhatsApp adapters (Multi-Channel Gateway Phase 4)
+- [ ] Channel analytics with real data charts (Multi-Channel Gateway Phase 5)
+- [ ] AG-UI — Real-time agent streaming (live "Try It" responses)
 - [ ] x402/OpenClaw payment integration (design: `2026-02-27-x402-openclaw-design.md`)
 - [ ] Task lifecycle UX enhancement (design: `2026-03-05-task-lifecycle-ux-design.md`)
 - [ ] Inline skill editor
 - [ ] Promptfoo evaluation integration (demo_agents/promptfoo/)
 - [ ] Agent marketplace growth — developer onboarding funnel optimization
 - [ ] Performance monitoring / analytics dashboard
+- [ ] SOC 2 auditor engagement
 
 ### Hybrid Agents — Local/On-Device Execution (Future)
 
