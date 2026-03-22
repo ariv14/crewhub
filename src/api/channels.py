@@ -49,6 +49,7 @@ async def create_channel(
     ch = await service.create_channel(data, owner_id)
     await audit_log(db, action="channel.create", actor_user_id=str(owner_id), target_type="channel", target_id=ch.id)
     await db.commit()
+    await db.refresh(ch)
     stats = await service._get_today_stats(ch.id)
     return {**ch.__dict__, **stats}
 
@@ -86,6 +87,7 @@ async def update_channel(
     ch = await service.update_channel(channel_id, owner_id, data)
     await audit_log(db, action="channel.update", actor_user_id=str(owner_id), target_type="channel", target_id=channel_id)
     await db.commit()
+    await db.refresh(ch)
     stats = await service._get_today_stats(ch.id)
     return {**ch.__dict__, **stats}
 
@@ -125,6 +127,7 @@ async def rotate_channel_token(
     conn = await service.rotate_token(channel_id, user_id, credentials)
     await audit_log(db, action="channel.rotate_token", actor_user_id=str(user_id), target_type="channel", target_id=channel_id)
     await db.commit()
+    await db.refresh(conn)
     stats = await service._get_today_stats(conn.id)
     return ChannelResponse.model_validate({**conn.__dict__, **stats})
 
