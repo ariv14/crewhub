@@ -241,60 +241,18 @@ async function processMessage(ctx) {
   }
 
   const taskId = task.task_id;
-  console.log("Task created:", taskId, "— polling for completion");
+  console.log("Task created:", taskId, "— will be delivered by cron poller");
 
-  // Poll for task completion (CF Worker can run up to 30s on free, 6min on routes)
-  let responseText = null;
-  const startTime = Date.now();
-  const maxPoll = 120000; // 120 seconds max
-
-  while (Date.now() - startTime < maxPoll) {
-    await new Promise(r => setTimeout(r, 4000)); // poll every 4s
-
-    try {
-      const taskStatus = await backendCall(env, `/tasks/${taskId}`);
-      if (!taskStatus || !taskStatus.status) continue;
-
-      const status = taskStatus.status;
-      if (status === "completed") {
-        const artifacts = taskStatus.artifacts || [];
-        for (const artifact of artifacts) {
-          for (const part of (artifact.parts || [])) {
-            if (part.type === "text" && part.content) {
-              responseText = part.content;
-              break;
-            }
-          }
-          if (responseText) break;
-        }
-        if (!responseText) responseText = "Task completed successfully.";
-        break;
-      } else if (status === "failed" || status === "canceled") {
-        responseText = "Sorry, I couldn't complete your request.";
-        break;
-      }
-    } catch (err) {
-      console.error("Poll error:", err);
-    }
-  }
-
-  if (!responseText) {
-    responseText = "Request is taking longer than expected. Please try again in a moment.";
-  }
-
-  // Send response to Telegram
-  await sendTelegram(botToken, chatId, responseText);
-
-  // Log outbound message
-  await logMessage(env, {
+  // Store pending delivery info in backend via a special endpoint
+  // The cron trigger will pick up completed tasks and send Telegram responses
+  await backendCall(env, "/gateway/log-message", "POST", {
     connection_id: connectionId,
-    platform_user_id_hash: "agent",
-    platform_message_id: `reply-${msgId}`,
+    platform_user_id_hash: userHash,
+    platform_message_id: `pending-${msgId}`,
     platform_chat_id: chatId,
-    direction: "outbound",
-    message_text: responseText.substring(0, 2000),
+    direction: "system",
+    message_text: taskId, // store task_id in system message for cron to pick up
     task_id: taskId,
-    credits_charged: 1,
   });
 }
 
@@ -355,9 +313,84 @@ async function handleTaskCallback(request, env, connectionId, chatId) {
   return Response.json({ status: "delivered" });
 }
 
+// --- Cron: deliver pending Telegram responses ---
+
+async function deliverPendingResponses(env) {
+  // Get all "system" messages (pending deliveries) from backend
+  // These have direction="system" and message_text=taskId
+  const channels = await backendCall(env, "/channels/", "GET");
+  if (!channels || !channels.channels) return;
+
+  for (const channel of channels.channels) {
+    if (channel.platform !== "telegram" || channel.status !== "active") continue;
+
+    // Get system messages (pending deliveries)
+    const msgs = await backendCall(env, `/channels/${channel.id}/messages?direction=system`);
+    if (!msgs || !msgs.messages || msgs.messages.length === 0) continue;
+
+    // Get connection for bot token
+    const conn = await getConnection(env, channel.id);
+    if (!conn || !conn.bot_token) continue;
+
+    for (const msg of msgs.messages) {
+      const taskId = msg.message_text; // task_id stored here
+      const chatId = msg.platform_chat_id;
+      if (!taskId || !chatId) continue;
+
+      // Check task status
+      try {
+        const task = await backendCall(env, `/tasks/${taskId}`);
+        if (!task || !task.status) continue;
+
+        let responseText = null;
+        if (task.status === "completed") {
+          for (const art of (task.artifacts || [])) {
+            for (const part of (art.parts || [])) {
+              if (part.type === "text" && part.content) {
+                responseText = part.content;
+                break;
+              }
+            }
+            if (responseText) break;
+          }
+          if (!responseText) responseText = "Task completed.";
+        } else if (task.status === "failed" || task.status === "canceled") {
+          responseText = "Sorry, I couldn't complete your request.";
+        } else {
+          continue; // still processing
+        }
+
+        // Send to Telegram
+        await sendTelegram(conn.bot_token, chatId, responseText);
+
+        // Log outbound + delete system message by logging outbound
+        await logMessage(env, {
+          connection_id: channel.id,
+          platform_user_id_hash: "agent",
+          platform_message_id: `reply-${msg.platform_message_id}`,
+          platform_chat_id: chatId,
+          direction: "outbound",
+          message_text: responseText.substring(0, 2000),
+          task_id: taskId,
+          credits_charged: 1,
+        });
+
+        console.log("Delivered response for task", taskId, "to chat", chatId);
+      } catch (err) {
+        console.error("Delivery error for task", taskId, ":", err);
+      }
+    }
+  }
+}
+
 // --- Main Worker ---
 
 export default {
+  // Cron trigger — runs every minute to deliver pending responses
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(deliverPendingResponses(env));
+  },
+
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
