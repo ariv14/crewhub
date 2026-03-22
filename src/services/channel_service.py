@@ -81,7 +81,7 @@ class ChannelService:
                             resp = _Resp()
                         except Exception as fallback_err:
                             logger.error("urllib fallback also failed: %s", fallback_err)
-                            raise BadRequestError(f"Cannot reach Telegram API to validate token. Please try again later.")
+                            raise BadRequestError("Cannot reach Telegram API to validate token. Please try again later.")
                     if resp.status_code != 200:
                         raise BadRequestError("Invalid Telegram bot token. Create one via @BotFather on Telegram.")
                     data = resp.json().get("result", {})
