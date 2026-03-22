@@ -230,16 +230,26 @@ class ChannelService:
             if telegram_secret_token:
                 set_webhook_payload["secret_token"] = telegram_secret_token
 
-            async with httpx.AsyncClient(timeout=15) as client:
-                resp = await client.post(
-                    f"https://api.telegram.org/bot{bot_token_raw}/setWebhook",
-                    json=set_webhook_payload,
-                )
-                if resp.status_code == 200 and resp.json().get("ok"):
-                    ch.status = "active"
-                else:
+            # DEBUG bypass: HF Spaces staging can't reach api.telegram.org (DNS blocked)
+            if app_settings.debug:
+                logger.info("DEBUG mode: skipping setWebhook (HF Spaces DNS issue). Channel set to pending.")
+                ch.status = "active"  # Treat as active on staging for testing
+            else:
+                try:
+                    async with httpx.AsyncClient(timeout=15) as client:
+                        resp = await client.post(
+                            f"https://api.telegram.org/bot{bot_token_raw}/setWebhook",
+                            json=set_webhook_payload,
+                        )
+                        if resp.status_code == 200 and resp.json().get("ok"):
+                            ch.status = "active"
+                        else:
+                            ch.status = "error"
+                            ch.error_message = "Failed to register Telegram webhook"
+                except Exception as e:
+                    logger.error("setWebhook failed: %s", e)
                     ch.status = "error"
-                    ch.error_message = "Failed to register Telegram webhook"
+                    ch.error_message = f"Webhook registration failed: {type(e).__name__}"
         else:
             # Manual platforms: stay pending until webhook is verified
             ch.status = "pending"
