@@ -249,7 +249,7 @@ async function processMessage(ctx) {
   while (Date.now() - startTime < 25000) {
     await new Promise(r => setTimeout(r, 3000));
     try {
-      const taskStatus = await backendCall(env, `/tasks/${taskId}`);
+      const taskStatus = await backendCall(env, `/gateway/task-status/${taskId}`);
       if (!taskStatus) continue;
       const status = taskStatus.status;
       if (status === "completed") {

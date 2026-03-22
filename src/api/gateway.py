@@ -277,6 +277,27 @@ async def log_message(
     return {"status": "ok"}
 
 
+@router.get("/task-status/{task_id}")
+async def gateway_task_status(
+    task_id: UUID,
+    _: None = Depends(require_gateway_key),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Get task status — gateway-authenticated. Used by CF Worker to poll task completion."""
+    from src.models.task import Task
+    task = await db.get(Task, task_id)
+    if not task:
+        return {"status": "not_found"}
+
+    status = task.status.value if hasattr(task.status, "value") else task.status
+    result = {"status": status, "task_id": str(task.id)}
+
+    if status in ("completed", "failed", "canceled"):
+        result["artifacts"] = task.artifacts or []
+
+    return result
+
+
 @router.post("/create-task", status_code=201)
 async def gateway_create_task(
     req: GatewayCreateTaskRequest,
