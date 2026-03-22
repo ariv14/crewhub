@@ -149,9 +149,15 @@ async def _process_telegram_message(
     try:
         async with async_session() as db:
             debug_info["stage"] = "db_connected"
-            # Get connection
+            # Get connection (cast string to UUID)
+            from uuid import UUID as _UUID
+            try:
+                conn_uuid = _UUID(connection_id)
+            except ValueError:
+                debug_info["stage"] = "invalid_uuid"
+                return debug_info
             result = await db.execute(
-                select(ChannelConnection).where(ChannelConnection.id == connection_id)
+                select(ChannelConnection).where(ChannelConnection.id == conn_uuid)
             )
             conn = result.scalar_one_or_none()
             if not conn or conn.status != "active":
