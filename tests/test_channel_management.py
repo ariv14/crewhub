@@ -11,7 +11,6 @@ from src.schemas.channel import (
     ChannelContactResponse, ChannelContactListResponse,
     ChannelMessageResponse, ChannelMessageListResponse,
     AdminMessageAccessRequest, GDPRErasureResponse,
-    ChannelAnalyticsResponse,
 )
 
 

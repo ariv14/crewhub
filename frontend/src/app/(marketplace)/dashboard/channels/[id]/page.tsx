@@ -2,6 +2,15 @@
 // Proprietary and confidential. See LICENSE for details.
 import ChannelDetailClient from "./channel-detail-client";
 
-export default function ChannelDetailPage({ params }: { params: { id: string } }) {
-  return <ChannelDetailClient channelId={params.id} />;
+export async function generateStaticParams() {
+  return [{ id: "__fallback" }];
+}
+
+export default async function ChannelDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  return <ChannelDetailClient channelId={id} />;
 }
