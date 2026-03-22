@@ -56,10 +56,11 @@ class ChannelService:
                     except httpx.ConnectError:
                         # DNS fallback: resolve via direct IP (149.154.167.220 is api.telegram.org)
                         logger.warning("DNS resolution failed for api.telegram.org, trying IP fallback")
-                        resp = await client.get(
-                            f"https://149.154.167.220/bot{token}/getMe",
-                            headers={"Host": "api.telegram.org"},
-                        )
+                        async with httpx.AsyncClient(timeout=15, verify=False, transport=httpx.AsyncHTTPTransport(retries=1)) as fallback:
+                            resp = await fallback.get(
+                                f"https://149.154.167.220/bot{token}/getMe",
+                                headers={"Host": "api.telegram.org"},
+                            )
                     if resp.status_code != 200:
                         raise BadRequestError("Invalid Telegram bot token. Create one via @BotFather on Telegram.")
                     data = resp.json().get("result", {})
