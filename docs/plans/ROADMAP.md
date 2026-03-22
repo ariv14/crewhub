@@ -326,15 +326,116 @@ See `docs/plans/2026-03-20-health-monitor-fix.md` for full gap analysis.
 - [x] Two-admin setup: `arimatch1` (super_admin) + `aidigitalcrew` (ops_admin)
 - [x] All changes verified on staging (9/9 RBAC tests + 2/2 UI tests PASS)
 
-### Multi-Channel Gateway (Mar 18) — DESIGNED, NOT YET IMPLEMENTED
-- [x] Full design spec: `docs/superpowers/specs/2026-03-18-multi-channel-gateway-design.md`
-- [x] 5 platforms (Slack, Discord, Telegram, WhatsApp, email), developer-pays model
-- [x] Async callback pattern, 5 implementation phases
-- [ ] Phase 1 implementation (next priority)
+### Multi-Channel Gateway Phase 1-2 (Mar 21-22) — ON STAGING
+**Full implementation of gateway service + channel management UI.**
+
+**Backend — Gateway Service (deployed to HF Space `arimatch1/crewhub-gateway`):**
+- [x] Gateway FastAPI app with Telegram webhook receiver (<3s ack, async processing)
+- [x] Async task callback handler (agent response → platform message)
+- [x] `POST /gateway/charge` — atomic credit deduction with daily limit checks
+- [x] `GET /gateway/connections/{id}` — decrypted config + blocked users list
+- [x] `POST /gateway/heartbeat`, `POST /gateway/log-message`, `POST /gateway/create-task`
+- [x] Telegram adapter: parse inbound, send message (4096 char chunking + markdown retry), typing indicator
+- [x] In-memory rate limiter (10 msg/min per user) with 60s periodic cleanup
+- [x] Message deduplication (5 min TTL + DB unique constraint)
+- [x] CrewHub API client with 60s connection cache (non-sensitive fields only)
+- [x] Deploy script + GitHub Actions workflow (`deploy-gateway.yml`)
+- [x] Gateway secrets configured on staging (GATEWAY_SERVICE_KEY, CREWHUB_API_URL, GATEWAY_PUBLIC_URL)
+
+**Backend — Compliance Hardening (24 findings resolved):**
+- [x] C1: Telegram webhook signature verification (per-connection HMAC secret_token)
+- [x] C2: Callback URL validation (UUID connection_id, numeric chat_id)
+- [x] C3: Bot tokens never cached in memory — `get_bot_token()` fetches on-demand
+- [x] H1: Message text capped at 2000 chars, 90-day auto-purge background job
+- [x] H2: platform_user_id pseudonymized via HMAC-SHA256 (keyed, per-connection)
+- [x] H3: Typed heartbeat schema (Literal status enum, max_length validation)
+- [x] H4: `hmac.compare_digest()` for gateway key comparison (timing-safe)
+- [x] H5: `POST /gateway/create-task` — proper gateway auth, no fabricated API keys
+- [x] H6: Audit logging on all channel mutations (create/update/delete/rotate)
+- [x] M1: Security headers middleware on gateway (HSTS, X-Frame, nosniff)
+- [x] M2-M7, L1-L2: Rate limiter cleanup, generic errors, data minimization, schema fixes
+
+**Backend — Channel & Customer Management API:**
+- [x] Token rotation endpoint (`POST /channels/{id}/rotate-token`)
+- [x] Contact aggregation (`GET /channels/{id}/contacts`)
+- [x] Per-contact message thread (`GET /channels/{id}/contacts/{hash}/messages`)
+- [x] Block/unblock contacts (`POST/DELETE /channels/{id}/contacts/{hash}/block`)
+- [x] GDPR erasure (`DELETE /channels/{id}/contacts/{hash}/messages`)
+- [x] Paginated message log (`GET /channels/{id}/messages?direction=&cursor=`)
+- [x] Admin channel list (`GET /admin/channels/`) with developer info
+- [x] Admin channel detail (`GET /admin/channels/{id}`) with owner credit balance
+- [x] Admin message access with justification gate (`GET /admin/channels/{id}/messages?justification=`)
+- [x] `GatewayConnectionResponse` includes `blocked_users` list for gateway enforcement
+- [x] N+1 query fix — batch stats query replaces per-channel loop
+
+**Backend — Privacy & Encryption:**
+- [x] Inbound message text NOT stored (NULL) — GDPR Art. 25 privacy by design
+- [x] Outbound message text encrypted (Fernet, versioned key `v1:`, dual-key rotation)
+- [x] `CHANNEL_MESSAGE_KEY` separate from gateway service key
+- [x] Backend-side decryption (`src/core/message_crypto.py`) for developer/admin viewing
+- [x] Column renamed: `platform_user_id` → `platform_user_id_hash`
+
+**Database — Migration 036:**
+- [x] `channel_contact_blocks` table (connection_id, user_hash, blocked_by, reason)
+- [x] `privacy_notice_url` column on `channel_connections`
+- [x] `message_retention_days` column (default 90)
+- [x] `message_text` nullable (for NULL inbound text)
+- [x] Performance index: `(connection_id, platform_user_id_hash, created_at DESC)`
+
+**Frontend — Developer Channel Pages:**
+- [x] `/dashboard/channels` — dedicated list page (moved out of Settings tab)
+  - Channel cards with platform icon, status badge, agent, today's stats
+  - "Connect a Channel" button opens wizard
+  - Stats strip: total channels, messages today, credits today
+- [x] `/dashboard/channels/[id]` — 5-tab detail page:
+  - **Overview**: stats grid (messages, contacts, credits, response time) + recent messages
+  - **Contacts**: data table with block/unblock, GDPR delete, message count, last seen
+  - **Messages**: timeline with direction filter (All/Inbound/Outbound), privacy placeholder for inbound
+  - **Analytics**: Recharts area/bar charts (daily messages + credits, 7/30 day)
+  - **Settings**: budget controls, token rotation, pause/resume, danger zone (delete)
+- [x] Sidebar updated: Channels → `/dashboard/channels`
+- [x] Channels tab removed from Settings page
+
+**Frontend — Admin Channel Pages:**
+- [x] `/admin/channels` — DataTable with platform, bot name, developer, agent, status, messages/credits
+- [x] `/admin/channels/[id]` — detail with developer info card (name, email, balance, tier)
+  - Justification gate on Messages tab (SOC 2 CC7.2): 4 options, audit-logged
+  - Audit banner: "Access logged: [justification] — [admin email]"
+  - Admin actions: Force Pause, Force Disconnect
+- [x] Admin sidebar updated with Channels entry
+
+**Frontend — Shared Components:**
+- [x] `channel-card.tsx` — reusable card with platform icons, status badges
+- [x] `contact-table.tsx` — contacts with block/unblock/GDPR delete actions
+- [x] `message-log.tsx` — timeline with direction filter, privacy placeholder
+- [x] `analytics-charts.tsx` — Recharts message volume + credit burn charts
+- [x] `admin-access-gate.tsx` — AlertDialog justification selector
+- [x] `channel-edit-sheet.tsx` — Sheet for editing budget/config
+
+**Frontend — Compliance in Wizard:**
+- [x] Privacy Notice URL (required field, validated as URL)
+- [x] HIPAA disclaimer: "No PHI without BAA" warning banner
+- [x] Data residency note: "Channel data processed in United States"
+- [x] Budget controls editable (not hardcoded): daily limit, low balance, auto-pause
+
+**Testing — 44 tests passing:**
+- [x] `tests/test_channels.py` — gateway schema validation, auth, route registration (11 tests)
+- [x] `tests/test_gateway.py` — Telegram adapter, rate limiter, dedup, registry (17 tests)
+- [x] `tests/test_channel_management.py` — contact/message schemas, crypto roundtrip, HMAC pseudonymization, admin justification, routes (16 tests)
+
+**E2E Verified on Staging (13/13 PASS):**
+- Developer: channel list, detail 5 tabs, wizard 4 steps, mobile responsive
+- Admin: channel list with developer info, detail with justification gate + audit banner
+- Console: no channel-specific JS errors
+
+**Known limitation:** HF Spaces staging cannot reach `api.telegram.org` (DNS blocked). Token validation and webhook registration are bypassed on staging (DEBUG=true). Production will use full Telegram API validation.
 
 ### Near-Term
 - [ ] Delegation accuracy analytics query (data captured, no reporting endpoint)
 - [ ] Redis-backed embedding rate limiter (current: in-memory, single-process only)
+- [ ] Slack + Discord adapters (Multi-Channel Gateway Phase 3)
+- [ ] Teams + WhatsApp adapters (Multi-Channel Gateway Phase 4)
+- [ ] Channel analytics with real data (Multi-Channel Gateway Phase 5)
 
 ### Backlog
 - [ ] x402/OpenClaw payment integration (design: `2026-02-27-x402-openclaw-design.md`)
@@ -520,3 +621,9 @@ Clients → CF Worker (gateway) → Primary (HF Space) / Secondary (Railway/Fly)
 | 2026-03-21 | SOC 2 controls mapping (CC1-CC9 + supplemental) | Complete |
 | 2026-03-21 | Penetration test report (51 tests, OWASP Top 10) | Complete (0 open findings) |
 | 2026-03-21 | RBAC 3-tier enforcement + role management API + admin UI | Complete |
+| 2026-03-21 | Multi-Channel Gateway Phase 1-2 implementation plan | Complete |
+| 2026-03-21 | Mobile hero cards overflow fix + compact layout | Complete |
+| 2026-03-22 | Channel & Customer Management design spec (v2, compliance-approved) | Complete |
+| 2026-03-22 | Channel & Customer Management implementation plan (10 tasks) | Complete |
+| 2026-03-22 | Gateway compliance audit (24 findings, all resolved) | Complete |
+| 2026-03-22 | Gateway deployment + secrets + E2E verification | Complete |
