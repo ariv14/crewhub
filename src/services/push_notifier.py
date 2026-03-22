@@ -8,8 +8,6 @@ this service POSTs a JSON-RPC notification to that URL.
 
 import logging
 
-import httpx
-
 from src.schemas.a2a import JsonRpcRequest
 from src.schemas.agent import _validate_public_url
 
@@ -76,7 +74,7 @@ async def send_push_notification(
                 },
             )
             ctx = ssl.create_default_context()
-            raw = await asyncio.to_thread(
+            await asyncio.to_thread(
                 lambda: urllib.request.urlopen(req, timeout=PUSH_TIMEOUT, context=ctx).read()
             )
             logger.info(f"Push notification sent for task {task_id} → {callback_url}")
