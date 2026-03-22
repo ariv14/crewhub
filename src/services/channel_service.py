@@ -61,13 +61,14 @@ class ChannelService:
                         data = resp.json()
                         if data.get("valid"):
                             return {"platform_bot_id": data.get("platform_bot_id", ""), "bot_name": data.get("bot_name", "")}
+                        # Token explicitly invalid — raise
                         raise BadRequestError(data.get("error", "Invalid Telegram bot token"))
-                    raise BadRequestError("Token validation service unavailable")
+                    # Non-200 = gateway issue, fall through to direct/debug
+                    logger.warning("Gateway validate-token returned %s, falling through", resp.status_code)
             except BadRequestError:
-                raise
+                raise  # token is genuinely invalid
             except Exception as e:
-                logger.warning("CF Worker validation failed (%s), trying direct", e)
-                # Fall through to direct validation below
+                logger.warning("CF Worker validation failed (%s), falling through to direct", e)
 
         # DEBUG bypass for when gateway is not configured
         if _cfg.debug and platform == "telegram" and token and ":" in token:
@@ -245,7 +246,8 @@ class ChannelService:
                     f"{app_settings.gateway_service_key}:{str(ch.id)}".encode()
                 ).hexdigest()[:32]
 
-            # Route webhook registration through CF Worker (has full DNS to reach Telegram)
+            # Try webhook registration via CF Worker gateway (has full DNS)
+            webhook_registered = False
             if app_settings.gateway_url and app_settings.gateway_service_key:
                 try:
                     async with httpx.AsyncClient(timeout=15) as client:
@@ -263,20 +265,20 @@ class ChannelService:
                             if result.get("ok"):
                                 ch.status = "active"
                                 ch.webhook_url = result.get("webhook_url", webhook_url)
+                                webhook_registered = True
                             else:
-                                ch.status = "error"
-                                ch.error_message = result.get("error", "Webhook registration failed")
-                        else:
-                            ch.status = "error"
-                            ch.error_message = "Gateway webhook registration unavailable"
+                                logger.warning("Gateway register-webhook returned error: %s", result.get("error"))
                 except Exception as e:
-                    logger.error("CF Worker webhook registration failed: %s", e)
-                    ch.status = "error"
-                    ch.error_message = f"Webhook registration failed: {type(e).__name__}"
-            elif app_settings.debug:
+                    logger.warning("CF Worker webhook registration failed (%s), trying fallback", e)
+
+            # Fallback: DEBUG mode — skip webhook, set active for testing
+            if not webhook_registered and app_settings.debug:
                 logger.info("DEBUG mode: skipping setWebhook. Channel set to active.")
                 ch.status = "active"
-            else:
+                webhook_registered = True
+
+            # Fallback: direct Telegram API call (may fail on HF Spaces DNS)
+            if not webhook_registered:
                 try:
                     async with httpx.AsyncClient(timeout=15) as client:
                         set_webhook_payload = {
