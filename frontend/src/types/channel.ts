@@ -39,6 +39,7 @@ export interface ChannelCreate {
   daily_credit_limit?: number;
   low_balance_threshold?: number;
   pause_on_limit?: boolean;
+  privacy_notice_url?: string;
 }
 
 export interface ChannelUpdate {

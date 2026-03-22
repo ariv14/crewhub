@@ -142,6 +142,7 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
   const [dailyLimit, setDailyLimit] = useState(100);
   const [lowBalance, setLowBalance] = useState(20);
   const [pauseOnLimit, setPauseOnLimit] = useState(true);
+  const [privacyUrl, setPrivacyUrl] = useState("");
 
   // Fetch user's agents for step 3
   const { data: agentsData } = useAgents({
@@ -165,6 +166,7 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
     setDailyLimit(100);
     setLowBalance(20);
     setPauseOnLimit(true);
+    setPrivacyUrl("");
   }
 
   function handleClose(open: boolean) {
@@ -183,6 +185,7 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
       const allFilled = guide.credentials.every((c) => credentials[c.key]?.trim());
       if (!allFilled) return false;
       if (platform === "whatsapp" && !whatsappAck) return false;
+      if (!privacyUrl.trim() || !privacyUrl.startsWith("http")) return false;
       return true;
     }
     if (step === 2) return !!agentId;
@@ -201,6 +204,7 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
         daily_credit_limit: dailyLimit || undefined,
         low_balance_threshold: lowBalance,
         pause_on_limit: pauseOnLimit,
+        privacy_notice_url: privacyUrl.trim() || undefined,
       });
       setCreatedChannel(channel);
       setStep(3);
@@ -284,6 +288,11 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
                   );
                 }
               )}
+            </div>
+            <div className="mt-4 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-xs text-amber-500/90">
+              <span className="font-medium">⚠️ Healthcare Notice:</span>{" "}
+              CrewHub channels must not be used to collect, store, or transmit Protected Health Information (PHI).
+              No Business Associate Agreement (BAA) is in effect.
             </div>
           </div>
         )}
@@ -389,6 +398,28 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
                 );
               })}
             </TooltipProvider>
+
+            {/* Privacy Notice URL */}
+            <div className="space-y-2">
+              <Label htmlFor="privacy-url">Privacy Notice URL <span className="text-red-500">*</span></Label>
+              <Input
+                id="privacy-url"
+                type="url"
+                placeholder="https://example.com/privacy"
+                value={privacyUrl}
+                onChange={(e) => setPrivacyUrl(e.target.value)}
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Required. Link to your privacy notice that informs users about data handling.
+              </p>
+            </div>
+
+            {/* Data residency note */}
+            <p className="mt-2 flex items-start gap-1.5 text-[11px] text-muted-foreground/70">
+              <span>ℹ️</span>
+              <span>Channel data is processed and stored in the United States. If your users are in the EU, ensure your privacy notice discloses this.</span>
+            </p>
 
             {/* WhatsApp premium note */}
             {platform === "whatsapp" && "premiumNote" in guide && (
