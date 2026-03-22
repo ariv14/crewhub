@@ -244,14 +244,16 @@ async def _process_telegram_message(
 
             # Create task for the agent
             from src.services.task_broker import TaskBrokerService
+            from src.schemas.task import TaskCreate, TaskMessage
             broker = TaskBrokerService(db)
             try:
-                task = await broker.create_task(
+                task_data = TaskCreate(
                     provider_agent_id=conn.agent_id,
-                    skill_id=conn.skill_id,
-                    message=text,
-                    creator_user_id=conn.owner_id,
+                    skill_id=str(conn.skill_id) if conn.skill_id else "",
+                    messages=[TaskMessage(role="user", content=text)],
+                    confirmed=True,  # bypass high-cost check for channel messages
                 )
+                task = await broker.create_task(data=task_data, user_id=conn.owner_id)
                 await db.flush()
                 logger.info("Task %s created for Telegram message on connection %s", task.id, connection_id)
             except Exception as e:
