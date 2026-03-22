@@ -26,6 +26,7 @@ from src.schemas.agent import AgentResponse, AgentStatus, VerificationLevel
 from src.schemas.auth import UserResponse
 from src.schemas.task import TaskResponse, TaskListResponse
 from src.schemas.credits import TransactionListResponse, TransactionResponse
+from src.schemas.channel import ChannelResponse
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -800,3 +801,93 @@ async def bulk_reactivate(
         request=request,
     )
     return {"reactivated": count}
+
+
+# ---------------------------------------------------------------------------
+# Admin Channels
+# ---------------------------------------------------------------------------
+
+
+@router.get("/channels/")
+async def admin_list_channels(
+    platform: str | None = None,
+    status: str | None = None,
+    admin: User = Depends(require_ops_or_super),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all channels across all developers (admin only)."""
+    from src.models.channel import ChannelConnection
+    query = select(ChannelConnection).order_by(ChannelConnection.created_at.desc())
+    if platform:
+        query = query.where(ChannelConnection.platform == platform)
+    if status:
+        query = query.where(ChannelConnection.status == status)
+    result = await db.execute(query)
+    channels = result.scalars().all()
+
+    # Get owner info for each channel
+    owner_ids = {ch.owner_id for ch in channels}
+    owners_result = await db.execute(select(User).where(User.id.in_(owner_ids)))
+    owners = {u.id: u for u in owners_result.scalars().all()}
+
+    return {"channels": [{
+        **ChannelResponse.model_validate(ch).model_dump(),
+        "owner_email": owners.get(ch.owner_id, User).email if ch.owner_id in owners else "",
+        "owner_name": owners.get(ch.owner_id, User).name if ch.owner_id in owners else "",
+    } for ch in channels], "total": len(channels)}
+
+
+@router.get("/channels/{channel_id}")
+async def admin_get_channel(
+    channel_id: UUID,
+    request: Request,
+    admin: User = Depends(require_ops_or_super),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get channel detail with owner info (admin only)."""
+    from src.models.channel import ChannelConnection
+    result = await db.execute(select(ChannelConnection).where(ChannelConnection.id == channel_id))
+    conn = result.scalar_one_or_none()
+    if not conn:
+        raise HTTPException(status_code=404, detail="Channel not found")
+
+    owner = await db.get(User, conn.owner_id)
+    await audit_log(db, action="admin.channel.view", actor_user_id=str(admin.id), target_type="channel", target_id=channel_id, request=request)
+
+    response = ChannelResponse.model_validate(conn).model_dump()
+    response["owner_email"] = owner.email if owner else ""
+    response["owner_name"] = owner.name if owner else ""
+    response["owner_credit_balance"] = float(owner.account.balance) if owner and owner.account else 0
+    response["owner_account_tier"] = owner.account_tier if owner else "free"
+    return response
+
+
+@router.get("/channels/{channel_id}/messages")
+async def admin_get_channel_messages(
+    channel_id: UUID,
+    justification: str = Query(..., description="Required: abuse_report, developer_support, legal_request, compliance_check"),
+    direction: str | None = None,
+    cursor: str | None = None,
+    limit: int = Query(20, ge=1, le=100),
+    request: Request = None,
+    admin: User = Depends(require_ops_or_super),
+    db: AsyncSession = Depends(get_db),
+):
+    """View channel messages — requires justification (SOC 2 CC7.2, GDPR Art. 28)."""
+    valid_justifications = {"abuse_report", "developer_support", "legal_request", "compliance_check"}
+    if justification not in valid_justifications:
+        raise HTTPException(status_code=400, detail=f"justification must be one of: {', '.join(valid_justifications)}")
+
+    # Audit log with justification
+    await audit_log(db, action="admin.channel.view_messages", actor_user_id=str(admin.id), target_type="channel", target_id=channel_id, new_value={"justification": justification}, request=request)
+
+    from src.services.channel_service import ChannelService
+    from src.models.channel import ChannelConnection
+    result = await db.execute(select(ChannelConnection).where(ChannelConnection.id == channel_id))
+    conn = result.scalar_one_or_none()
+    if not conn:
+        raise HTTPException(status_code=404, detail="Channel not found")
+
+    service = ChannelService(db)
+    # Admin bypasses ownership — pass conn.owner_id directly
+    return await service.get_channel_messages(channel_id, conn.owner_id, direction, cursor, limit)

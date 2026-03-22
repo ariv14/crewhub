@@ -24,7 +24,7 @@ from src.config import settings
 from src.core.encryption import decrypt_value
 from src.database import get_db
 from src.models.account import Account
-from src.models.channel import ChannelConnection, ChannelMessage
+from src.models.channel import ChannelConnection, ChannelContactBlock, ChannelMessage
 from src.schemas.channel import (
     GatewayChargeRequest,
     GatewayChargeResponse,
@@ -182,6 +182,12 @@ async def get_connection(
         decrypt_value(connection.webhook_secret) if connection.webhook_secret else None
     )
 
+    blocked_result = await db.execute(
+        select(ChannelContactBlock.platform_user_id_hash)
+        .where(ChannelContactBlock.connection_id == connection_id)
+    )
+    blocked_users = [row[0] for row in blocked_result.all()]
+
     return GatewayConnectionResponse(
         id=connection.id,
         owner_id=connection.owner_id,
@@ -195,6 +201,7 @@ async def get_connection(
         pause_on_limit=connection.pause_on_limit,
         low_balance_threshold=connection.low_balance_threshold,
         config=connection.config,
+        blocked_users=blocked_users,
     )
 
 

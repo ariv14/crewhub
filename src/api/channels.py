@@ -140,3 +140,91 @@ async def test_channel(
         "success": False,
         "message": "Gateway not yet deployed. Channel is registered and pending.",
     }
+
+
+@router.get("/{channel_id}/contacts")
+async def get_channel_contacts(
+    channel_id: UUID,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    user_id: UUID = Depends(resolve_db_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    service = ChannelService(db)
+    result = await service.get_contacts(channel_id, user_id, limit, offset)
+    await audit_log(db, action="channel.view_contacts", actor_user_id=str(user_id), target_type="channel", target_id=channel_id)
+    return result
+
+
+@router.get("/{channel_id}/contacts/{user_hash}/messages")
+async def get_contact_messages(
+    channel_id: UUID,
+    user_hash: str,
+    cursor: str | None = None,
+    limit: int = Query(20, ge=1, le=100),
+    user_id: UUID = Depends(resolve_db_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    service = ChannelService(db)
+    # Filter messages by specific user hash
+    result = await service.get_channel_messages(channel_id, user_id, cursor=cursor, limit=limit)
+    if result:
+        result["messages"] = [m for m in result["messages"] if m["platform_user_id_hash"] == user_hash]
+    return result
+
+
+@router.post("/{channel_id}/contacts/{user_hash}/block")
+async def block_contact(
+    channel_id: UUID,
+    user_hash: str,
+    reason: str = "",
+    user_id: UUID = Depends(resolve_db_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    service = ChannelService(db)
+    await service.block_contact(channel_id, user_id, user_hash, user_id, reason or None)
+    await audit_log(db, action="channel.block_contact", actor_user_id=str(user_id), target_type="channel_contact", target_id=channel_id, new_value={"user_hash": user_hash, "reason": reason})
+    await db.commit()
+    return {"status": "blocked", "user_hash": user_hash}
+
+
+@router.delete("/{channel_id}/contacts/{user_hash}/block")
+async def unblock_contact(
+    channel_id: UUID,
+    user_hash: str,
+    user_id: UUID = Depends(resolve_db_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    service = ChannelService(db)
+    await service.unblock_contact(channel_id, user_id, user_hash)
+    await audit_log(db, action="channel.unblock_contact", actor_user_id=str(user_id), target_type="channel_contact", target_id=channel_id, new_value={"user_hash": user_hash})
+    await db.commit()
+    return {"status": "unblocked", "user_hash": user_hash}
+
+
+@router.delete("/{channel_id}/contacts/{user_hash}/messages")
+async def delete_contact_data(
+    channel_id: UUID,
+    user_hash: str,
+    user_id: UUID = Depends(resolve_db_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """GDPR Article 17 — right to erasure for platform end-users."""
+    service = ChannelService(db)
+    result = await service.delete_contact_data(channel_id, user_id, user_hash)
+    await audit_log(db, action="channel.gdpr_erasure", actor_user_id=str(user_id), target_type="channel_contact", target_id=channel_id, new_value={"user_hash": user_hash, "deleted_messages": result["deleted_messages"]})
+    await db.commit()
+    return result
+
+
+@router.get("/{channel_id}/messages")
+async def get_channel_messages(
+    channel_id: UUID,
+    direction: str | None = None,
+    cursor: str | None = None,
+    limit: int = Query(20, ge=1, le=100),
+    user_id: UUID = Depends(resolve_db_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    service = ChannelService(db)
+    return await service.get_channel_messages(channel_id, user_id, direction, cursor, limit)

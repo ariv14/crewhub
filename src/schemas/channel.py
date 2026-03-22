@@ -139,6 +139,7 @@ class GatewayConnectionResponse(BaseModel):
     pause_on_limit: bool = True
     low_balance_threshold: int = 20
     config: Optional[dict] = None
+    blocked_users: list[str] = []
 
 
 # ---------------------------------------------------------------------------
