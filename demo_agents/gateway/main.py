@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import hmac
+import hmac as hmac_mod
 import logging
 import re
 from contextlib import asynccontextmanager
@@ -15,17 +16,19 @@ from rate_limiter import InMemoryRateLimiter
 from dedup import MessageDedup
 from billing import check_and_charge
 from adapters import get_adapter
+from message_crypto import encrypt_message
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger("gateway")
 
 
 def pseudonymize_user_id(platform_user_id: str, connection_id: str) -> str:
-    """HMAC-based pseudonymization of platform user IDs for GDPR compliance (Art. 25).
+    """HMAC-SHA256 pseudonymization with gateway service key (GDPR Art. 25).
 
     The raw ID is used only in-memory (rate limiter). Storage receives the hash.
     """
-    return hashlib.sha256(f"{connection_id}:{platform_user_id}".encode()).hexdigest()[:16]
+    key = f"{settings.gateway_service_key}:{connection_id}".encode()
+    return hmac_mod.new(key, platform_user_id.encode(), hashlib.sha256).hexdigest()[:16]
 
 # Global instances
 client: CrewHubClient | None = None
@@ -109,6 +112,15 @@ async def telegram_webhook(connection_id: UUID, request: Request):
     if rate_limiter.is_limited(f"{conn_id}:{message.platform_user_id}"):
         return adapter.ack_response()
 
+    # Block check — silently drop messages from blocked users
+    user_hash = pseudonymize_user_id(message.platform_user_id, conn_id)
+    connection = await client.get_connection(conn_id)
+    if not connection or connection.get("status") != "active":
+        return adapter.ack_response()
+    blocked_users = connection.get("blocked_users", [])
+    if user_hash in blocked_users:
+        return adapter.ack_response()  # silently drop blocked user
+
     # Acknowledge immediately — Telegram requires response within 3 seconds
     asyncio.create_task(process_message("telegram", conn_id, message))
     return adapter.ack_response()
@@ -144,14 +156,14 @@ async def process_message(platform: str, connection_id: str, message):
                                        error_msgs.get(error, "Service temporarily unavailable."))
             return
 
-        # Log inbound message — store pseudonymized user ID (GDPR Art. 25)
+        # Log inbound message — store pseudonymized user ID, NULL text (GDPR Art. 25)
         await client.log_message({
             "connection_id": connection_id,
-            "platform_user_id": pseudonymize_user_id(message.platform_user_id, connection_id),
+            "platform_user_id_hash": pseudonymize_user_id(message.platform_user_id, connection_id),
             "platform_message_id": message.platform_message_id,
             "platform_chat_id": message.platform_chat_id,
             "direction": "inbound",
-            "message_text": message.text,
+            "message_text": None,
             "media_type": message.media_type,
         })
 
@@ -215,14 +227,14 @@ async def task_callback(connection_id: UUID, chat_id: str, request: Request):
     # Send response to platform
     success = await adapter.send_message(bot_token, chat_id, response_text)
 
-    # Log outbound message
+    # Log outbound message — encrypt content at rest
     await client.log_message({
         "connection_id": str(connection_id),
-        "platform_user_id": "agent",
+        "platform_user_id_hash": "agent",
         "platform_message_id": f"cb-{body.get('task_id', 'unknown')}",
         "platform_chat_id": chat_id,
         "direction": "outbound",
-        "message_text": response_text[:500],
+        "message_text": encrypt_message(response_text[:2000]),
         "task_id": body.get("task_id"),
         "credits_charged": body.get("credits_used", 0),
         "response_time_ms": body.get("latency_ms"),
