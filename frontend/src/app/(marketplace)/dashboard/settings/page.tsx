@@ -17,7 +17,6 @@ import {
   CheckCircle2,
   XCircle,
   ChevronDown,
-  Radio,
   Cookie,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
@@ -42,7 +41,6 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { ChannelsTab } from "./channels-tab";
 import { resetAnalyticsConsent } from "@/components/shared/posthog-provider";
 
 const PROVIDERS = [
@@ -53,7 +51,7 @@ const PROVIDERS = [
   { id: "ollama", name: "Ollama", hint: "Local — no key needed" },
 ];
 
-const VALID_TABS = ["profile", "api-keys", "builder", "llm-keys", "channels"];
+const VALID_TABS = ["profile", "api-keys", "builder", "llm-keys"];
 
 export default function SettingsPage() {
   const { user, logout } = useAuth();
@@ -256,10 +254,6 @@ export default function SettingsPage() {
           <TabsTrigger value="llm-keys" className="gap-1.5">
             <Key className="h-3.5 w-3.5" />
             LLM Keys
-          </TabsTrigger>
-          <TabsTrigger value="channels" className="gap-1.5">
-            <Radio className="h-3.5 w-3.5" />
-            Channels
           </TabsTrigger>
         </TabsList>
 
@@ -817,10 +811,6 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
-        {/* ── Channels Tab ── */}
-        <TabsContent value="channels" className="mt-6">
-          <ChannelsTab />
-        </TabsContent>
 
       </Tabs>
       <ConfirmDialog
