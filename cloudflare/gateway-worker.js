@@ -55,8 +55,9 @@ async function sha256Hex(message) {
   return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
-// --- Telegram API ---
+// --- Platform APIs ---
 
+// Telegram
 async function telegramApi(token, method, payload) {
   const resp = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
     method: "POST",
@@ -85,6 +86,90 @@ async function sendTelegram(token, chatId, text) {
 
 async function sendTyping(token, chatId) {
   await telegramApi(token, "sendChatAction", { chat_id: chatId, action: "typing" }).catch(() => {});
+}
+
+// Slack
+async function sendSlack(token, channelId, text) {
+  const chunks = [];
+  for (let i = 0; i < text.length; i += 3000) {
+    chunks.push(text.substring(i, i + 3000));
+  }
+  for (const chunk of chunks) {
+    await fetch("https://slack.com/api/chat.postMessage", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ channel: channelId, text: chunk }),
+    });
+  }
+}
+
+async function slackTyping(token, channelId) {
+  // Slack doesn't have a typing indicator API for bots
+  // Best effort: no-op
+}
+
+async function verifySlackSignature(body, headers, signingSecret) {
+  const timestamp = headers.get("x-slack-request-timestamp") || "";
+  const slackSig = headers.get("x-slack-signature") || "";
+  if (!timestamp || !slackSig) return false;
+
+  // Reject if timestamp is older than 5 minutes (replay protection)
+  const now = Math.floor(Date.now() / 1000);
+  if (Math.abs(now - Number(timestamp)) > 300) return false;
+
+  const baseString = `v0:${timestamp}:${body}`;
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw", encoder.encode(signingSecret),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(baseString));
+  const computed = "v0=" + Array.from(new Uint8Array(sig))
+    .map(b => b.toString(16).padStart(2, "0")).join("");
+
+  // Timing-safe comparison via double-hash
+  const h1 = await sha256Hex(computed);
+  const h2 = await sha256Hex(slackSig);
+  return h1 === h2;
+}
+
+// Discord
+async function sendDiscord(token, channelId, text) {
+  const chunks = [];
+  for (let i = 0; i < text.length; i += 2000) {
+    chunks.push(text.substring(i, i + 2000));
+  }
+  for (const chunk of chunks) {
+    await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bot ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ content: chunk }),
+    });
+  }
+}
+
+async function discordTyping(token, channelId) {
+  await fetch(`https://discord.com/api/v10/channels/${channelId}/typing`, {
+    method: "POST",
+    headers: { "Authorization": `Bot ${token}` },
+  }).catch(() => {});
+}
+
+// --- Platform dispatcher ---
+
+function getPlatformSender(platform) {
+  switch (platform) {
+    case "telegram": return { send: sendTelegram, typing: sendTyping };
+    case "slack": return { send: sendSlack, typing: slackTyping };
+    case "discord": return { send: sendDiscord, typing: discordTyping };
+    default: return null;
+  }
 }
 
 // --- Backend API ---
@@ -180,8 +265,112 @@ async function handleTelegramWebhook(request, env, ctx, connectionId) {
   return Response.json({ ok: true });
 }
 
+// --- Slack Webhook Handler ---
+
+async function handleSlackWebhook(request, env, ctx, connectionId) {
+  const bodyText = await request.text();
+
+  // Slack URL verification challenge (first-time setup)
+  try {
+    const body = JSON.parse(bodyText);
+    if (body.type === "url_verification") {
+      return Response.json({ challenge: body.challenge });
+    }
+  } catch {}
+
+  // Get connection to get signing secret
+  const conn = await getConnection(env, connectionId);
+  if (!conn || conn.status !== "active") {
+    return Response.json({ ok: true });
+  }
+
+  // Verify Slack signature using the webhook_secret (signing secret)
+  const signingSecret = conn.webhook_secret || "";
+  if (signingSecret) {
+    const valid = await verifySlackSignature(bodyText, request.headers, signingSecret);
+    if (!valid) {
+      return new Response(JSON.stringify({ detail: "Unauthorized" }), { status: 401 });
+    }
+  }
+
+  let body;
+  try { body = JSON.parse(bodyText); } catch {
+    return new Response(JSON.stringify({ detail: "Invalid JSON" }), { status: 400 });
+  }
+
+  // Parse Slack Events API message
+  const event = body.event;
+  if (!event || event.type !== "message" || event.subtype || event.bot_id) {
+    return Response.json({ ok: true }); // ignore non-message events, edits, bot messages
+  }
+
+  const userId = event.user || "";
+  const msgId = event.client_msg_id || event.ts || "";
+  const chatId = event.channel || "";
+  const text = event.text || "";
+  if (!text || !chatId) return Response.json({ ok: true });
+
+  if (isDuplicate(connectionId, msgId)) return Response.json({ ok: true });
+  if (isRateLimited(`${connectionId}:${userId}`)) return Response.json({ ok: true });
+
+  ctx.waitUntil(processMessage({ env, connectionId, userId, msgId, chatId, text, platform: "slack" }));
+  return Response.json({ ok: true });
+}
+
+// --- Discord Webhook Handler ---
+
+async function handleDiscordWebhook(request, env, ctx, connectionId) {
+  const bodyText = await request.text();
+
+  // Discord sends interactions as JSON
+  let body;
+  try { body = JSON.parse(bodyText); } catch {
+    return new Response(JSON.stringify({ detail: "Invalid JSON" }), { status: 400 });
+  }
+
+  // Discord PING verification (required for Interactions endpoint)
+  if (body.type === 1) {
+    // Verify Ed25519 signature
+    const conn = await getConnection(env, connectionId);
+    // For now, respond to PING without verification (Discord validates via application_id)
+    return Response.json({ type: 1 }); // PONG
+  }
+
+  // Handle message (type 2 = APPLICATION_COMMAND, but we use Gateway events)
+  // For Discord Gateway via webhook, messages come as MESSAGE_CREATE events
+  // However, Discord Interactions endpoint only receives slash commands and components
+  // For full message handling, Discord requires WebSocket Gateway (Phase 4)
+  // For now, support slash command interactions
+  if (body.type === 2) {
+    // Slash command
+    const userId = body.member?.user?.id || body.user?.id || "";
+    const msgId = body.id || "";
+    const chatId = body.channel_id || "";
+    const text = body.data?.options?.[0]?.value || body.data?.name || "";
+    if (!text || !chatId) {
+      return Response.json({ type: 4, data: { content: "Please provide a message." } });
+    }
+
+    if (isDuplicate(connectionId, msgId)) {
+      return Response.json({ type: 4, data: { content: "Processing..." } });
+    }
+
+    // Respond with "thinking" indicator, then process in background
+    ctx.waitUntil(processMessage({ env, connectionId, userId, msgId, chatId, text, platform: "discord" }));
+
+    // Discord requires immediate response for interactions
+    return Response.json({
+      type: 5, // DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE (shows "thinking...")
+    });
+  }
+
+  return Response.json({ ok: true });
+}
+
+// --- Generic Message Processor ---
+
 async function processMessage(ctx) {
-  const { env, connectionId, userId, msgId, chatId, text } = ctx;
+  const { env, connectionId, userId, msgId, chatId, text, platform: platformOverride } = ctx;
 
   // Get connection config (includes decrypted bot token)
   const conn = await getConnection(env, connectionId);
@@ -191,6 +380,12 @@ async function processMessage(ctx) {
   }
 
   const botToken = conn.bot_token;
+  const platform = platformOverride || conn.platform || "telegram";
+  const sender = getPlatformSender(platform);
+  if (!sender) {
+    console.error("Unsupported platform:", platform);
+    return;
+  }
 
   // Check blocked users
   const userHash = (await hmacSha256(
@@ -202,7 +397,7 @@ async function processMessage(ctx) {
   }
 
   // Send typing indicator
-  await sendTyping(botToken, chatId);
+  await sender.typing(botToken, chatId);
 
   // Charge credits
   const chargeResult = await chargeCredits(env, connectionId, 1, conn.daily_credit_limit);
@@ -212,7 +407,7 @@ async function processMessage(ctx) {
       insufficient_balance: "Service temporarily unavailable.",
       credit_exhausted: "Service temporarily unavailable.",
     };
-    await sendTelegram(botToken, chatId, errorMsgs[chargeResult.error] || "Service temporarily unavailable.");
+    await sender.send(botToken, chatId, errorMsgs[chargeResult.error] || "Service temporarily unavailable.");
     return;
   }
 
@@ -240,7 +435,7 @@ async function processMessage(ctx) {
 
   if (task.error || task.detail) {
     console.error("Task creation failed:", task.error || task.detail);
-    await sendTelegram(botToken, chatId, "Sorry, I couldn't process your request. Please try again.");
+    await sender.send(botToken, chatId, "Sorry, I couldn't process your request. Please try again.");
     return;
   }
 
@@ -279,7 +474,7 @@ async function processMessage(ctx) {
 
   if (responseText) {
     // Task completed within 25s — send immediately
-    await sendTelegram(botToken, chatId, responseText);
+    await sender.send(botToken, chatId, responseText);
     await logMessage(env, {
       connection_id: connectionId,
       platform_user_id_hash: "agent",
@@ -350,8 +545,11 @@ async function handleTaskCallback(request, env, connectionId, chatId) {
     }
   }
 
-  // Send response to Telegram
-  await sendTelegram(botToken, chatId, responseText);
+  // Send response to platform
+  const callbackSender = getPlatformSender(conn.platform || "telegram");
+  if (callbackSender) {
+    await callbackSender.send(botToken, chatId, responseText);
+  }
 
   // Log outbound message
   await logMessage(env, {
@@ -415,8 +613,11 @@ async function deliverPendingResponses(env) {
           continue; // still processing
         }
 
-        // Send to Telegram
-        await sendTelegram(conn.bot_token, chatId, responseText);
+        // Send to platform
+        const cronSender = getPlatformSender(channel.platform || "telegram");
+        if (cronSender) {
+          await cronSender.send(conn.bot_token, chatId, responseText);
+        }
 
         // Log outbound + delete system message by logging outbound
         await logMessage(env, {
@@ -488,10 +689,20 @@ export default {
       return Response.json({ status: "ok", service: "crewhub-gateway-cf" });
     }
 
-    // Telegram webhook: POST /webhook/telegram/{connectionId}
+    // Platform webhooks: POST /webhook/{platform}/{connectionId}
     const telegramMatch = url.pathname.match(/^\/webhook\/telegram\/([0-9a-f-]+)$/);
     if (telegramMatch && request.method === "POST") {
       return handleTelegramWebhook(request, env, ctx, telegramMatch[1]);
+    }
+
+    const slackMatch = url.pathname.match(/^\/webhook\/slack\/([0-9a-f-]+)$/);
+    if (slackMatch && request.method === "POST") {
+      return handleSlackWebhook(request, env, ctx, slackMatch[1]);
+    }
+
+    const discordMatch = url.pathname.match(/^\/webhook\/discord\/([0-9a-f-]+)$/);
+    if (discordMatch && request.method === "POST") {
+      return handleDiscordWebhook(request, env, ctx, discordMatch[1]);
     }
 
     // Task completion callback: POST /callback/{connectionId}/{chatId}
