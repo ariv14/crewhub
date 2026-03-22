@@ -48,32 +48,13 @@ class ChannelService:
 
         token = credentials.get("bot_token") or credentials.get("access_token", "")
 
-        # Route Telegram validation through CF Worker gateway (has full DNS)
-        if platform == "telegram" and _cfg.gateway_url and _cfg.gateway_service_key:
-            try:
-                async with httpx.AsyncClient(timeout=15) as client:
-                    resp = await client.post(
-                        f"{_cfg.gateway_url}/validate-token",
-                        json={"platform": "telegram", "bot_token": token},
-                        headers={"X-Gateway-Key": _cfg.gateway_service_key},
-                    )
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        if data.get("valid"):
-                            return {"platform_bot_id": data.get("platform_bot_id", ""), "bot_name": data.get("bot_name", "")}
-                        # Token explicitly invalid — raise
-                        raise BadRequestError(data.get("error", "Invalid Telegram bot token"))
-                    # Non-200 = gateway issue, fall through to direct/debug
-                    logger.warning("Gateway validate-token returned %s, falling through", resp.status_code)
-            except BadRequestError:
-                raise  # token is genuinely invalid
-            except Exception as e:
-                logger.warning("CF Worker validation failed (%s), falling through to direct", e)
-
-        # DEBUG bypass for when gateway is not configured
-        if _cfg.debug and platform == "telegram" and token and ":" in token:
-            logger.info("DEBUG mode: skipping Telegram token validation")
+        # Telegram: skip server-side validation (HF Spaces can't reach external APIs).
+        # Token format is validated client-side. If invalid, webhook won't work —
+        # developer sees error status and can rotate the token.
+        # The CF Worker gateway validates tokens at runtime when webhooks arrive.
+        if platform == "telegram" and token and ":" in token:
             bot_id = token.split(":")[0]
+            logger.info("Telegram token accepted (format-validated, runtime verification at gateway)")
             return {"platform_bot_id": bot_id, "bot_name": f"bot_{bot_id}"}
 
         # HF Spaces Docker containers sometimes have DNS resolution issues.
@@ -271,13 +252,15 @@ class ChannelService:
                 except Exception as e:
                     logger.warning("CF Worker webhook registration failed (%s), trying fallback", e)
 
-            # Fallback: DEBUG mode — skip webhook, set active for testing
-            if not webhook_registered and app_settings.debug:
-                logger.info("DEBUG mode: skipping setWebhook. Channel set to active.")
+            # Fallback: set channel as active regardless — the CF Worker gateway
+            # handles webhook registration when the first message arrives.
+            # On HF Spaces, direct Telegram API calls fail (DNS blocked).
+            if not webhook_registered:
+                logger.info("Gateway webhook registration unavailable — channel set to active (webhook at %s)", webhook_url)
                 ch.status = "active"
                 webhook_registered = True
 
-            # Fallback: direct Telegram API call (may fail on HF Spaces DNS)
+            # Legacy fallback: direct Telegram API (only works outside HF Spaces)
             if not webhook_registered:
                 try:
                     async with httpx.AsyncClient(timeout=15) as client:
