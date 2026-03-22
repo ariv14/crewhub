@@ -4,7 +4,7 @@
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Literal, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -60,15 +60,140 @@ class ChannelListResponse(BaseModel):
 
 
 class ChannelAnalytics(BaseModel):
-    channel_id: UUID
-    period_days: int
-    daily_messages: list[dict]  # [{date, count}]
-    daily_credits: list[dict]  # [{date, amount}]
-    top_users: list[dict]  # [{platform_user_id, message_count}]
-    cost_breakdown: dict  # {agent_processing, platform_surcharge, total, avg_per_message}
+    daily: list[dict] = []  # [{date, messages, credits}]
+    total_messages: int = 0
+    total_credits: float = 0
 
 
 class ChannelTestResult(BaseModel):
     success: bool
     message: str
     latency_ms: Optional[int] = None
+
+
+# ---------------------------------------------------------------------------
+# Gateway-facing schemas (server-to-server, authenticated via X-Gateway-Key)
+# ---------------------------------------------------------------------------
+
+class GatewayChargeRequest(BaseModel):
+    connection_id: UUID
+    platform_user_id: str
+    credits: float = Field(gt=0, le=100)
+    daily_credit_limit: Optional[int] = None  # for server-side limit check
+
+
+class GatewayChargeResponse(BaseModel):
+    success: bool
+    remaining_balance: float = 0
+    today_usage: float = 0
+    error: Optional[str] = None
+
+
+class GatewayLogMessageRequest(BaseModel):
+    connection_id: UUID
+    platform_user_id: str
+    platform_message_id: str
+    platform_chat_id: Optional[str] = None
+    direction: str = Field(pattern="^(inbound|outbound|system)$")
+    message_text: str
+    media_type: Optional[str] = None
+    task_id: Optional[UUID] = None
+    credits_charged: float = 0
+    response_time_ms: Optional[int] = None
+    error: Optional[str] = None
+
+
+class HeartbeatConnectionStatus(BaseModel):
+    connection_id: UUID
+    status: Literal["active", "paused", "error", "disconnected"]
+    error_message: str | None = Field(None, max_length=500)
+
+
+class GatewayHeartbeatRequest(BaseModel):
+    connections: list[HeartbeatConnectionStatus] = Field(max_length=100)
+
+
+class GatewayCreateTaskRequest(BaseModel):
+    """Task creation request from the gateway service.
+
+    ``owner_id`` identifies whose credits will be reserved for the task.
+    """
+
+    owner_id: UUID
+    provider_agent_id: UUID
+    skill_id: str | None = Field(None, max_length=255)
+    message: str = Field(max_length=10_000)
+    callback_url: str | None = Field(None, max_length=2000)
+
+
+class GatewayConnectionResponse(BaseModel):
+    id: UUID
+    owner_id: UUID
+    platform: str
+    bot_token: str
+    webhook_secret: Optional[str] = None
+    agent_id: UUID
+    skill_id: Optional[UUID] = None
+    status: str
+    daily_credit_limit: Optional[int] = None
+    pause_on_limit: bool = True
+    low_balance_threshold: int = 20
+    config: Optional[dict] = None
+    blocked_users: list[str] = []
+
+
+# ---------------------------------------------------------------------------
+# Contact management schemas
+# ---------------------------------------------------------------------------
+
+class ChannelContactResponse(BaseModel):
+    platform_user_id_hash: str
+    message_count: int
+    last_seen: datetime
+    first_seen: datetime
+    is_blocked: bool = False
+
+
+class ChannelContactListResponse(BaseModel):
+    contacts: list[ChannelContactResponse]
+    total: int
+
+
+class ChannelMessageResponse(BaseModel):
+    id: UUID
+    direction: str
+    platform_user_id_hash: str
+    message_text: str | None = None
+    credits_charged: float
+    response_time_ms: int | None = None
+    created_at: datetime
+
+
+class ChannelMessageListResponse(BaseModel):
+    messages: list[ChannelMessageResponse]
+    cursor: str | None = None
+    has_more: bool = False
+
+
+class AdminChannelResponse(ChannelResponse):
+    owner_email: str = ""
+    owner_name: str = ""
+    owner_credit_balance: float = 0
+    owner_account_tier: str = "free"
+
+
+class ChannelAnalyticsResponse(BaseModel):
+    daily: list[dict] = []
+    total_messages: int = 0
+    total_credits: float = 0
+    avg_response_ms: float | None = None
+
+
+class GDPRErasureResponse(BaseModel):
+    deleted_messages: int
+    user_hash: str
+    channel_id: UUID
+
+
+class AdminMessageAccessRequest(BaseModel):
+    justification: Literal["abuse_report", "developer_support", "legal_request", "compliance_check"]

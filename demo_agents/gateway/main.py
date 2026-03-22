@@ -1,0 +1,243 @@
+import asyncio
+import hashlib
+import hmac
+import hmac as hmac_mod
+import logging
+import re
+from contextlib import asynccontextmanager
+from uuid import UUID
+
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+
+from config import settings
+from crewhub_client import CrewHubClient
+from rate_limiter import InMemoryRateLimiter
+from dedup import MessageDedup
+from billing import check_and_charge
+from adapters import get_adapter
+from message_crypto import encrypt_message
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logger = logging.getLogger("gateway")
+
+
+def pseudonymize_user_id(platform_user_id: str, connection_id: str) -> str:
+    """HMAC-SHA256 pseudonymization with gateway service key (GDPR Art. 25).
+
+    The raw ID is used only in-memory (rate limiter). Storage receives the hash.
+    """
+    key = f"{settings.gateway_service_key}:{connection_id}".encode()
+    return hmac_mod.new(key, platform_user_id.encode(), hashlib.sha256).hexdigest()[:16]
+
+# Global instances
+client: CrewHubClient | None = None
+rate_limiter = InMemoryRateLimiter(max_requests=10, window_seconds=60)
+dedup = MessageDedup(ttl=300)
+
+async def _cleanup_loop():
+    while True:
+        await asyncio.sleep(60)
+        rate_limiter.cleanup()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global client
+    if not settings.gateway_service_key:
+        logger.error("GATEWAY_SERVICE_KEY not set — gateway will not function")
+    client = CrewHubClient()
+    cleanup_task = asyncio.create_task(_cleanup_loop())
+    logger.info("Gateway started — CrewHub API: %s", settings.crewhub_api_url)
+    yield
+    cleanup_task.cancel()
+    if client and client._client:
+        await client._client.aclose()
+    logger.info("Gateway stopped")
+
+app = FastAPI(title="CrewHub Gateway", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok", "service": "crewhub-gateway"}
+
+
+@app.post("/webhook/telegram/{connection_id}")
+async def telegram_webhook(connection_id: UUID, request: Request):
+    """Receive Telegram webhook — acknowledge immediately, process async."""
+    conn_id = str(connection_id)
+    # Read raw bytes first (needed for signature verification), then parse JSON
+    body_bytes = await request.body()
+    import json
+    try:
+        body = json.loads(body_bytes)
+    except Exception:
+        return JSONResponse(status_code=400, content={"detail": "Invalid JSON"})
+
+    adapter = get_adapter("telegram")
+
+    # Verify webhook signature using per-connection secret derived from gateway_service_key
+    # The same derivation is used when calling Telegram's setWebhook (see channel_service.py)
+    headers = dict(request.headers)
+    webhook_secret = ""
+    if settings.gateway_service_key:
+        webhook_secret = hashlib.sha256(
+            f"{settings.gateway_service_key}:{conn_id}".encode()
+        ).hexdigest()[:32]
+    if not adapter.verify_webhook(body_bytes, headers, webhook_secret):
+        logger.warning("Telegram webhook signature mismatch for connection %s — rejecting", conn_id)
+        return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+
+    # Parse the message
+    message = adapter.parse_inbound(body)
+    if not message:
+        return adapter.ack_response()
+
+    # Deduplicate
+    if dedup.is_duplicate(conn_id, message.platform_message_id):
+        return adapter.ack_response()
+
+    # Rate limit per end-user
+    if rate_limiter.is_limited(f"{conn_id}:{message.platform_user_id}"):
+        return adapter.ack_response()
+
+    # Block check — silently drop messages from blocked users
+    user_hash = pseudonymize_user_id(message.platform_user_id, conn_id)
+    connection = await client.get_connection(conn_id)
+    if not connection or connection.get("status") != "active":
+        return adapter.ack_response()
+    blocked_users = connection.get("blocked_users", [])
+    if user_hash in blocked_users:
+        return adapter.ack_response()  # silently drop blocked user
+
+    # Acknowledge immediately — Telegram requires response within 3 seconds
+    asyncio.create_task(process_message("telegram", conn_id, message))
+    return adapter.ack_response()
+
+
+async def process_message(platform: str, connection_id: str, message):
+    """Background processing after webhook acknowledgement."""
+    try:
+        adapter = get_adapter(platform)
+
+        # Get connection config (cached 60s)
+        connection = await client.get_connection(connection_id)
+        if not connection or connection.get("status") != "active":
+            logger.warning("Connection %s not found or inactive", connection_id)
+            return
+
+        # Fetch bot token on-demand — never read from the (non-sensitive) cache
+        bot_token = await client.get_bot_token(connection_id) or ""
+
+        # Send typing indicator while processing
+        await adapter.send_typing(bot_token, message.platform_chat_id)
+
+        # Check credits + charge atomically
+        surcharge = 2.0 if platform == "whatsapp" else 0.0
+        ok, error = await check_and_charge(client, connection, surcharge)
+        if not ok:
+            error_msgs = {
+                "daily_limit": "Daily message limit reached. Service will resume tomorrow.",
+                "credit_exhausted": "Service temporarily unavailable.",
+                "insufficient_balance": "Service temporarily unavailable.",
+            }
+            await adapter.send_message(bot_token, message.platform_chat_id,
+                                       error_msgs.get(error, "Service temporarily unavailable."))
+            return
+
+        # Log inbound message — store pseudonymized user ID, NULL text (GDPR Art. 25)
+        await client.log_message({
+            "connection_id": connection_id,
+            "platform_user_id_hash": pseudonymize_user_id(message.platform_user_id, connection_id),
+            "platform_message_id": message.platform_message_id,
+            "platform_chat_id": message.platform_chat_id,
+            "direction": "inbound",
+            "message_text": None,
+            "media_type": message.media_type,
+        })
+
+        # Create task with callback URL (renamed from /internal/ to /callback/)
+        callback_url = f"{settings.gateway_public_url}/callback/task-result/{connection_id}/{message.platform_chat_id}"
+        task = await client.create_task(
+            agent_id=str(connection["agent_id"]),
+            skill_id=str(connection["skill_id"]) if connection.get("skill_id") else None,
+            message=message.text,
+            owner_id=str(connection["owner_id"]),
+            callback_url=callback_url,
+        )
+
+        if "error" in task:
+            logger.error("Task creation failed: %s", task["error"])
+            await adapter.send_message(bot_token, message.platform_chat_id,
+                                       "Sorry, I couldn't process your request. Please try again.")
+            return
+
+        logger.info("Task %s created for connection %s", task.get("id"), connection_id)
+
+    except Exception as e:
+        logger.exception("Error processing message for connection %s: %s", connection_id, e)
+
+
+@app.post("/callback/task-result/{connection_id}/{chat_id}")
+async def task_callback(connection_id: UUID, chat_id: str, request: Request):
+    """Receive task completion callback from CrewHub backend."""
+    # Validate chat_id — Telegram chat IDs are integers (optionally negative for groups)
+    if not re.match(r'^-?\d+$', chat_id):
+        return JSONResponse(status_code=400, content={"detail": "Invalid chat_id format"})
+
+    # Verify shared secret
+    gateway_key = request.headers.get("X-Gateway-Key", "")
+    if not settings.gateway_service_key or not hmac.compare_digest(gateway_key, settings.gateway_service_key):
+        return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+
+    body = await request.json()
+
+    # Get connection to find platform (non-sensitive fields only)
+    connection = await client.get_connection(str(connection_id))
+    if not connection:
+        logger.warning("Callback for unknown connection %s", connection_id)
+        return {"status": "connection_not_found"}
+
+    adapter = get_adapter(connection["platform"])
+    # Fetch bot token on-demand — never from the cache
+    bot_token = await client.get_bot_token(str(connection_id)) or ""
+
+    # Extract response text from task result
+    # The callback body has: {task_id, status, artifacts: [{parts: [{type: "text", content: "..."}]}]}
+    response_text = "Task completed."
+    artifacts = body.get("artifacts", [])
+    if artifacts:
+        parts = artifacts[0].get("parts", [])
+        for part in parts:
+            if part.get("type") == "text" and part.get("content"):
+                response_text = part["content"]
+                break
+
+    # Send response to platform
+    success = await adapter.send_message(bot_token, chat_id, response_text)
+
+    # Log outbound message — encrypt content at rest
+    await client.log_message({
+        "connection_id": str(connection_id),
+        "platform_user_id_hash": "agent",
+        "platform_message_id": f"cb-{body.get('task_id', 'unknown')}",
+        "platform_chat_id": chat_id,
+        "direction": "outbound",
+        "message_text": encrypt_message(response_text[:2000]),
+        "task_id": body.get("task_id"),
+        "credits_charged": body.get("credits_used", 0),
+        "response_time_ms": body.get("latency_ms"),
+    })
+
+    return {"status": "delivered" if success else "delivery_failed"}

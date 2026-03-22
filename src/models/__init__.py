@@ -16,6 +16,7 @@ from src.models.workflow import Workflow, WorkflowStep, WorkflowRun, WorkflowSte
 from src.models.schedule import Schedule
 from src.models.custom_agent import CustomAgent, CustomAgentVote, CustomAgentStatus, AgentRequest
 from src.models.audit_log import AuditLog
+from src.models.channel import ChannelConnection, ChannelMessage, ChannelContactBlock
 
 __all__ = [
     "User",
@@ -46,4 +47,7 @@ __all__ = [
     "CustomAgentStatus",
     "AgentRequest",
     "AuditLog",
+    "ChannelConnection",
+    "ChannelMessage",
+    "ChannelContactBlock",
 ]

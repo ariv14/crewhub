@@ -15,6 +15,7 @@ import {
   Terminal,
   Telescope,
   Send,
+  Radio,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -33,6 +34,7 @@ const NAV_ITEMS = [
   { href: ROUTES.adminGovernance, label: "Governance", icon: ShieldCheck },
   { href: ROUTES.adminHealth, label: "Health", icon: Activity },
   { href: ROUTES.adminMcp, label: "MCP", icon: Terminal },
+  { href: "/admin/channels", label: "Channels", icon: Radio },
   { href: "/admin/submissions", label: "Submissions", icon: Send },
   { href: ROUTES.adminSettings, label: "Settings", icon: Settings },
 ];

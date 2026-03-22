@@ -7,7 +7,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, Numeric, String, Text, Uuid, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, Numeric, String, Text, UniqueConstraint, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database import Base
@@ -37,6 +37,8 @@ class ChannelConnection(Base):
     low_balance_threshold: Mapped[int] = mapped_column(Integer, default=20)
     pause_on_limit: Mapped[bool] = mapped_column(Boolean, default=True)
     webhook_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    privacy_notice_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    message_retention_days: Mapped[Optional[int]] = mapped_column(Integer, server_default="90", nullable=True)
     config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     last_active_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
@@ -69,11 +71,11 @@ class ChannelMessage(Base):
     connection_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("channel_connections.id", ondelete="CASCADE"), nullable=False
     )
-    platform_user_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    platform_user_id_hash: Mapped[str] = mapped_column(String(200), nullable=False)
     platform_message_id: Mapped[str] = mapped_column(String(200), nullable=False)
     platform_chat_id: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     direction: Mapped[str] = mapped_column(String(10), nullable=False)  # inbound|outbound|system
-    message_text: Mapped[str] = mapped_column(Text, nullable=False)
+    message_text: Mapped[Optional[str]] = mapped_column(String(2000), nullable=True)  # Retained for 90 days, auto-purged
     media_type: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     task_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         Uuid, ForeignKey("tasks.id", ondelete="SET NULL"), nullable=True
@@ -91,4 +93,29 @@ class ChannelMessage(Base):
     # Relationships
     connection: Mapped["ChannelConnection"] = relationship(
         "ChannelConnection", back_populates="messages", foreign_keys=[connection_id]
+    )
+
+
+class ChannelContactBlock(Base):
+    __tablename__ = "channel_contact_blocks"
+    __table_args__ = (
+        UniqueConstraint("connection_id", "platform_user_id_hash", name="uq_contact_blocks_conn_user"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    connection_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("channel_connections.id", ondelete="CASCADE"), nullable=False
+    )
+    platform_user_id_hash: Mapped[str] = mapped_column(String(200), nullable=False)
+    blocked_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    blocked_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("users.id"), nullable=True
+    )
+    reason: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+
+    # Relationships
+    connection: Mapped["ChannelConnection"] = relationship(
+        "ChannelConnection", foreign_keys=[connection_id], lazy="selectin"
     )

@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../auth-context";
 import * as channelsApi from "../api/channels";
+import { rotateChannelToken, getContacts, getContactMessages, getChannelMessages, blockContact, unblockContact, deleteContactData, getAdminChannels, getAdminChannel, getAdminChannelMessages } from "../api/channels";
 import type { ChannelCreate, ChannelUpdate } from "@/types/channel";
 
 export function useChannels() {
@@ -67,5 +68,86 @@ export function useChannelAnalytics(id: string, days = 7) {
 export function useTestChannel() {
   return useMutation({
     mutationFn: (id: string) => channelsApi.testChannel(id),
+  });
+}
+
+export function useRotateChannelToken() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ channelId, credentials }: { channelId: string; credentials: Record<string, string> }) =>
+      rotateChannelToken(channelId, credentials),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["channels"] }),
+  });
+}
+
+export function useContacts(channelId: string) {
+  return useQuery({
+    queryKey: ["channels", channelId, "contacts"],
+    queryFn: () => getContacts(channelId),
+    enabled: !!channelId,
+  });
+}
+
+export function useContactMessages(channelId: string, userHash: string) {
+  return useQuery({
+    queryKey: ["channels", channelId, "contacts", userHash, "messages"],
+    queryFn: () => getContactMessages(channelId, userHash),
+    enabled: !!channelId && !!userHash,
+  });
+}
+
+export function useChannelMessages(channelId: string, direction?: string) {
+  return useQuery({
+    queryKey: ["channels", channelId, "messages", direction],
+    queryFn: () => getChannelMessages(channelId, direction),
+    enabled: !!channelId,
+  });
+}
+
+export function useBlockContact() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ channelId, userHash, reason }: { channelId: string; userHash: string; reason?: string }) =>
+      blockContact(channelId, userHash, reason),
+    onSuccess: (_, { channelId }) => {
+      queryClient.invalidateQueries({ queryKey: ["channels", channelId, "contacts"] });
+    },
+  });
+}
+
+export function useUnblockContact() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ channelId, userHash }: { channelId: string; userHash: string }) =>
+      unblockContact(channelId, userHash),
+    onSuccess: (_, { channelId }) => {
+      queryClient.invalidateQueries({ queryKey: ["channels", channelId, "contacts"] });
+    },
+  });
+}
+
+export function useDeleteContactData() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ channelId, userHash }: { channelId: string; userHash: string }) =>
+      deleteContactData(channelId, userHash),
+    onSuccess: (_, { channelId }) => {
+      queryClient.invalidateQueries({ queryKey: ["channels", channelId] });
+    },
+  });
+}
+
+export function useAdminChannels() {
+  return useQuery({
+    queryKey: ["admin", "channels"],
+    queryFn: getAdminChannels,
+  });
+}
+
+export function useAdminChannel(channelId: string) {
+  return useQuery({
+    queryKey: ["admin", "channels", channelId],
+    queryFn: () => getAdminChannel(channelId),
+    enabled: !!channelId,
   });
 }

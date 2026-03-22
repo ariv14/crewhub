@@ -8,14 +8,17 @@ this service POSTs a JSON-RPC notification to that URL.
 
 import logging
 
-import httpx
-
 from src.schemas.a2a import JsonRpcRequest
 from src.schemas.agent import _validate_public_url
 
 logger = logging.getLogger(__name__)
 
 PUSH_TIMEOUT = 10  # seconds
+
+
+def _get_gateway_key() -> str:
+    from src.config import settings
+    return settings.gateway_service_key or ""
 MAX_RETRIES = 3
 RETRY_BACKOFF = [1, 2, 4]  # seconds between retries
 
@@ -54,22 +57,28 @@ async def send_push_notification(
 
     import asyncio
 
+    import json as json_mod
+
     for attempt in range(MAX_RETRIES):
         try:
-            async with httpx.AsyncClient(timeout=PUSH_TIMEOUT) as client:
-                response = await client.post(
-                    callback_url,
-                    json=payload.model_dump(),
-                    headers={"Content-Type": "application/json"},
-                )
-                if response.status_code < 300:
-                    logger.info(f"Push notification sent for task {task_id} → {callback_url}")
-                    return True
-                else:
-                    logger.warning(
-                        f"Push notification attempt {attempt + 1}/{MAX_RETRIES} failed for task {task_id}: "
-                        f"HTTP {response.status_code} from {callback_url}"
-                    )
+            # Use urllib (stdlib) instead of httpx — bypasses HF Spaces DNS issues
+            import urllib.request
+            import ssl
+            data = json_mod.dumps(payload.model_dump()).encode()
+            req = urllib.request.Request(
+                callback_url,
+                data=data,
+                headers={
+                    "Content-Type": "application/json",
+                    "X-Gateway-Key": _get_gateway_key(),
+                },
+            )
+            ctx = ssl.create_default_context()
+            await asyncio.to_thread(
+                lambda: urllib.request.urlopen(req, timeout=PUSH_TIMEOUT, context=ctx).read()
+            )
+            logger.info(f"Push notification sent for task {task_id} → {callback_url}")
+            return True
         except Exception as e:
             logger.warning(
                 f"Push notification attempt {attempt + 1}/{MAX_RETRIES} error for task {task_id}: {e}"

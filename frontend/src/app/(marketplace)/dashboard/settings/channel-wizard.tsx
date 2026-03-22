@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   Copy,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -138,6 +139,10 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
   const [skillId, setSkillId] = useState("");
   const [whatsappAck, setWhatsappAck] = useState(false);
   const [createdChannel, setCreatedChannel] = useState<Channel | null>(null);
+  const [dailyLimit, setDailyLimit] = useState(100);
+  const [lowBalance, setLowBalance] = useState(20);
+  const [pauseOnLimit, setPauseOnLimit] = useState(true);
+  const [privacyUrl, setPrivacyUrl] = useState("");
 
   // Fetch user's agents for step 3
   const { data: agentsData } = useAgents({
@@ -158,6 +163,10 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
     setSkillId("");
     setWhatsappAck(false);
     setCreatedChannel(null);
+    setDailyLimit(100);
+    setLowBalance(20);
+    setPauseOnLimit(true);
+    setPrivacyUrl("");
   }
 
   function handleClose(open: boolean) {
@@ -176,6 +185,7 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
       const allFilled = guide.credentials.every((c) => credentials[c.key]?.trim());
       if (!allFilled) return false;
       if (platform === "whatsapp" && !whatsappAck) return false;
+      if (!privacyUrl.trim() || !privacyUrl.startsWith("http")) return false;
       return true;
     }
     if (step === 2) return !!agentId;
@@ -191,9 +201,10 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
         bot_name: botName.trim(),
         agent_id: agentId,
         skill_id: skillId || undefined,
-        daily_credit_limit: 100,
-        low_balance_threshold: 20,
-        pause_on_limit: true,
+        daily_credit_limit: dailyLimit || undefined,
+        low_balance_threshold: lowBalance,
+        pause_on_limit: pauseOnLimit,
+        privacy_notice_url: privacyUrl.trim() || undefined,
       });
       setCreatedChannel(channel);
       setStep(3);
@@ -277,6 +288,11 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
                   );
                 }
               )}
+            </div>
+            <div className="mt-4 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-xs text-amber-500/90">
+              <span className="font-medium">⚠️ Healthcare Notice:</span>{" "}
+              CrewHub channels must not be used to collect, store, or transmit Protected Health Information (PHI).
+              No Business Associate Agreement (BAA) is in effect.
             </div>
           </div>
         )}
@@ -383,6 +399,28 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
               })}
             </TooltipProvider>
 
+            {/* Privacy Notice URL */}
+            <div className="space-y-2">
+              <Label htmlFor="privacy-url">Privacy Notice URL <span className="text-red-500">*</span></Label>
+              <Input
+                id="privacy-url"
+                type="url"
+                placeholder="https://example.com/privacy"
+                value={privacyUrl}
+                onChange={(e) => setPrivacyUrl(e.target.value)}
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Required. Link to your privacy notice that informs users about data handling.
+              </p>
+            </div>
+
+            {/* Data residency note */}
+            <p className="mt-2 flex items-start gap-1.5 text-[11px] text-muted-foreground/70">
+              <span>ℹ️</span>
+              <span>Channel data is processed and stored in the United States. If your users are in the EU, ensure your privacy notice discloses this.</span>
+            </p>
+
             {/* WhatsApp premium note */}
             {platform === "whatsapp" && "premiumNote" in guide && (
               <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
@@ -419,7 +457,7 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
                   <SelectValue placeholder="Select an agent" />
                 </SelectTrigger>
                 <SelectContent>
-                  {agents.map((agent) => (
+                  {agents.filter((agent) => agent.id).map((agent) => (
                     <SelectItem key={agent.id} value={agent.id}>
                       {agent.name}
                     </SelectItem>
@@ -437,13 +475,13 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
             {skills.length > 0 && (
               <div className="space-y-2">
                 <Label>Skill (Optional)</Label>
-                <Select value={skillId} onValueChange={setSkillId}>
+                <Select value={skillId || "__all__"} onValueChange={(v) => setSkillId(v === "__all__" ? "" : v)}>
                   <SelectTrigger>
                     <SelectValue placeholder="All skills (default)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All skills</SelectItem>
-                    {skills.map((skill) => (
+                    <SelectItem value="__all__">All skills</SelectItem>
+                    {skills.filter((skill) => skill.id).map((skill) => (
                       <SelectItem key={skill.id} value={skill.id}>
                         {skill.name}
                       </SelectItem>
@@ -456,11 +494,41 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
               </div>
             )}
 
-            {/* Budget defaults note */}
-            <div className="rounded-lg border border-muted-foreground/20 bg-muted/20 p-3">
-              <p className="text-xs text-muted-foreground">
-                You can adjust spending limits later in channel settings.
-              </p>
+            {/* Budget controls */}
+            <div className="space-y-4 rounded-lg border p-4">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Budget Controls</p>
+              <div className="space-y-2">
+                <Label htmlFor="daily-limit">Daily Credit Limit</Label>
+                <Input
+                  id="daily-limit"
+                  type="number"
+                  min={0}
+                  value={dailyLimit}
+                  onChange={(e) => setDailyLimit(Number(e.target.value))}
+                />
+                <p className="text-xs text-muted-foreground">Max credits per day (0 = unlimited)</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="low-balance">Low Balance Alert</Label>
+                <Input
+                  id="low-balance"
+                  type="number"
+                  min={0}
+                  value={lowBalance}
+                  onChange={(e) => setLowBalance(Number(e.target.value))}
+                />
+                <p className="text-xs text-muted-foreground">Notify when account credits drop below</p>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="pause-on-limit">Auto-pause when daily limit reached</Label>
+                </div>
+                <Switch
+                  id="pause-on-limit"
+                  checked={pauseOnLimit}
+                  onCheckedChange={setPauseOnLimit}
+                />
+              </div>
             </div>
           </div>
         )}

@@ -1,0 +1,35 @@
+name: Deploy Gateway to HuggingFace Spaces
+
+on:
+  push:
+    branches: [main, staging]
+    paths:
+      - "demo_agents/gateway/**"
+      - ".github/workflows/deploy-gateway.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-gateway-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install huggingface_hub
+        run: pip install "huggingface_hub>=0.25.0"
+
+      - name: Deploy Gateway
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          CREWHUB_API_URL: ${{ secrets.GATEWAY_CREWHUB_API_URL }}
+          GATEWAY_SERVICE_KEY: ${{ secrets.GATEWAY_SERVICE_KEY }}
+          GATEWAY_PUBLIC_URL: ${{ secrets.GATEWAY_PUBLIC_URL }}
+        run: python scripts/deploy_gateway.py

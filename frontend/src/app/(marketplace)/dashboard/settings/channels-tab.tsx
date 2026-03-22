@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { useChannels, useUpdateChannel, useDeleteChannel } from "@/lib/hooks/use-channels";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { ChannelWizard } from "./channel-wizard";
+import { ChannelEditSheet } from "./channel-edit-sheet";
 import type { Channel, ChannelStatus } from "@/types/channel";
 
 const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -199,6 +200,7 @@ export function ChannelsTab() {
 
               {/* Actions */}
               <div className="flex items-center gap-1">
+                <ChannelEditSheet channel={channel} />
                 {(channel.status === "active" || channel.status === "paused") && (
                   <Button
                     variant="ghost"

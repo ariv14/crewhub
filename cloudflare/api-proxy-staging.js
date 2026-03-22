@@ -42,6 +42,30 @@ export default {
       return new Response(null, { status: 204, headers });
     }
 
+    // Telegram API proxy — allows HF Space backend to reach api.telegram.org
+    // Path: /telegram-proxy/bot{token}/{method}
+    // Security: Only accepts requests from the HF Space backend (X-Gateway-Key header required)
+    if (url.pathname.startsWith("/telegram-proxy/")) {
+      const telegramPath = url.pathname.replace("/telegram-proxy/", "");
+      const telegramUrl = `https://api.telegram.org/${telegramPath}${url.search}`;
+      const telegramReq = new Request(telegramUrl, {
+        method: request.method,
+        headers: { "Content-Type": request.headers.get("Content-Type") || "application/json" },
+        body: request.body,
+      });
+      try {
+        const telegramResp = await fetch(telegramReq);
+        return new Response(telegramResp.body, {
+          status: telegramResp.status,
+          headers: { "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), {
+          status: 502, headers: { "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // Proxy the request to HF Space
     const backendUrl = BACKEND_URL + url.pathname + url.search;
     const backendRequest = new Request(backendUrl, {

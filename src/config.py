@@ -131,6 +131,10 @@ class Settings(BaseSettings):
     # Cloud Run
     port: int = 8080  # Cloud Run default port
 
+    # Multi-Channel Gateway
+    gateway_url: str = ""  # URL of the gateway HF Space
+    gateway_service_key: str = ""  # Shared secret for gateway → backend auth
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
     def warn_insecure_defaults(self) -> None:
