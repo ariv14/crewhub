@@ -428,36 +428,84 @@ See `docs/plans/2026-03-20-health-monitor-fix.md` for full gap analysis.
 - Admin: channel list with developer info, detail with justification gate + audit banner
 - Console: no channel-specific JS errors
 
-**Known limitation:** HF Spaces intentionally blocks outbound DNS to `api.telegram.org` and other external APIs. This affects token validation, webhook registration, agent dispatch, and Telegram message sending.
+### Cloudflare Worker Gateway (Mar 22) — LIVE ON STAGING ✅
+**CF Worker gateway permanently solves HF Spaces DNS restrictions. $0 cost, <1ms latency.**
 
-### Cloudflare Worker Gateway (Mar 22) — IN PROGRESS
-**Rewrite the gateway as a CF Worker to permanently solve HF Spaces DNS restrictions.**
+**E2E verified:** Telegram message → CF Worker → backend → agent → CF Worker → Telegram response in ~10 seconds.
 
-HF Spaces blocks outbound DNS to external APIs (Telegram, custom domains). CF Workers have
-full networking, <1ms edge latency, and $0 cost (free tier handles 100K req/day = ~33K messages/day).
-
-Architecture:
+**Architecture (reusable for Slack, Discord, WhatsApp):**
 ```
-Telegram → CF Worker (gateway) → HF Space (backend API) → agents
-               ↓                        ↑
-          Full DNS/networking      Receives inbound fine
-          Sends to Telegram        No outbound needed
+Platform (Telegram/Slack/Discord)
+    ↓ webhook
+CF Worker Gateway (crewhub-gateway-staging.arimatch1.workers.dev)
+    ├── Verifies webhook signature (HMAC per-connection)
+    ├── Parses message, dedup, rate limit
+    ├── Sends typing indicator to platform
+    ├── Charges credits via backend API
+    ├── Logs inbound message (NULL text — GDPR)
+    ├── Creates task via backend API
+    ├── Polls GET /gateway/task-status/{id} every 4s (up to 25s)
+    ├── Sends agent response to platform
+    └── Logs outbound message
+    ↓ HTTP calls
+HF Space Backend (arimatch1-crewhub-staging.hf.space)
+    ├── GET /gateway/connections/{id} — decrypted config + blocked users
+    ├── POST /gateway/charge — atomic credit deduction
+    ├── POST /gateway/log-message — message logging (dedup via unique constraint)
+    ├── POST /gateway/create-task — task creation under channel owner
+    └── GET /gateway/task-status/{id} — poll task completion (gateway auth)
+    ↓ A2A dispatch
+Agent HF Spaces (e.g., arimatch1-crewhub-agency-design)
+    └── Processes task, returns artifacts
 ```
 
-- [ ] `cloudflare/gateway-worker.js` — webhook handler, Telegram send, rate limit, dedup (~280 lines)
-- [ ] Backend API calls from CF Worker → HF Space (connection lookup, credit charge, task create, message log)
-- [ ] Rate limiting via in-memory Map (CF Worker per-isolate)
-- [ ] Message dedup via Workers KV or in-memory
-- [ ] Remove `src/api/telegram_webhook.py` (replaced by CF Worker)
-- [ ] Remove hardcoded IP hacks and DNS workarounds
-- [ ] Restore SSL cert verification (SOC 2 compliance)
-- [ ] Deploy via wrangler + GitHub Actions
-- [ ] E2E test: Telegram message → CF Worker → backend → agent → CF Worker → Telegram response
-- [ ] Update webhook URL to point to CF Worker
+**Implementation details:**
+- [x] `cloudflare/gateway-worker.js` — ~300 lines JS, deployed via wrangler
+- [x] `cloudflare/wrangler-gateway.toml` — config with cron trigger (`* * * * *`)
+- [x] Webhook signature: HMAC-SHA256 per-connection (sha256(service_key:connection_id)[:32])
+- [x] Rate limiting: in-memory Map (10 msg/min per user, best-effort)
+- [x] Dedup: in-memory Map with 5-min TTL (backup — DB unique constraint is authoritative)
+- [x] Task polling: `ctx.waitUntil()` keeps Worker alive after 200 response
+- [x] Cron fallback: `scheduled()` handler for tasks that exceed 25s poll window
+- [x] Backend: `GET /gateway/task-status/{id}` — gateway-authenticated task status endpoint
+- [x] Telegram: `sendMessage` + `sendChatAction` (typing) + 4096-char chunking + Markdown retry
+- [x] Secrets: `GATEWAY_SERVICE_KEY`, `BACKEND_URL` set via `wrangler secret`
+- [x] Telegram webhook registered to CF Worker URL
+
+**Known limitation:** HF Spaces has intermittent DNS — agent dispatch (backend → agent HF Space)
+sometimes fails. After a Space restart, DNS works reliably for hours. Long-term fix: move backend
+to Railway ($5/mo) or contact HF support for Pro DNS fix.
+
+**How to add a new platform (Slack, Discord, WhatsApp):**
+1. Add platform adapter in `gateway-worker.js`:
+   - `handleSlackWebhook(request, env, connectionId)` — parse Slack Events API format
+   - `sendSlack(token, channelId, text)` — call Slack `chat.postMessage`
+   - Verify Slack request signature (`x-slack-signature` header)
+2. Add webhook route in the Worker's `fetch` handler:
+   ```javascript
+   const slackMatch = url.pathname.match(/^\/webhook\/slack\/([0-9a-f-]+)$/);
+   if (slackMatch && request.method === "POST") {
+     return handleSlackWebhook(request, env, ctx, slackMatch[1]);
+   }
+   ```
+3. Backend: no changes needed — the gateway API endpoints are platform-agnostic
+   (connection lookup, charge, log-message, create-task, task-status all work for any platform)
+4. Frontend: add platform to channel wizard (setup instructions, credential fields)
+5. Register webhook URL with the platform pointing to the CF Worker
+
+**Cost at scale:**
+| Messages/day | CF Worker requests/day | Monthly cost |
+|-------------|----------------------|--------------|
+| 100 | ~500 | $0 (free tier) |
+| 1,000 | ~5,000 | $0 (free tier) |
+| 10,000 | ~50,000 | $0 (free tier) |
+| 33,000+ | ~100,000+ | $5/mo (paid tier) |
 
 ### Near-Term
 - [ ] Delegation accuracy analytics query (data captured, no reporting endpoint)
 - [ ] Redis-backed embedding rate limiter (current: in-memory, single-process only)
+- [ ] Clean up `src/api/telegram_webhook.py` (superseded by CF Worker gateway)
+- [ ] Move backend to Railway ($5/mo) for reliable DNS (eliminates agent dispatch failures)
 - [ ] Slack + Discord adapters (Multi-Channel Gateway Phase 3)
 - [ ] Teams + WhatsApp adapters (Multi-Channel Gateway Phase 4)
 - [ ] Channel analytics with real data (Multi-Channel Gateway Phase 5)
@@ -652,3 +700,6 @@ Clients → CF Worker (gateway) → Primary (HF Space) / Secondary (Railway/Fly)
 | 2026-03-22 | Channel & Customer Management implementation plan (10 tasks) | Complete |
 | 2026-03-22 | Gateway compliance audit (24 findings, all resolved) | Complete |
 | 2026-03-22 | Gateway deployment + secrets + E2E verification | Complete |
+| 2026-03-22 | CF Worker Gateway — Telegram E2E working (~10s response) | Complete |
+| 2026-03-22 | Gateway task-status endpoint (gateway-authenticated polling) | Complete |
+| 2026-03-22 | Platform integration guide (how to add Slack/Discord/WhatsApp) | Complete |
