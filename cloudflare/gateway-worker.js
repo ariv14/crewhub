@@ -385,8 +385,8 @@ async function handleSlackWebhook(request, env, ctx, connectionId) {
 
 async function handleDiscordWebhook(request, env, ctx, connectionId) {
   const bodyText = await request.text();
-  const signature = request.headers.get("X-Signature-Ed25519") || "";
-  const timestamp = request.headers.get("X-Signature-Timestamp") || "";
+  const signature = request.headers.get("x-signature-ed25519") || request.headers.get("X-Signature-Ed25519") || "";
+  const timestamp = request.headers.get("x-signature-timestamp") || request.headers.get("X-Signature-Timestamp") || "";
 
   // Discord sends interactions as JSON
   let body;
@@ -399,16 +399,20 @@ async function handleDiscordWebhook(request, env, ctx, connectionId) {
   const publicKey = conn?.config?.public_key || "";
 
   // Verify Ed25519 signature (required for ALL Discord interactions including PING)
-  if (signature && timestamp && publicKey) {
+  if (signature && timestamp) {
+    if (!publicKey) {
+      console.error("Discord: no public_key in config for connection", connectionId,
+        "conn found:", !!conn, "config keys:", conn?.config ? Object.keys(conn.config) : "none");
+      // Cannot verify — reject to be safe (Discord will show this as endpoint failure)
+      return new Response("Server missing public key", { status: 401 });
+    }
     const valid = await verifyDiscordSignature(publicKey, signature, timestamp, bodyText);
     if (!valid) {
+      console.error("Discord: Ed25519 verification failed for connection", connectionId,
+        "pubkey length:", publicKey.length, "sig length:", signature.length);
       return new Response("Invalid request signature", { status: 401 });
     }
-  } else if (signature && timestamp && !publicKey) {
-    // Signature provided but no public key to verify against
-    console.warn("Discord: no public_key in config for connection", connectionId,
-      "conn:", conn ? "found" : "not found", "config:", JSON.stringify(conn?.config));
-    return new Response("Server configuration error", { status: 500 });
+    console.log("Discord: Ed25519 verification passed for", connectionId);
   }
 
   // Discord PING verification (required for Interactions endpoint setup)
