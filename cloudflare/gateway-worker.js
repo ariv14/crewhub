@@ -189,24 +189,28 @@ async function discordTyping(token, channelId) {
   }).catch(() => {});
 }
 
-// Discord Ed25519 signature verification
+// Discord Ed25519 signature verification (CF Workers compatible)
 async function verifyDiscordSignature(publicKeyHex, signature, timestamp, body) {
   try {
-    // Convert hex public key to Uint8Array
-    const pubKeyBytes = new Uint8Array(
-      publicKeyHex.match(/.{1,2}/g).map(b => parseInt(b, 16))
+    // Convert hex strings to Uint8Array
+    const hexToBytes = (hex) => new Uint8Array(
+      hex.match(/.{1,2}/g).map(b => parseInt(b, 16))
     );
-    const sigBytes = new Uint8Array(
-      signature.match(/.{1,2}/g).map(b => parseInt(b, 16))
-    );
+    const pubKeyBytes = hexToBytes(publicKeyHex);
+    const sigBytes = hexToBytes(signature);
     const message = new TextEncoder().encode(timestamp + body);
 
+    // CF Workers require namedCurve for Ed25519
     const cryptoKey = await crypto.subtle.importKey(
-      "raw", pubKeyBytes, { name: "Ed25519" }, false, ["verify"]
+      "raw", pubKeyBytes,
+      { name: "Ed25519", namedCurve: "Ed25519" },
+      false, ["verify"]
     );
-    return await crypto.subtle.verify("Ed25519", cryptoKey, sigBytes, message);
+    return await crypto.subtle.verify(
+      { name: "Ed25519" }, cryptoKey, sigBytes, message
+    );
   } catch (err) {
-    console.error("Ed25519 verification error:", err);
+    console.error("Ed25519 verification error:", err.message || err);
     return false;
   }
 }
@@ -392,29 +396,24 @@ async function handleDiscordWebhook(request, env, ctx, connectionId) {
 
   // Get connection to retrieve the Discord public key for verification
   const conn = await getConnection(env, connectionId);
-
-  // Verify Ed25519 signature (required for all Discord interactions)
   const publicKey = conn?.config?.public_key || "";
-  if (publicKey && signature && timestamp) {
+
+  // Verify Ed25519 signature (required for ALL Discord interactions including PING)
+  if (signature && timestamp && publicKey) {
     const valid = await verifyDiscordSignature(publicKey, signature, timestamp, bodyText);
     if (!valid) {
       return new Response("Invalid request signature", { status: 401 });
     }
-  } else if (body.type !== 1) {
-    // For non-PING requests, signature is mandatory
-    console.warn("Discord: missing signature or public key for connection", connectionId);
+  } else if (signature && timestamp && !publicKey) {
+    // Signature provided but no public key to verify against
+    console.warn("Discord: no public_key in config for connection", connectionId,
+      "conn:", conn ? "found" : "not found", "config:", JSON.stringify(conn?.config));
+    return new Response("Server configuration error", { status: 500 });
   }
 
   // Discord PING verification (required for Interactions endpoint setup)
   if (body.type === 1) {
-    // If we have the public key, verify the PING signature
-    if (publicKey && signature && timestamp) {
-      const valid = await verifyDiscordSignature(publicKey, signature, timestamp, bodyText);
-      if (!valid) {
-        return new Response("Invalid request signature", { status: 401 });
-      }
-    }
-    return Response.json({ type: 1 }); // PONG
+    return Response.json({ type: 1 }); // PONG — signature already verified above
   }
 
   // Handle slash commands (type 2 = APPLICATION_COMMAND)
