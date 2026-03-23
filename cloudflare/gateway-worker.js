@@ -154,11 +154,61 @@ async function sendDiscord(token, channelId, text) {
   }
 }
 
+// Discord interaction followup — edit deferred response
+async function sendDiscordInteractionFollowup(applicationId, interactionToken, text) {
+  const chunks = [];
+  for (let i = 0; i < text.length; i += 2000) {
+    chunks.push(text.substring(i, i + 2000));
+  }
+  // Edit the original deferred response
+  await fetch(
+    `https://discord.com/api/v10/webhooks/${applicationId}/${interactionToken}/messages/@original`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: chunks[0] }),
+    }
+  );
+  // Send additional chunks as followup messages
+  for (let i = 1; i < chunks.length; i++) {
+    await fetch(
+      `https://discord.com/api/v10/webhooks/${applicationId}/${interactionToken}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: chunks[i] }),
+      }
+    );
+  }
+}
+
 async function discordTyping(token, channelId) {
   await fetch(`https://discord.com/api/v10/channels/${channelId}/typing`, {
     method: "POST",
     headers: { "Authorization": `Bot ${token}` },
   }).catch(() => {});
+}
+
+// Discord Ed25519 signature verification
+async function verifyDiscordSignature(publicKeyHex, signature, timestamp, body) {
+  try {
+    // Convert hex public key to Uint8Array
+    const pubKeyBytes = new Uint8Array(
+      publicKeyHex.match(/.{1,2}/g).map(b => parseInt(b, 16))
+    );
+    const sigBytes = new Uint8Array(
+      signature.match(/.{1,2}/g).map(b => parseInt(b, 16))
+    );
+    const message = new TextEncoder().encode(timestamp + body);
+
+    const cryptoKey = await crypto.subtle.importKey(
+      "raw", pubKeyBytes, { name: "Ed25519" }, false, ["verify"]
+    );
+    return await crypto.subtle.verify("Ed25519", cryptoKey, sigBytes, message);
+  } catch (err) {
+    console.error("Ed25519 verification error:", err);
+    return false;
+  }
 }
 
 // --- Platform dispatcher ---
@@ -331,6 +381,8 @@ async function handleSlackWebhook(request, env, ctx, connectionId) {
 
 async function handleDiscordWebhook(request, env, ctx, connectionId) {
   const bodyText = await request.text();
+  const signature = request.headers.get("X-Signature-Ed25519") || "";
+  const timestamp = request.headers.get("X-Signature-Timestamp") || "";
 
   // Discord sends interactions as JSON
   let body;
@@ -338,43 +390,193 @@ async function handleDiscordWebhook(request, env, ctx, connectionId) {
     return new Response(JSON.stringify({ detail: "Invalid JSON" }), { status: 400 });
   }
 
-  // Discord PING verification (required for Interactions endpoint)
+  // Get connection to retrieve the Discord public key for verification
+  const conn = await getConnection(env, connectionId);
+
+  // Verify Ed25519 signature (required for all Discord interactions)
+  const publicKey = conn?.config?.public_key || "";
+  if (publicKey && signature && timestamp) {
+    const valid = await verifyDiscordSignature(publicKey, signature, timestamp, bodyText);
+    if (!valid) {
+      return new Response("Invalid request signature", { status: 401 });
+    }
+  } else if (body.type !== 1) {
+    // For non-PING requests, signature is mandatory
+    console.warn("Discord: missing signature or public key for connection", connectionId);
+  }
+
+  // Discord PING verification (required for Interactions endpoint setup)
   if (body.type === 1) {
-    // Verify Ed25519 signature
-    const conn = await getConnection(env, connectionId);
-    // For now, respond to PING without verification (Discord validates via application_id)
+    // If we have the public key, verify the PING signature
+    if (publicKey && signature && timestamp) {
+      const valid = await verifyDiscordSignature(publicKey, signature, timestamp, bodyText);
+      if (!valid) {
+        return new Response("Invalid request signature", { status: 401 });
+      }
+    }
     return Response.json({ type: 1 }); // PONG
   }
 
-  // Handle message (type 2 = APPLICATION_COMMAND, but we use Gateway events)
-  // For Discord Gateway via webhook, messages come as MESSAGE_CREATE events
-  // However, Discord Interactions endpoint only receives slash commands and components
-  // For full message handling, Discord requires WebSocket Gateway (Phase 4)
-  // For now, support slash command interactions
+  // Handle slash commands (type 2 = APPLICATION_COMMAND)
   if (body.type === 2) {
-    // Slash command
     const userId = body.member?.user?.id || body.user?.id || "";
     const msgId = body.id || "";
     const chatId = body.channel_id || "";
+    const applicationId = body.application_id || conn?.config?.application_id || "";
+    const interactionToken = body.token || "";
     const text = body.data?.options?.[0]?.value || body.data?.name || "";
     if (!text || !chatId) {
       return Response.json({ type: 4, data: { content: "Please provide a message." } });
     }
 
     if (isDuplicate(connectionId, msgId)) {
-      return Response.json({ type: 4, data: { content: "Processing..." } });
+      return Response.json({ type: 5 });
     }
 
-    // Respond with "thinking" indicator, then process in background
-    ctx.waitUntil(processMessage({ env, connectionId, userId, msgId, chatId, text, platform: "discord" }));
+    // Process in background with interaction context for followup
+    ctx.waitUntil(processDiscordInteraction({
+      env, connectionId, userId, msgId, chatId, text,
+      applicationId, interactionToken,
+    }));
 
-    // Discord requires immediate response for interactions
-    return Response.json({
-      type: 5, // DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE (shows "thinking...")
-    });
+    // Respond with "thinking" indicator — Discord requires immediate response
+    return Response.json({ type: 5 });
   }
 
   return Response.json({ ok: true });
+}
+
+// Discord interaction processor — uses interaction webhook for responses
+async function processDiscordInteraction(ctx) {
+  const { env, connectionId, userId, msgId, chatId, text, applicationId, interactionToken } = ctx;
+
+  const conn = await getConnection(env, connectionId);
+  if (!conn || !conn.bot_token) {
+    console.log("Connection not found:", connectionId);
+    if (applicationId && interactionToken) {
+      await sendDiscordInteractionFollowup(applicationId, interactionToken,
+        "Sorry, this channel is not configured correctly.");
+    }
+    return;
+  }
+
+  // Auto-activate pending channels
+  if (conn.status === "pending") {
+    await backendCall(env, "/gateway/heartbeat", "POST", {
+      connections: [{ connection_id: connectionId, status: "active" }],
+    });
+  }
+  if (conn.status !== "active" && conn.status !== "pending") {
+    console.log("Connection inactive:", connectionId, conn.status);
+    return;
+  }
+
+  const botToken = conn.bot_token;
+
+  // Check blocked users
+  const userHash = (await hmacSha256(
+    `${env.GATEWAY_SERVICE_KEY}:${connectionId}`, userId
+  )).substring(0, 16);
+
+  if (conn.blocked_users && conn.blocked_users.includes(userHash)) {
+    return; // silently drop
+  }
+
+  // Charge credits
+  const chargeResult = await chargeCredits(env, connectionId, 1, conn.daily_credit_limit);
+  if (!chargeResult.success) {
+    const errorMsgs = {
+      daily_limit: "Daily message limit reached. Service will resume tomorrow.",
+      insufficient_balance: "Service temporarily unavailable.",
+      credit_exhausted: "Service temporarily unavailable.",
+    };
+    await sendDiscordInteractionFollowup(applicationId, interactionToken,
+      errorMsgs[chargeResult.error] || "Service temporarily unavailable.");
+    return;
+  }
+
+  // Log inbound message (NULL text — GDPR privacy)
+  await logMessage(env, {
+    connection_id: connectionId,
+    platform_user_id_hash: userHash,
+    platform_message_id: msgId,
+    platform_chat_id: chatId,
+    direction: "inbound",
+    message_text: null,
+    media_type: "text",
+  });
+
+  // Create task
+  const skillId = conn.skill_id || null;
+  const taskBody = {
+    owner_id: conn.owner_id,
+    provider_agent_id: conn.agent_id,
+    message: text,
+  };
+  if (skillId) taskBody.skill_id = skillId;
+
+  const task = await backendCall(env, "/gateway/create-task", "POST", taskBody);
+
+  if (task.error || task.detail) {
+    console.error("Task creation failed:", task.error || task.detail);
+    await sendDiscordInteractionFollowup(applicationId, interactionToken,
+      "Sorry, I couldn't process your request. Please try again.");
+    return;
+  }
+
+  const taskId = task.task_id;
+  console.log("Discord task created:", taskId, "— polling for up to 25s");
+
+  // Quick poll (25s)
+  let responseText = null;
+  const startTime = Date.now();
+  while (Date.now() - startTime < 25000) {
+    await new Promise(r => setTimeout(r, 3000));
+    try {
+      const taskStatus = await backendCall(env, `/gateway/task-status/${taskId}`);
+      if (!taskStatus) continue;
+      const status = taskStatus.status;
+      if (status === "completed") {
+        for (const art of (taskStatus.artifacts || [])) {
+          for (const part of (art.parts || [])) {
+            if (part.type === "text" && part.content) {
+              responseText = part.content;
+              break;
+            }
+          }
+          if (responseText) break;
+        }
+        if (!responseText) responseText = "Task completed.";
+        break;
+      } else if (status === "failed" || status === "canceled") {
+        responseText = "Sorry, I couldn't complete your request.";
+        break;
+      }
+    } catch (err) {
+      console.error("Poll error:", err);
+    }
+  }
+
+  if (!responseText) {
+    responseText = "Your request is taking longer than expected. Please try again in a moment.";
+  }
+
+  // Send response via interaction webhook (edits the deferred "thinking..." message)
+  await sendDiscordInteractionFollowup(applicationId, interactionToken, responseText);
+
+  // Log outbound message
+  await logMessage(env, {
+    connection_id: connectionId,
+    platform_user_id_hash: "agent",
+    platform_message_id: `reply-${msgId}`,
+    platform_chat_id: chatId,
+    direction: "outbound",
+    message_text: responseText.substring(0, 2000),
+    task_id: taskId,
+    credits_charged: 1,
+  });
+
+  console.log("Discord response delivered for task", taskId);
 }
 
 // --- Generic Message Processor ---
@@ -595,7 +797,9 @@ async function deliverPendingResponses(env) {
   if (!channels || !channels.channels) return;
 
   for (const channel of channels.channels) {
-    if (channel.platform !== "telegram" || channel.status !== "active") continue;
+    if (channel.status !== "active") continue;
+    // Skip Discord — interactions use webhook followup, not cron delivery
+    if (channel.platform === "discord") continue;
 
     // Get system messages (pending deliveries)
     const msgs = await backendCall(env, `/channels/${channel.id}/messages?direction=system`);
@@ -752,6 +956,20 @@ export default {
         }
         return Response.json({ valid: false, error: "Invalid Telegram bot token" });
       }
+      if (platform === "discord" && bot_token) {
+        const result = await fetch("https://discord.com/api/v10/users/@me", {
+          headers: { "Authorization": `Bot ${bot_token}` },
+        });
+        if (result.ok) {
+          const user = await result.json();
+          return Response.json({
+            valid: true,
+            platform_bot_id: user.id,
+            bot_name: user.username,
+          });
+        }
+        return Response.json({ valid: false, error: "Invalid Discord bot token" });
+      }
       return Response.json({ valid: false, error: "Unsupported platform" });
     }
 
@@ -830,6 +1048,72 @@ export default {
         }),
         origin
       );
+    }
+
+    // Discord auto-register: POST /auto-register-discord
+    // Registers /ask slash command + returns webhook URL for Interactions Endpoint
+    if (url.pathname === "/auto-register-discord" && request.method === "POST") {
+      const body = await request.json();
+      const { bot_token, application_id, connection_id } = body;
+      if (!bot_token || !application_id || !connection_id) {
+        return addCorsHeaders(
+          Response.json({ ok: false, error: "bot_token, application_id, and connection_id required" }, { status: 400 }),
+          origin
+        );
+      }
+
+      // Validate token by calling Discord
+      const meResp = await fetch("https://discord.com/api/v10/users/@me", {
+        headers: { "Authorization": `Bot ${bot_token}` },
+      });
+      if (!meResp.ok) {
+        return addCorsHeaders(
+          Response.json({ ok: false, error: "Invalid bot token" }, { status: 401 }),
+          origin
+        );
+      }
+
+      // Register /ask slash command globally
+      const cmdResp = await fetch(
+        `https://discord.com/api/v10/applications/${application_id}/commands`,
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bot ${bot_token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: "ask",
+            description: "Ask the AI agent a question",
+            type: 1, // CHAT_INPUT
+            options: [{
+              name: "message",
+              description: "Your question or message",
+              type: 3, // STRING
+              required: true,
+            }],
+          }),
+        }
+      );
+
+      const workerUrl = url.origin;
+      const webhookUrl = `${workerUrl}/webhook/discord/${connection_id}`;
+
+      return addCorsHeaders(
+        Response.json({
+          ok: cmdResp.ok,
+          webhook_url: webhookUrl,
+          slash_command: cmdResp.ok ? "/ask" : null,
+          error: !cmdResp.ok ? `Failed to register slash command: ${cmdResp.status}` : null,
+          instructions: "Paste this webhook URL as the Interactions Endpoint URL in your Discord app's General Information page.",
+        }),
+        origin
+      );
+    }
+
+    // CORS preflight for /auto-register-discord
+    if (request.method === "OPTIONS" && url.pathname === "/auto-register-discord") {
+      return new Response(null, { status: 204, headers: corsHeaders(origin) });
     }
 
     // 404 for everything else

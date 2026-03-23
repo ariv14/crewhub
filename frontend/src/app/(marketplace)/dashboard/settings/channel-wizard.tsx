@@ -208,7 +208,7 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
       });
       setCreatedChannel(channel);
 
-      // Auto-register Telegram webhook via CF Worker (browser has full DNS)
+      // Auto-register webhook via CF Worker (browser has full DNS)
       if (platform === "telegram" && credentials.bot_token && channel.webhook_url) {
         try {
           const gatewayUrl = channel.webhook_url.split("/webhook/")[0];
@@ -228,6 +228,30 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
           }
         } catch (e) {
           console.warn("Auto webhook registration failed (non-blocking):", e);
+        }
+      }
+
+      // Discord: register /ask slash command via CF Worker
+      if (platform === "discord" && credentials.bot_token && credentials.application_id && channel.webhook_url) {
+        try {
+          const gatewayUrl = channel.webhook_url.split("/webhook/")[0];
+          const resp = await fetch(`${gatewayUrl}/auto-register-discord`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              bot_token: credentials.bot_token,
+              application_id: credentials.application_id,
+              connection_id: channel.id,
+            }),
+          });
+          const result = await resp.json();
+          if (result.ok) {
+            console.log("Discord slash command registered:", result.slash_command);
+          } else {
+            console.warn("Discord slash command registration failed:", result.error);
+          }
+        } catch (e) {
+          console.warn("Discord auto-register failed (non-blocking):", e);
         }
       }
 
