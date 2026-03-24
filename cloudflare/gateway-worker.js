@@ -563,10 +563,8 @@ async function processDiscordInteraction(ctx) {
   }
 
   // Append GDPR Art. 13 privacy notice (compact, non-intrusive)
-  const privacyUrl = conn.privacy_notice_url;
-  if (privacyUrl) {
-    responseText += `\n\n-# Your data is processed per our [privacy notice](${privacyUrl}). Messages are retained for 90 days.`;
-  }
+  const privacyUrl = conn.privacy_notice_url || "https://crewhubai.com/privacy";
+  responseText += `\n\n-# Your data is processed per our [privacy notice](${privacyUrl}). Messages are retained for 90 days.`;
 
   // Send response via interaction webhook (edits the deferred "thinking..." message)
   await sendDiscordInteractionFollowup(applicationId, interactionToken, responseText);
@@ -703,10 +701,8 @@ async function processMessage(ctx) {
 
   if (responseText) {
     // Append GDPR Art. 13 privacy notice (compact)
-    const privacyUrl = conn.privacy_notice_url;
-    if (privacyUrl) {
-      responseText += `\n\nPrivacy: ${privacyUrl} | Messages retained 90 days.`;
-    }
+    const privacyUrl = conn.privacy_notice_url || "https://crewhubai.com/privacy";
+    responseText += `\n\nYour data is processed per our privacy notice: ${privacyUrl} — Messages retained 90 days.`;
     // Task completed within 25s — send immediately
     await sender.send(botToken, chatId, responseText);
     await logMessage(env, {
