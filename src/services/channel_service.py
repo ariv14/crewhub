@@ -37,6 +37,35 @@ class ChannelService:
         if ch.owner_id != owner_id:
             raise ForbiddenError("You do not own this channel")
 
+    # Fields in the config dict that must be encrypted at rest (SOC 2 CC6.1, GDPR Art. 32)
+    _SENSITIVE_CONFIG_KEYS = {"public_key", "application_id", "app_id", "app_password"}
+
+    @staticmethod
+    def _encrypt_config(config: dict) -> dict:
+        """Encrypt sensitive fields in config dict before storage."""
+        from src.core.encryption import encrypt_value
+        result = {}
+        for k, v in config.items():
+            if k in ChannelService._SENSITIVE_CONFIG_KEYS and v:
+                result[k] = encrypt_value(str(v))
+            else:
+                result[k] = v
+        return result
+
+    @staticmethod
+    def decrypt_config(config: dict | None) -> dict:
+        """Decrypt sensitive fields in config dict for gateway retrieval."""
+        if not config:
+            return {}
+        from src.core.encryption import decrypt_value
+        result = {}
+        for k, v in config.items():
+            if k in ChannelService._SENSITIVE_CONFIG_KEYS and v and isinstance(v, str) and v.startswith("v1:"):
+                result[k] = decrypt_value(v)
+            else:
+                result[k] = v
+        return result
+
     async def _validate_token(self, platform: str, credentials: dict) -> dict:
         """Validate bot token via CF Worker gateway (which has full DNS).
 
@@ -197,11 +226,11 @@ class ChannelService:
             daily_credit_limit=data.daily_credit_limit,
             low_balance_threshold=data.low_balance_threshold,
             pause_on_limit=data.pause_on_limit,
-            config={
-                k: v
-                for k, v in credentials.items()
-                if k not in ("bot_token", "access_token", "signing_secret", "verify_token")
-            },
+            config=self._encrypt_config(
+                {k: v for k, v in credentials.items()
+                 if k not in ("bot_token", "access_token", "signing_secret", "verify_token")}
+            ),
+            privacy_notice_url=getattr(data, "privacy_notice_url", None),
         )
         self.db.add(ch)
         await self.db.flush()

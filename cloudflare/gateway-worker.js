@@ -401,15 +401,13 @@ async function handleDiscordWebhook(request, env, ctx, connectionId) {
   // Verify Ed25519 signature (required for ALL Discord interactions including PING)
   if (signature && timestamp) {
     if (!publicKey) {
-      console.error("Discord: no public_key in config for connection", connectionId,
-        "conn found:", !!conn, "config keys:", conn?.config ? Object.keys(conn.config) : "none");
+      console.error("Discord: no public_key in config for connection", connectionId);
       // Cannot verify — reject to be safe (Discord will show this as endpoint failure)
       return new Response("Server missing public key", { status: 401 });
     }
     const valid = await verifyDiscordSignature(publicKey, signature, timestamp, bodyText);
     if (!valid) {
-      console.error("Discord: Ed25519 verification failed for connection", connectionId,
-        "pubkey length:", publicKey.length, "sig length:", signature.length);
+      console.error("Discord: Ed25519 verification failed for connection", connectionId);
       return new Response("Invalid request signature", { status: 401 });
     }
     console.log("Discord: Ed25519 verification passed for", connectionId);
@@ -521,7 +519,7 @@ async function processDiscordInteraction(ctx) {
   const task = await backendCall(env, "/gateway/create-task", "POST", taskBody);
 
   if (task.error || task.detail) {
-    console.error("Task creation failed:", task.error || task.detail);
+    console.error("Task creation failed for connection", connectionId);
     await sendDiscordInteractionFollowup(applicationId, interactionToken,
       "Sorry, I couldn't process your request. Please try again.");
     return;
@@ -556,13 +554,17 @@ async function processDiscordInteraction(ctx) {
         break;
       }
     } catch (err) {
-      console.error("Poll error:", err);
+      console.error("Discord poll error for task", taskId);
     }
   }
 
   if (!responseText) {
     responseText = "Your request is taking longer than expected. Please try again in a moment.";
   }
+
+  // Append GDPR Art. 13 privacy notice (compact, non-intrusive)
+  const privacyUrl = conn.privacy_notice_url || "https://crewhubai.com/privacy";
+  responseText += `\n\n-# Your data is processed per our [privacy notice](${privacyUrl}). Messages are retained for 90 days.`;
 
   // Send response via interaction webhook (edits the deferred "thinking..." message)
   await sendDiscordInteractionFollowup(applicationId, interactionToken, responseText);
@@ -659,7 +661,7 @@ async function processMessage(ctx) {
   const task = await backendCall(env, "/gateway/create-task", "POST", taskBody);
 
   if (task.error || task.detail) {
-    console.error("Task creation failed:", task.error || task.detail);
+    console.error("Task creation failed for connection", connectionId);
     await sender.send(botToken, chatId, "Sorry, I couldn't process your request. Please try again.");
     return;
   }
@@ -693,11 +695,14 @@ async function processMessage(ctx) {
         break;
       }
     } catch (err) {
-      console.error("Poll error:", err);
+      console.error("Poll error for task", taskId);
     }
   }
 
   if (responseText) {
+    // Append GDPR Art. 13 privacy notice (compact)
+    const privacyUrl = conn.privacy_notice_url || "https://crewhubai.com/privacy";
+    responseText += `\n\nYour data is processed per our privacy notice: ${privacyUrl} — Messages retained 90 days.`;
     // Task completed within 25s — send immediately
     await sender.send(botToken, chatId, responseText);
     await logMessage(env, {
@@ -1153,7 +1158,7 @@ export default {
       } else {
         const errBody = await patchResp.text();
         endpointError = `Failed to set Interactions Endpoint URL (${patchResp.status}): ${errBody}`;
-        console.error("Discord: Failed to set endpoint URL:", patchResp.status, errBody);
+        console.error("Discord: Failed to set endpoint URL, status:", patchResp.status);
       }
 
       return addCorsHeaders(

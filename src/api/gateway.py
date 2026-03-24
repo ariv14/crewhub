@@ -189,6 +189,17 @@ async def charge_for_message(
         new_today_usage,
     )
 
+    # SOC 2 CC7.2: audit log for credit charges (non-blocking)
+    try:
+        await _audit_gateway(
+            db, "charge",
+            target_id=str(req.connection_id),
+            new_value={"credits": req.credits, "owner": str(owner_id), "remaining": round(remaining, 2)},
+        )
+        await db.commit()
+    except Exception:
+        logger.warning("Audit log for charge failed (non-blocking)", exc_info=True)
+
     return GatewayChargeResponse(
         success=True,
         remaining_balance=remaining,
@@ -222,6 +233,7 @@ async def get_connection(
     )
     blocked_users = [row[0] for row in blocked_result.all()]
 
+    from src.services.channel_service import ChannelService
     return GatewayConnectionResponse(
         id=connection.id,
         owner_id=connection.owner_id,
@@ -234,8 +246,9 @@ async def get_connection(
         daily_credit_limit=connection.daily_credit_limit,
         pause_on_limit=connection.pause_on_limit,
         low_balance_threshold=connection.low_balance_threshold,
-        config=connection.config,
+        config=ChannelService.decrypt_config(connection.config),
         blocked_users=blocked_users,
+        privacy_notice_url=connection.privacy_notice_url,
     )
 
 
