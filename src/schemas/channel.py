@@ -20,6 +20,8 @@ class ChannelCreate(BaseModel):
     low_balance_threshold: int = Field(20, ge=1)
     pause_on_limit: bool = True
     privacy_notice_url: str = Field(..., min_length=10, max_length=500, pattern=r"^https?://")
+    workflow_id: Optional[UUID] = None
+    workflow_mappings: Optional[dict] = None
 
 
 class ChannelUpdate(BaseModel):
@@ -99,6 +101,7 @@ class GatewayLogMessageRequest(BaseModel):
     message_text: str
     media_type: Optional[str] = None
     task_id: Optional[UUID] = None
+    workflow_run_id: Optional[UUID] = None
     credits_charged: float = 0
     response_time_ms: Optional[int] = None
     error: Optional[str] = None
@@ -142,6 +145,8 @@ class GatewayConnectionResponse(BaseModel):
     config: Optional[dict] = None
     blocked_users: list[str] = []
     privacy_notice_url: Optional[str] = None
+    workflow_id: Optional[UUID] = None
+    workflow_mappings: Optional[dict] = None
 
 
 # ---------------------------------------------------------------------------
@@ -199,3 +204,41 @@ class GDPRErasureResponse(BaseModel):
 
 class AdminMessageAccessRequest(BaseModel):
     justification: Literal["abuse_report", "developer_support", "legal_request", "compliance_check"]
+
+
+class GatewayCreateWorkflowRunRequest(BaseModel):
+    connection_id: UUID
+    workflow_id: UUID
+    message: str
+    chat_id: str
+
+class GatewayCreateWorkflowRunResponse(BaseModel):
+    workflow_run_id: Optional[str] = None
+    status: str
+    estimated_credits: float = 0
+    step_count: int = 0
+    workflow_name: str = ""
+    error: Optional[str] = None
+
+class GatewayWorkflowRunStatusResponse(BaseModel):
+    status: str
+    final_output: Optional[str] = None
+    step_count: int = 0
+    steps_completed: int = 0
+    total_credits_charged: Optional[float] = None
+    error: Optional[str] = None
+    workflow_name: str = ""
+
+class GatewayPendingWorkflowDelivery(BaseModel):
+    run_id: str
+    connection_id: str
+    chat_id: str
+    platform: str
+    status: str
+    final_output: Optional[str] = None
+    workflow_name: str = ""
+    total_credits_charged: Optional[float] = None
+    failure_mode: str = "stop"
+
+class GatewayPendingWorkflowDeliveriesResponse(BaseModel):
+    deliveries: list[GatewayPendingWorkflowDelivery] = []
