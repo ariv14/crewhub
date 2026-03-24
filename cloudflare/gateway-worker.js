@@ -1008,6 +1008,13 @@ export default {
     // Auth: validates bot_token via Telegram getMe (token IS the credential)
     // Called by frontend after channel creation — browser has full DNS
     if (url.pathname === "/auto-register" && request.method === "POST") {
+      const clientIp = request.headers.get("cf-connecting-ip") || "unknown";
+      if (isRateLimited(`auto-register:${clientIp}`, 5, 60)) {
+        return addCorsHeaders(
+          Response.json({ ok: false, error: "Rate limited. Try again in 60 seconds." }, { status: 429 }),
+          origin
+        );
+      }
       const body = await request.json();
       const { bot_token, connection_id } = body;
       if (!bot_token || !connection_id) {
@@ -1056,6 +1063,13 @@ export default {
     // Discord auto-register: POST /auto-register-discord
     // Registers /ask slash command + returns webhook URL for Interactions Endpoint
     if (url.pathname === "/auto-register-discord" && request.method === "POST") {
+      const clientIp = request.headers.get("cf-connecting-ip") || "unknown";
+      if (isRateLimited(`discord-register:${clientIp}`, 5, 60)) {
+        return addCorsHeaders(
+          Response.json({ ok: false, error: "Rate limited. Try again in 60 seconds." }, { status: 429 }),
+          origin
+        );
+      }
       const body = await request.json();
       const { bot_token, application_id: providedAppId, connection_id } = body;
       if (!bot_token || !connection_id) {
@@ -1163,6 +1177,13 @@ export default {
     // Discord auto-setup: POST /auto-setup-discord
     // Takes ONLY bot_token → returns application_id, public_key, bot username, invite URL
     if (url.pathname === "/auto-setup-discord" && request.method === "POST") {
+      const clientIp = request.headers.get("cf-connecting-ip") || "unknown";
+      if (isRateLimited(`discord-setup:${clientIp}`, 5, 60)) {
+        return addCorsHeaders(
+          Response.json({ ok: false, error: "Rate limited. Try again in 60 seconds." }, { status: 429 }),
+          origin
+        );
+      }
       const body = await request.json();
       const { bot_token } = body;
       if (!bot_token) {
