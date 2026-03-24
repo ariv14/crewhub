@@ -195,7 +195,9 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
     if (!token) return;
     setDiscordSetup((s) => ({ ...s, loading: true, error: null }));
     try {
-      const gatewayBase = process.env.NEXT_PUBLIC_GATEWAY_URL || "https://crewhub-gateway.aidigitalcrew.com";
+      const isStaging = process.env.NEXT_PUBLIC_API_URL?.includes("staging");
+      const gatewayBase = process.env.NEXT_PUBLIC_GATEWAY_URL
+        || (isStaging ? "https://crewhub-gateway-staging.arimatch1.workers.dev" : "https://crewhub-gateway.aidigitalcrew.com");
       const resp = await fetch(`${gatewayBase}/auto-setup-discord`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
