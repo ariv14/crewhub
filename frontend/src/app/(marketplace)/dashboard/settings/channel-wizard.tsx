@@ -411,26 +411,67 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
         {/* Step 2: Setup Instructions + Credentials */}
         {step === 1 && guide && platform && (
           <div className="space-y-5">
-            {/* Setup instructions — PRIMARY content */}
-            <div className="space-y-3">
-              <p className="text-sm font-medium">Setup Instructions</p>
-              <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
-                {guide.steps.map((s, i) => (
-                  <li key={i}>{s}</li>
-                ))}
-              </ol>
-              <Button variant="outline" size="sm" asChild>
-                <a
-                  href={guide.externalUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2"
-                >
-                  {guide.externalLabel}
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </a>
-              </Button>
-            </div>
+            {/* Setup instructions — platform-specific */}
+            {platform === "discord" ? (
+              /* Discord: rich guided setup */
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Create a Discord Bot</p>
+                  <Button variant="outline" size="sm" asChild>
+                    <a
+                      href="https://discord.com/developers/applications"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2"
+                    >
+                      Open Developer Portal
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {[
+                    { num: "1", text: 'Click "New Application" and give it a name', hint: 'e.g. "My Support Bot"' },
+                    { num: "2", text: 'Go to the Bot tab (left sidebar)', hint: null },
+                    { num: "3", text: 'Click "Reset Token" and copy it', hint: "Save it now — you can't see it again!" },
+                    { num: "4", text: 'Scroll down → enable "Message Content Intent"', hint: "Under Privileged Gateway Intents" },
+                    { num: "5", text: 'Go to Installation tab → Guild Install → add "bot" scope', hint: 'Must have both "bot" and "applications.commands"' },
+                  ].map((s) => (
+                    <div key={s.num} className="flex gap-3 items-start">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{s.num}</span>
+                      <div>
+                        <p className="text-sm text-foreground">{s.text}</p>
+                        {s.hint && <p className="text-xs text-muted-foreground">{s.hint}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-2 text-xs text-blue-700 dark:text-blue-400">
+                  Once you have the bot token, paste it below. We&apos;ll auto-detect your App ID, Public Key, and set up everything else.
+                </div>
+              </div>
+            ) : (
+              /* Other platforms: generic step list */
+              <div className="space-y-3">
+                <p className="text-sm font-medium">Setup Instructions</p>
+                <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
+                  {guide.steps.map((s, i) => (
+                    <li key={i}>{s}</li>
+                  ))}
+                </ol>
+                <Button variant="outline" size="sm" asChild>
+                  <a
+                    href={guide.externalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2"
+                  >
+                    {guide.externalLabel}
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </Button>
+              </div>
+            )}
 
             <div className="border-t" />
 
@@ -573,9 +614,21 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
                         </div>
                       )}
                       {!discordSetup.invited && (
-                        <p className="text-xs text-muted-foreground">
-                          Click above to invite the bot, then come back here.
-                        </p>
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground">
+                            Select a server you manage and click Authorize.
+                          </p>
+                          <details className="text-xs text-muted-foreground">
+                            <summary className="cursor-pointer font-medium text-amber-600 dark:text-amber-400 hover:underline">
+                              Getting &quot;Integration requires code grant&quot;?
+                            </summary>
+                            <div className="mt-2 space-y-1 pl-2 border-l-2 border-amber-500/30">
+                              <p>Go to Discord Developer Portal → your app → <span className="font-medium text-foreground">Installation</span> tab.</p>
+                              <p>Under <span className="font-medium text-foreground">Guild Install</span>, make sure both <code className="rounded bg-muted px-1">bot</code> and <code className="rounded bg-muted px-1">applications.commands</code> scopes are added.</p>
+                              <p>Save and try the invite link again.</p>
+                            </div>
+                          </details>
+                        </div>
                       )}
                     </div>
                   </div>
