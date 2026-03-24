@@ -19,6 +19,7 @@ class ChannelCreate(BaseModel):
     daily_credit_limit: Optional[int] = Field(None, ge=1)
     low_balance_threshold: int = Field(20, ge=1)
     pause_on_limit: bool = True
+    privacy_notice_url: str = Field(..., min_length=10, max_length=500, pattern=r"^https?://")
 
 
 class ChannelUpdate(BaseModel):
@@ -140,6 +141,7 @@ class GatewayConnectionResponse(BaseModel):
     low_balance_threshold: int = 20
     config: Optional[dict] = None
     blocked_users: list[str] = []
+    privacy_notice_url: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
