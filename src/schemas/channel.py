@@ -20,12 +20,16 @@ class ChannelCreate(BaseModel):
     low_balance_threshold: int = Field(20, ge=1)
     pause_on_limit: bool = True
     privacy_notice_url: str = Field(..., min_length=10, max_length=500, pattern=r"^https?://")
+    workflow_id: Optional[UUID] = None
+    workflow_mappings: Optional[dict] = None
 
 
 class ChannelUpdate(BaseModel):
     bot_name: Optional[str] = Field(None, max_length=200)
     agent_id: Optional[UUID] = None
     skill_id: Optional[UUID] = None
+    workflow_id: Optional[UUID] = None
+    workflow_mappings: Optional[dict] = None
     daily_credit_limit: Optional[int] = Field(None, ge=0)  # 0 = unlimited
     low_balance_threshold: Optional[int] = Field(None, ge=1)
     pause_on_limit: Optional[bool] = None
@@ -49,8 +53,13 @@ class ChannelResponse(BaseModel):
     webhook_url: Optional[str] = None
     error_message: Optional[str] = None
     last_active_at: Optional[datetime] = None
+    workflow_id: Optional[UUID] = None
     messages_today: int = 0  # computed field
     credits_used_today: Decimal = Decimal("0")  # computed field
+    total_messages: int = 0  # lifetime total
+    total_credits: float = 0.0  # lifetime total
+    agent_name: Optional[str] = None  # resolved from agent relationship
+    workflow_name: Optional[str] = None  # resolved from workflow_id
     created_at: datetime
     updated_at: datetime
 
@@ -99,6 +108,7 @@ class GatewayLogMessageRequest(BaseModel):
     message_text: str
     media_type: Optional[str] = None
     task_id: Optional[UUID] = None
+    workflow_run_id: Optional[UUID] = None
     credits_charged: float = 0
     response_time_ms: Optional[int] = None
     error: Optional[str] = None
@@ -142,6 +152,8 @@ class GatewayConnectionResponse(BaseModel):
     config: Optional[dict] = None
     blocked_users: list[str] = []
     privacy_notice_url: Optional[str] = None
+    workflow_id: Optional[UUID] = None
+    workflow_mappings: Optional[dict] = None
 
 
 # ---------------------------------------------------------------------------
@@ -199,3 +211,41 @@ class GDPRErasureResponse(BaseModel):
 
 class AdminMessageAccessRequest(BaseModel):
     justification: Literal["abuse_report", "developer_support", "legal_request", "compliance_check"]
+
+
+class GatewayCreateWorkflowRunRequest(BaseModel):
+    connection_id: UUID
+    workflow_id: UUID
+    message: str
+    chat_id: str
+
+class GatewayCreateWorkflowRunResponse(BaseModel):
+    workflow_run_id: Optional[str] = None
+    status: str
+    estimated_credits: float = 0
+    step_count: int = 0
+    workflow_name: str = ""
+    error: Optional[str] = None
+
+class GatewayWorkflowRunStatusResponse(BaseModel):
+    status: str
+    final_output: Optional[str] = None
+    step_count: int = 0
+    steps_completed: int = 0
+    total_credits_charged: Optional[float] = None
+    error: Optional[str] = None
+    workflow_name: str = ""
+
+class GatewayPendingWorkflowDelivery(BaseModel):
+    run_id: str
+    connection_id: str
+    chat_id: str
+    platform: str
+    status: str
+    final_output: Optional[str] = None
+    workflow_name: str = ""
+    total_credits_charged: Optional[float] = None
+    failure_mode: str = "stop"
+
+class GatewayPendingWorkflowDeliveriesResponse(BaseModel):
+    deliveries: list[GatewayPendingWorkflowDelivery] = []

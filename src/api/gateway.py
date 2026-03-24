@@ -30,8 +30,13 @@ from src.schemas.channel import (
     GatewayChargeResponse,
     GatewayConnectionResponse,
     GatewayCreateTaskRequest,
+    GatewayCreateWorkflowRunRequest,
+    GatewayCreateWorkflowRunResponse,
     GatewayHeartbeatRequest,
     GatewayLogMessageRequest,
+    GatewayPendingWorkflowDeliveriesResponse,
+    GatewayPendingWorkflowDelivery,
+    GatewayWorkflowRunStatusResponse,
 )
 from src.services.credit_ledger import CreditLedgerService
 
@@ -249,6 +254,8 @@ async def get_connection(
         config=ChannelService.decrypt_config(connection.config),
         blocked_users=blocked_users,
         privacy_notice_url=connection.privacy_notice_url,
+        workflow_id=connection.workflow_id,
+        workflow_mappings=connection.workflow_mappings,
     )
 
 
@@ -309,6 +316,7 @@ async def log_message(
         message_text=stored_text,
         media_type=req.media_type,
         task_id=req.task_id,
+        workflow_run_id=req.workflow_run_id,
         credits_charged=Decimal(str(req.credits_charged)),
         response_time_ms=req.response_time_ms,
         error=req.error,
@@ -424,3 +432,253 @@ async def task_callback(
     status = payload.get("status", "<unknown>")
     logger.info("Gateway task-callback: task_id=%s status=%s", task_id, status)
     return {"status": "acknowledged"}
+
+
+@router.post(
+    "/create-workflow-run",
+    response_model=GatewayCreateWorkflowRunResponse,
+    status_code=201,
+    dependencies=[Depends(rate_limit_by_ip)],
+)
+async def gateway_create_workflow_run(
+    req: GatewayCreateWorkflowRunRequest,
+    request: Request,
+    _: None = Depends(require_gateway_key),
+    db: AsyncSession = Depends(get_db),
+) -> GatewayCreateWorkflowRunResponse:
+    """Create a workflow run on behalf of a channel user.
+
+    Validates the workflow exists and is accessible, checks credits, then
+    dispatches the workflow execution engine.
+    """
+    from sqlalchemy.orm import selectinload
+    from src.models.workflow import Workflow, WorkflowStep
+    from src.services.workflow_execution import WorkflowExecutionService
+
+    # Fetch connection to get the owner
+    connection = await db.get(ChannelConnection, req.connection_id)
+    if not connection:
+        return GatewayCreateWorkflowRunResponse(
+            status="error", error="Connection not found."
+        )
+
+    owner_id: UUID = connection.owner_id
+
+    # Load workflow with steps (needed for cost estimation)
+    wf_result = await db.execute(
+        select(Workflow)
+        .where(Workflow.id == req.workflow_id)
+        .options(
+            selectinload(Workflow.steps).selectinload(WorkflowStep.agent),
+            selectinload(Workflow.steps).selectinload(WorkflowStep.skill),
+        )
+    )
+    wf = wf_result.scalar_one_or_none()
+    if not wf:
+        return GatewayCreateWorkflowRunResponse(
+            status="error", error="Workflow not found."
+        )
+
+    # Validate ownership or public access
+    if wf.user_id != owner_id and not wf.is_public:
+        return GatewayCreateWorkflowRunResponse(
+            status="error", error="Workflow not accessible."
+        )
+
+    # Estimate credits
+    exec_svc = WorkflowExecutionService(db)
+    total_estimate = exec_svc._estimate_cost(wf)
+
+    # Check balance
+    ledger = CreditLedgerService(db)
+    balance_info = await ledger.get_balance(owner_id)
+    available = balance_info["available"]
+    if total_estimate > 0 and available < total_estimate:
+        return GatewayCreateWorkflowRunResponse(
+            status="error",
+            error=f"Insufficient credits (available: {available}, estimated: {total_estimate}).",
+        )
+
+    # Check daily limit (same pattern as /gateway/charge)
+    daily_limit = connection.daily_credit_limit
+    if daily_limit:
+        today_start = datetime.now(timezone.utc).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        usage_stmt = select(
+            func.coalesce(func.sum(ChannelMessage.credits_charged), 0)
+        ).where(
+            ChannelMessage.connection_id == req.connection_id,
+            ChannelMessage.created_at >= today_start,
+        )
+        today_usage = float((await db.execute(usage_stmt)).scalar_one())
+        if (today_usage + total_estimate) > daily_limit:
+            return GatewayCreateWorkflowRunResponse(
+                status="error",
+                error=f"Daily credit limit of {daily_limit} would be exceeded (used today: {today_usage:.2f}).",
+            )
+
+    # Execute workflow
+    try:
+        run = await exec_svc.execute_workflow(
+            workflow_id=req.workflow_id,
+            user_id=owner_id,
+            input_message=req.message,
+            channel_connection_id=req.connection_id,
+            channel_chat_id=req.chat_id,
+        )
+    except Exception as exc:
+        logger.exception("Gateway create-workflow-run failed: %s", exc)
+        return GatewayCreateWorkflowRunResponse(
+            status="error", error=str(exc)
+        )
+
+    logger.info(
+        "Gateway create-workflow-run: run_id=%s workflow=%s owner=%s",
+        run.id, req.workflow_id, owner_id,
+    )
+
+    # Audit log (non-blocking)
+    try:
+        await _audit_gateway(
+            db, "create_workflow_run",
+            request=request,
+            target_id=str(run.id),
+            new_value={
+                "workflow_id": str(req.workflow_id),
+                "owner": str(owner_id),
+                "estimated_credits": total_estimate,
+            },
+        )
+        await db.commit()
+    except Exception:
+        logger.warning("Audit log for create-workflow-run failed (non-blocking)", exc_info=True)
+
+    return GatewayCreateWorkflowRunResponse(
+        workflow_run_id=str(run.id),
+        status=run.status,
+        estimated_credits=float(total_estimate),
+        step_count=len(wf.steps),
+        workflow_name=wf.name or "",
+    )
+
+
+@router.get(
+    "/workflow-run-status/{run_id}",
+    response_model=GatewayWorkflowRunStatusResponse,
+)
+async def gateway_workflow_run_status(
+    run_id: UUID,
+    _: None = Depends(require_gateway_key),
+    db: AsyncSession = Depends(get_db),
+) -> GatewayWorkflowRunStatusResponse:
+    """Get workflow run status — gateway-authenticated."""
+    from sqlalchemy.orm import selectinload
+    from src.models.workflow import WorkflowRun
+
+    result = await db.execute(
+        select(WorkflowRun)
+        .where(WorkflowRun.id == run_id)
+        .options(selectinload(WorkflowRun.step_runs))
+    )
+    run = result.scalar_one_or_none()
+    if not run:
+        return GatewayWorkflowRunStatusResponse(
+            status="not_found", error="Workflow run not found."
+        )
+
+    # Concatenate step outputs for final_output
+    final_output = None
+    if run.status in ("completed", "failed"):
+        outputs = []
+        for sr in sorted(run.step_runs, key=lambda x: (x.step_group, x.created_at)):
+            if sr.output_text:
+                outputs.append(sr.output_text)
+        final_output = "\n\n---\n\n".join(outputs) if outputs else None
+
+    steps_completed = sum(1 for sr in run.step_runs if sr.status == "completed")
+    snapshot = run.workflow_snapshot or {}
+
+    return GatewayWorkflowRunStatusResponse(
+        status=run.status,
+        final_output=final_output,
+        step_count=len(run.step_runs),
+        steps_completed=steps_completed,
+        total_credits_charged=float(run.total_credits_charged) if run.total_credits_charged else None,
+        error=run.error,
+        workflow_name=snapshot.get("name", ""),
+    )
+
+
+@router.get(
+    "/pending-workflow-deliveries",
+    response_model=GatewayPendingWorkflowDeliveriesResponse,
+)
+async def gateway_pending_workflow_deliveries(
+    _: None = Depends(require_gateway_key),
+    db: AsyncSession = Depends(get_db),
+) -> GatewayPendingWorkflowDeliveriesResponse:
+    """Find completed/failed workflow runs that need delivery to a channel."""
+    from sqlalchemy.orm import selectinload
+    from src.models.workflow import WorkflowRun
+
+    # Find runs linked to a channel that are terminal
+    runs_result = await db.execute(
+        select(WorkflowRun)
+        .where(
+            WorkflowRun.channel_connection_id.isnot(None),
+            WorkflowRun.status.in_(["completed", "failed"]),
+        )
+        .options(selectinload(WorkflowRun.step_runs))
+        .order_by(WorkflowRun.completed_at.desc())
+        .limit(50)
+    )
+    runs = list(runs_result.scalars().unique().all())
+
+    if not runs:
+        return GatewayPendingWorkflowDeliveriesResponse(deliveries=[])
+
+    # Filter out runs that already have an outbound ChannelMessage with matching workflow_run_id
+    run_ids = [r.id for r in runs]
+    delivered_result = await db.execute(
+        select(ChannelMessage.workflow_run_id)
+        .where(
+            ChannelMessage.workflow_run_id.in_(run_ids),
+            ChannelMessage.direction == "outbound",
+        )
+        .distinct()
+    )
+    delivered_ids = {row[0] for row in delivered_result.all()}
+
+    deliveries = []
+    for run in runs:
+        if run.id in delivered_ids:
+            continue
+
+        # Collect final output
+        outputs = []
+        for sr in sorted(run.step_runs, key=lambda x: (x.step_group, x.created_at)):
+            if sr.output_text:
+                outputs.append(sr.output_text)
+        final_output = "\n\n---\n\n".join(outputs) if outputs else None
+
+        # Get connection info for platform
+        connection = await db.get(ChannelConnection, run.channel_connection_id)
+        if not connection:
+            continue
+
+        snapshot = run.workflow_snapshot or {}
+
+        deliveries.append(GatewayPendingWorkflowDelivery(
+            run_id=str(run.id),
+            connection_id=str(run.channel_connection_id),
+            chat_id=run.channel_chat_id or "",
+            platform=connection.platform,
+            status=run.status,
+            final_output=final_output,
+            workflow_name=snapshot.get("name", ""),
+            total_credits_charged=float(run.total_credits_charged) if run.total_credits_charged else None,
+            failure_mode=snapshot.get("failure_mode", "stop"),
+        ))
+
+    return GatewayPendingWorkflowDeliveriesResponse(deliveries=deliveries)

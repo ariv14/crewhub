@@ -48,6 +48,7 @@ import {
 import { toast } from "sonner";
 import { useCreateChannel } from "@/lib/hooks/use-channels";
 import { useAgents } from "@/lib/hooks/use-agents";
+import { useMyWorkflows } from "@/lib/hooks/use-workflows";
 import { useAuth } from "@/lib/auth-context";
 import { PLATFORM_GUIDES, type PlatformKey } from "./platform-guides";
 import type { Channel, ChannelPlatform } from "@/types/channel";
@@ -157,6 +158,10 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
     endpointSet: boolean;
   }>({ verified: false, loading: false, error: null, botUsername: null, applicationId: null, publicKey: null, inviteUrl: null, invited: false, endpointSet: false });
 
+  // Workflow state
+  const [workflowId, setWorkflowId] = useState("");
+  const [workflowMappings, setWorkflowMappings] = useState<Record<string, string>>({});
+
   // Fetch user's agents for step 3
   const { data: agentsData } = useAgents({
     owner_id: user?.id,
@@ -165,6 +170,10 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
   const agents = agentsData?.agents ?? [];
   const selectedAgent = agents.find((a) => a.id === agentId);
   const skills = selectedAgent?.skills ?? [];
+
+  // Fetch user's workflows for step 3
+  const { data: workflowsData } = useMyWorkflows();
+  const workflows = workflowsData?.workflows ?? [];
 
   function reset() {
     setStep(0);
@@ -180,6 +189,8 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
     setLowBalance(20);
     setPauseOnLimit(true);
     setPrivacyUrl("");
+    setWorkflowId("");
+    setWorkflowMappings({});
     setDiscordSetup({ verified: false, loading: false, error: null, botUsername: null, applicationId: null, publicKey: null, inviteUrl: null, invited: false, endpointSet: false });
   }
 
@@ -261,6 +272,8 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
         bot_name: botName.trim(),
         agent_id: agentId,
         skill_id: skillId || undefined,
+        workflow_id: workflowId || undefined,
+        workflow_mappings: Object.keys(workflowMappings).length > 0 ? workflowMappings : undefined,
         daily_credit_limit: dailyLimit || undefined,
         low_balance_threshold: lowBalance,
         pause_on_limit: pauseOnLimit,
@@ -765,6 +778,30 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
                   checked={pauseOnLimit}
                   onCheckedChange={setPauseOnLimit}
                 />
+              </div>
+            </div>
+
+            {/* Workflow selection (optional) */}
+            <div className="border-t pt-4 mt-4 space-y-4">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Workflow (for /workflow command)</p>
+              <div className="space-y-2">
+                <Label>Default Workflow</Label>
+                <Select value={workflowId || "__none__"} onValueChange={(v) => setWorkflowId(v === "__none__" ? "" : v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="None (disable /workflow)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">None (disable /workflow)</SelectItem>
+                    {workflows.map((wf) => (
+                      <SelectItem key={wf.id} value={wf.id}>
+                        {wf.name} ({wf.steps?.length || 0} steps)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Users can trigger this workflow with <code className="rounded bg-muted px-1">/workflow</code> in Discord or <code className="rounded bg-muted px-1">!workflow</code> in Telegram/Slack.
+                </p>
               </div>
             </div>
           </div>

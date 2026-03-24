@@ -39,6 +39,8 @@ class WorkflowExecutionService:
         schedule_id: UUID | None = None,
         parent_run_id: UUID | None = None,
         depth: int = 0,
+        channel_connection_id: UUID | None = None,
+        channel_chat_id: str | None = None,
     ) -> WorkflowRun:
         if depth >= 10:  # safety cap
             raise ValueError("Maximum nesting depth (10) exceeded")
@@ -56,6 +58,7 @@ class WorkflowExecutionService:
             "name": wf.name,
             "timeout_seconds": wf.timeout_seconds or DEFAULT_WORKFLOW_TIMEOUT,
             "step_timeout_seconds": wf.step_timeout_seconds or DEFAULT_STEP_TIMEOUT,
+            "failure_mode": wf.failure_mode or "stop",
             "steps": [
                 {
                     "id": str(s.id),
@@ -105,6 +108,8 @@ class WorkflowExecutionService:
             current_step_group=0,
             input_message=input_message,
             workflow_snapshot=snapshot,
+            channel_connection_id=channel_connection_id,
+            channel_chat_id=channel_chat_id,
         )
         self.db.add(run)
         await self.db.flush()
@@ -213,6 +218,7 @@ class WorkflowExecutionService:
         # Check for failures — collect error details
         failed_steps = [sr for sr in group_step_runs if sr.status == "failed"]
         if failed_steps:
+            failure_mode = snapshot.get("failure_mode", "stop")
             error_details = []
             for sr in failed_steps:
                 step_info = self._step_info_from_snapshot(snapshot, sr.step_id)
@@ -221,11 +227,20 @@ class WorkflowExecutionService:
                     error_details.append(f"{label}: {sr.error}")
                 else:
                     error_details.append(f"{label}: failed (no details)")
-            run.status = "failed"
-            run.error = f"Step {current_group + 1} failed — " + "; ".join(error_details)
-            run.completed_at = now
-            self._tally_credits(run)
-            return
+
+            if failure_mode == "continue":
+                # Log warning but allow the run to advance to the next group
+                logger.warning(
+                    "Workflow run %s step group %d had failures (failure_mode=continue, advancing): %s",
+                    run.id, current_group, "; ".join(error_details),
+                )
+            else:
+                # "stop" (default) — fail the entire run
+                run.status = "failed"
+                run.error = f"Step {current_group + 1} failed — " + "; ".join(error_details)
+                run.completed_at = now
+                self._tally_credits(run)
+                return
 
         # All completed — advance to next group
         all_groups = sorted(set(sr.step_group for sr in run.step_runs))

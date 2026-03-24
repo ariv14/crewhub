@@ -35,6 +35,7 @@ class Workflow(Base):
     )
     pattern_type: Mapped[str] = mapped_column(String, default="manual")
     supervisor_config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    failure_mode: Mapped[str] = mapped_column(String(20), default="stop", server_default="stop")
 
     owner: Mapped["User"] = relationship("User", lazy="selectin")
     steps: Mapped[list["WorkflowStep"]] = relationship(
@@ -109,6 +110,10 @@ class WorkflowRun(Base):
         Uuid, ForeignKey("workflow_runs.id", ondelete="SET NULL"), nullable=True
     )
     depth: Mapped[int] = mapped_column(Integer, default=0)
+    channel_connection_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("channel_connections.id", ondelete="SET NULL"), nullable=True
+    )
+    channel_chat_id: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
 
     workflow: Mapped["Workflow"] = relationship("Workflow", back_populates="runs")
     parent_run: Mapped[Optional["WorkflowRun"]] = relationship(

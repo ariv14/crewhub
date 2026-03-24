@@ -43,6 +43,10 @@ class ChannelConnection(Base):
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     last_active_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     gateway_instance_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    workflow_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("workflows.id", ondelete="SET NULL"), nullable=True
+    )
+    workflow_mappings: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -79,6 +83,9 @@ class ChannelMessage(Base):
     media_type: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     task_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         Uuid, ForeignKey("tasks.id", ondelete="SET NULL"), nullable=True
+    )
+    workflow_run_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("workflow_runs.id", ondelete="SET NULL"), nullable=True
     )
     credits_charged: Mapped[Decimal] = mapped_column(Numeric(12, 4), default=0)
     response_time_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

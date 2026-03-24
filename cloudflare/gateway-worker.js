@@ -434,11 +434,20 @@ async function handleDiscordWebhook(request, env, ctx, connectionId) {
       return Response.json({ type: 5 });
     }
 
-    // Process in background with interaction context for followup
-    ctx.waitUntil(processDiscordInteraction({
-      env, connectionId, userId, msgId, chatId, text,
-      applicationId, interactionToken,
-    }));
+    // Route by command name
+    if (body.data.name === "workflow") {
+      const workflowName = body.data.options?.find(o => o.name === "name")?.value || null;
+      ctx.waitUntil(processDiscordWorkflow({
+        env, connectionId, userId, msgId, chatId, text,
+        applicationId, interactionToken, workflowName,
+      }));
+    } else {
+      // Existing /ask flow (or any unrecognized command)
+      ctx.waitUntil(processDiscordInteraction({
+        env, connectionId, userId, msgId, chatId, text,
+        applicationId, interactionToken,
+      }));
+    }
 
     // Respond with "thinking" indicator — Discord requires immediate response
     return Response.json({ type: 5 });
@@ -584,6 +593,163 @@ async function processDiscordInteraction(ctx) {
   console.log("Discord response delivered for task", taskId);
 }
 
+// --- Discord Workflow Processor ---
+
+async function processDiscordWorkflow(ctx) {
+  const { env, connectionId, userId, msgId, chatId, text, applicationId, interactionToken, workflowName } = ctx;
+
+  const conn = await getConnection(env, connectionId);
+  if (!conn || !conn.bot_token) {
+    console.log("Connection not found:", connectionId);
+    if (applicationId && interactionToken) {
+      await sendDiscordInteractionFollowup(applicationId, interactionToken,
+        "Sorry, this channel is not configured correctly.");
+    }
+    return;
+  }
+
+  // Auto-activate pending channels
+  if (conn.status === "pending") {
+    await backendCall(env, "/gateway/heartbeat", "POST", {
+      connections: [{ connection_id: connectionId, status: "active" }],
+    });
+  }
+  if (conn.status !== "active" && conn.status !== "pending") {
+    console.log("Connection inactive:", connectionId, conn.status);
+    return;
+  }
+
+  // Resolve workflow_id
+  let workflowId = null;
+  if (workflowName && conn.workflow_mappings && conn.workflow_mappings[workflowName]) {
+    workflowId = conn.workflow_mappings[workflowName];
+  } else if (conn.workflow_id) {
+    workflowId = conn.workflow_id;
+  }
+  if (!workflowId) {
+    await sendDiscordInteractionFollowup(applicationId, interactionToken,
+      "No workflow configured for this channel. Use /ask instead.");
+    return;
+  }
+
+  // Check blocked users
+  const userHash = (await hmacSha256(
+    `${env.GATEWAY_SERVICE_KEY}:${connectionId}`, userId
+  )).substring(0, 16);
+
+  if (conn.blocked_users && conn.blocked_users.includes(userHash)) {
+    return; // silently drop
+  }
+
+  // Log inbound message (NULL text — GDPR privacy)
+  await logMessage(env, {
+    connection_id: connectionId,
+    platform_user_id_hash: userHash,
+    platform_message_id: msgId,
+    platform_chat_id: chatId,
+    direction: "inbound",
+    message_text: null,
+    media_type: "text",
+  });
+
+  // Charge credits
+  const chargeResult = await chargeCredits(env, connectionId, 1, conn.daily_credit_limit);
+  if (!chargeResult.success) {
+    const errorMsgs = {
+      daily_limit: "Daily message limit reached. Service will resume tomorrow.",
+      insufficient_balance: "Service temporarily unavailable.",
+      credit_exhausted: "Service temporarily unavailable.",
+    };
+    await sendDiscordInteractionFollowup(applicationId, interactionToken,
+      errorMsgs[chargeResult.error] || "Service temporarily unavailable.");
+    return;
+  }
+
+  // Create workflow run
+  const runResult = await backendCall(env, "/gateway/create-workflow-run", "POST", {
+    connection_id: connectionId,
+    workflow_id: workflowId,
+    message: text,
+    chat_id: chatId,
+  });
+
+  if (runResult.error || runResult.detail) {
+    const errorMsgs = {
+      insufficient_balance: "Insufficient credits. Please top up.",
+      daily_limit: "Daily limit reached. Try again tomorrow.",
+    };
+    await sendDiscordInteractionFollowup(applicationId, interactionToken,
+      errorMsgs[runResult.error] || "Sorry, I couldn't start the workflow. Please try again.");
+    return;
+  }
+
+  const runId = runResult.run_id;
+  const wfName = runResult.workflow_name || workflowName || "workflow";
+  const stepCount = runResult.step_count || 0;
+  const estCredits = runResult.estimated_credits || 0;
+  console.log("Discord workflow run created:", runId, "— polling for up to 25s");
+
+  // Quick poll (25s)
+  let responseText = null;
+  const startTime = Date.now();
+  while (Date.now() - startTime < 25000) {
+    await new Promise(r => setTimeout(r, 3000));
+    try {
+      const runStatus = await backendCall(env, `/gateway/workflow-run-status/${runId}`);
+      if (!runStatus) continue;
+      if (runStatus.status === "completed") {
+        responseText = runStatus.final_output || "Workflow completed.";
+        if (runStatus.total_credits_charged) {
+          responseText = `**${wfName}** — completed (${runStatus.total_credits_charged} credits)\n\n${responseText}`;
+        }
+        break;
+      } else if (runStatus.status === "failed" || runStatus.status === "canceled") {
+        responseText = `Sorry, your workflow "${wfName}" couldn't be completed.`;
+        break;
+      }
+    } catch (err) {
+      console.error("Discord workflow poll error for run", runId);
+    }
+  }
+
+  // Append privacy notice
+  const privacyUrl = conn.privacy_notice_url || "https://crewhubai.com/privacy";
+
+  if (responseText) {
+    // FAST PATH — completed within 25s
+    responseText += `\n\n-# Your data is processed per our [privacy notice](${privacyUrl}). Messages are retained for 90 days.`;
+    await sendDiscordInteractionFollowup(applicationId, interactionToken, responseText);
+
+    await logMessage(env, {
+      connection_id: connectionId,
+      platform_user_id_hash: "agent",
+      platform_message_id: `reply-${msgId}`,
+      platform_chat_id: chatId,
+      direction: "outbound",
+      message_text: (responseText || "").substring(0, 2000),
+      workflow_run_id: runId,
+      credits_charged: 1,
+    });
+    console.log("Discord workflow response delivered for run", runId);
+  } else {
+    // SLOW PATH — still running, send ack and store for cron
+    const ackText = `Processing through **${wfName}**${stepCount ? ` (${stepCount} steps` : ""}${estCredits ? `, ~${estCredits} credits` : ""}${stepCount ? ")" : ""}... I'll send the results when ready.`;
+    await sendDiscordInteractionFollowup(applicationId, interactionToken, ackText);
+
+    // Store system message for cron pickup
+    await logMessage(env, {
+      connection_id: connectionId,
+      platform_user_id_hash: userHash,
+      platform_message_id: `pending-${msgId}`,
+      platform_chat_id: chatId,
+      direction: "system",
+      message_text: `wfrun:${runId}`,
+      workflow_run_id: runId,
+    });
+    console.log("Discord workflow run", runId, "still processing — stored for cron delivery");
+  }
+}
+
 // --- Generic Message Processor ---
 
 async function processMessage(ctx) {
@@ -612,6 +778,27 @@ async function processMessage(ctx) {
   if (!sender) {
     console.error("Unsupported platform:", platform);
     return;
+  }
+
+  // --- Workflow prefix routing (Telegram/Slack) ---
+  if (text.startsWith("!workflow")) {
+    let workflowName = null;
+    let workflowText = text;
+    if (text.startsWith("!workflow:")) {
+      const spaceIdx = text.indexOf(" ", 10);
+      workflowName = text.substring(10, spaceIdx > 10 ? spaceIdx : undefined).trim();
+      workflowText = spaceIdx > 10 ? text.substring(spaceIdx).trim() : "";
+    } else {
+      workflowText = text.substring(9).trim();
+    }
+    if (!workflowText) {
+      await sender.send(botToken, chatId, "Usage: !workflow <message> or !workflow:name <message>");
+      return;
+    }
+    return processWorkflowMessage({
+      env, connectionId, conn, userId, msgId, chatId,
+      text: workflowText, workflowName, sender, botToken,
+    });
   }
 
   // Check blocked users
@@ -728,6 +915,140 @@ async function processMessage(ctx) {
       message_text: taskId,
       task_id: taskId,
     });
+  }
+}
+
+// --- Workflow Message Processor (Telegram/Slack) ---
+
+async function processWorkflowMessage(ctx) {
+  const { env, connectionId, conn, userId, msgId, chatId, text, workflowName, sender, botToken } = ctx;
+
+  // Resolve workflow_id
+  let workflowId = null;
+  if (workflowName && conn.workflow_mappings && conn.workflow_mappings[workflowName]) {
+    workflowId = conn.workflow_mappings[workflowName];
+  } else if (conn.workflow_id) {
+    workflowId = conn.workflow_id;
+  }
+  if (!workflowId) {
+    await sender.send(botToken, chatId, "No workflow configured for this channel. Send a regular message instead.");
+    return;
+  }
+
+  // Check blocked users
+  const userHash = (await hmacSha256(
+    `${env.GATEWAY_SERVICE_KEY}:${connectionId}`, userId
+  )).substring(0, 16);
+
+  if (conn.blocked_users && conn.blocked_users.includes(userHash)) {
+    return; // silently drop
+  }
+
+  // Send typing indicator
+  await sender.typing(botToken, chatId);
+
+  // Log inbound message (NULL text — GDPR privacy)
+  await logMessage(env, {
+    connection_id: connectionId,
+    platform_user_id_hash: userHash,
+    platform_message_id: msgId,
+    platform_chat_id: chatId,
+    direction: "inbound",
+    message_text: null,
+    media_type: "text",
+  });
+
+  // Charge credits
+  const chargeResult = await chargeCredits(env, connectionId, 1, conn.daily_credit_limit);
+  if (!chargeResult.success) {
+    const errorMsgs = {
+      daily_limit: "Daily message limit reached. Service will resume tomorrow.",
+      insufficient_balance: "Service temporarily unavailable.",
+      credit_exhausted: "Service temporarily unavailable.",
+    };
+    await sender.send(botToken, chatId, errorMsgs[chargeResult.error] || "Service temporarily unavailable.");
+    return;
+  }
+
+  // Create workflow run
+  const runResult = await backendCall(env, "/gateway/create-workflow-run", "POST", {
+    connection_id: connectionId,
+    workflow_id: workflowId,
+    message: text,
+    chat_id: chatId,
+  });
+
+  if (runResult.error || runResult.detail) {
+    const errorMsgs = {
+      insufficient_balance: "Insufficient credits. Please top up.",
+      daily_limit: "Daily limit reached. Try again tomorrow.",
+    };
+    await sender.send(botToken, chatId, errorMsgs[runResult.error] || "Sorry, I couldn't start the workflow. Please try again.");
+    return;
+  }
+
+  const runId = runResult.run_id;
+  const wfName = runResult.workflow_name || workflowName || "workflow";
+  const stepCount = runResult.step_count || 0;
+  const estCredits = runResult.estimated_credits || 0;
+  console.log("Workflow run created:", runId, "— polling for up to 25s");
+
+  // Quick poll (25s)
+  let responseText = null;
+  const startTime = Date.now();
+  while (Date.now() - startTime < 25000) {
+    await new Promise(r => setTimeout(r, 3000));
+    try {
+      const runStatus = await backendCall(env, `/gateway/workflow-run-status/${runId}`);
+      if (!runStatus) continue;
+      if (runStatus.status === "completed") {
+        responseText = runStatus.final_output || "Workflow completed.";
+        if (runStatus.total_credits_charged) {
+          responseText = `${wfName} — completed (${runStatus.total_credits_charged} credits)\n\n${responseText}`;
+        }
+        break;
+      } else if (runStatus.status === "failed" || runStatus.status === "canceled") {
+        responseText = `Sorry, your workflow "${wfName}" couldn't be completed.`;
+        break;
+      }
+    } catch (err) {
+      console.error("Workflow poll error for run", runId);
+    }
+  }
+
+  const privacyUrl = conn.privacy_notice_url || "https://crewhubai.com/privacy";
+
+  if (responseText) {
+    // FAST PATH — completed within 25s
+    responseText += `\n\nYour data is processed per our privacy notice: ${privacyUrl} — Messages retained 90 days.`;
+    await sender.send(botToken, chatId, responseText);
+
+    await logMessage(env, {
+      connection_id: connectionId,
+      platform_user_id_hash: "agent",
+      platform_message_id: `reply-${msgId}`,
+      platform_chat_id: chatId,
+      direction: "outbound",
+      message_text: (responseText || "").substring(0, 2000),
+      workflow_run_id: runId,
+      credits_charged: 1,
+    });
+    console.log("Workflow response delivered for run", runId);
+  } else {
+    // SLOW PATH — store for cron delivery
+    const ackText = `Processing through ${wfName}${stepCount ? ` (${stepCount} steps` : ""}${estCredits ? `, ~${estCredits} credits` : ""}${stepCount ? ")" : ""}... I'll send the results when ready.`;
+    await sender.send(botToken, chatId, ackText);
+
+    await logMessage(env, {
+      connection_id: connectionId,
+      platform_user_id_hash: userHash,
+      platform_message_id: `pending-${msgId}`,
+      platform_chat_id: chatId,
+      direction: "system",
+      message_text: `wfrun:${runId}`,
+      workflow_run_id: runId,
+    });
+    console.log("Workflow run", runId, "still processing — stored for cron delivery");
   }
 }
 
@@ -868,6 +1189,64 @@ async function deliverPendingResponses(env) {
         console.error("Delivery error for task", taskId, ":", err);
       }
     }
+  }
+
+  // --- Workflow delivery ---
+  try {
+    const pendingWf = await backendCall(env, "/gateway/pending-workflow-deliveries");
+    if (pendingWf && pendingWf.deliveries) {
+      for (const delivery of pendingWf.deliveries) {
+        try {
+          const conn = await getConnection(env, delivery.connection_id);
+          if (!conn || !conn.bot_token) continue;
+
+          let responseText = "";
+          if (delivery.status === "completed") {
+            responseText = delivery.final_output || "Workflow completed.";
+            if (delivery.total_credits_charged) {
+              responseText = `**${delivery.workflow_name}** — completed (${delivery.total_credits_charged} credits)\n\n${responseText}`;
+            }
+          } else {
+            responseText = `Sorry, your workflow "${delivery.workflow_name}" couldn't be completed.`;
+          }
+
+          // Append privacy notice
+          const privacyUrl = conn.privacy_notice_url || "https://crewhubai.com/privacy";
+          if (delivery.platform === "discord") {
+            responseText += `\n\n-# Your data is processed per our [privacy notice](${privacyUrl}). Messages are retained for 90 days.`;
+          } else {
+            responseText += `\n\nYour data is processed per our privacy notice: ${privacyUrl} — Messages retained 90 days.`;
+          }
+
+          // Send via bot token (NOT interaction followup)
+          if (delivery.platform === "discord") {
+            await sendDiscord(conn.bot_token, delivery.chat_id, responseText);
+          } else if (delivery.platform === "telegram") {
+            await sendTelegram(conn.bot_token, delivery.chat_id, responseText);
+          } else if (delivery.platform === "slack") {
+            await sendSlack(conn.bot_token, delivery.chat_id, responseText);
+          }
+
+          // Log outbound to prevent re-delivery
+          await logMessage(env, {
+            connection_id: delivery.connection_id,
+            platform_user_id_hash: "agent",
+            platform_message_id: `wfdelivery-${delivery.run_id}`,
+            platform_chat_id: delivery.chat_id,
+            direction: "outbound",
+            message_text: (responseText || "").substring(0, 2000),
+            workflow_run_id: delivery.run_id,
+            credits_charged: delivery.total_credits_charged || 0,
+          });
+
+          console.log("Delivered workflow result for run", delivery.run_id);
+        } catch (err) {
+          console.error("Workflow delivery failed for run", delivery.run_id);
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Workflow delivery fetch failed");
   }
 }
 
@@ -1113,26 +1492,34 @@ export default {
         );
       }
 
-      // Register /ask slash command globally
+      // Register /ask + /workflow slash commands (bulk overwrite)
+      const commands = [
+        {
+          name: "ask",
+          description: "Ask the AI agent a question",
+          type: 1,
+          options: [{ name: "message", description: "Your question or message", type: 3, required: true }],
+        },
+        {
+          name: "workflow",
+          description: "Run a multi-agent workflow",
+          type: 1,
+          options: [
+            { name: "message", description: "Your request", type: 3, required: true },
+            { name: "name", description: "Workflow name (optional)", type: 3, required: false },
+          ],
+        },
+      ];
+
       const cmdResp = await fetch(
         `https://discord.com/api/v10/applications/${application_id}/commands`,
         {
-          method: "POST",
+          method: "PUT",  // Bulk overwrite
           headers: {
             "Authorization": `Bot ${bot_token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            name: "ask",
-            description: "Ask the AI agent a question",
-            type: 1, // CHAT_INPUT
-            options: [{
-              name: "message",
-              description: "Your question or message",
-              type: 3, // STRING
-              required: true,
-            }],
-          }),
+          body: JSON.stringify(commands),
         }
       );
 
@@ -1165,7 +1552,7 @@ export default {
         Response.json({
           ok: cmdResp.ok,
           webhook_url: webhookUrl,
-          slash_command: cmdResp.ok ? "/ask" : null,
+          slash_commands: cmdResp.ok ? ["/ask", "/workflow"] : null,
           endpoint_set: endpointSet,
           error: !cmdResp.ok ? `Failed to register slash command: ${cmdResp.status}` : null,
           endpoint_error: endpointError,

@@ -199,6 +199,26 @@ class ChannelService:
             if not skill or skill.agent_id != data.agent_id:
                 raise BadRequestError("Skill not found on this agent")
 
+        # Validate workflow if provided
+        if getattr(data, "workflow_id", None):
+            from src.models.workflow import Workflow
+            wf = await self.db.get(Workflow, data.workflow_id)
+            if not wf:
+                raise BadRequestError("Workflow not found")
+            if wf.owner_id != owner_id and not wf.is_public:
+                raise BadRequestError("Workflow not found or not accessible")
+
+        if getattr(data, "workflow_mappings", None):
+            from src.models.workflow import Workflow
+            for key, mapping in data.workflow_mappings.items():
+                wf_id = mapping if isinstance(mapping, uuid.UUID) else mapping.get("workflow_id") if isinstance(mapping, dict) else None
+                if wf_id:
+                    wf = await self.db.get(Workflow, wf_id)
+                    if not wf:
+                        raise BadRequestError(f"Workflow {wf_id} in mappings not found")
+                    if wf.owner_id != owner_id and not wf.is_public:
+                        raise BadRequestError(f"Workflow {wf_id} in mappings not accessible")
+
         # Encrypt bot token from credentials
         credentials = data.credentials
         bot_token = credentials.get("bot_token") or credentials.get("access_token", "")
@@ -231,6 +251,8 @@ class ChannelService:
                  if k not in ("bot_token", "access_token", "signing_secret", "verify_token")}
             ),
             privacy_notice_url=getattr(data, "privacy_notice_url", None),
+            workflow_id=getattr(data, "workflow_id", None),
+            workflow_mappings=getattr(data, "workflow_mappings", None),
         )
         self.db.add(ch)
         await self.db.flush()
@@ -319,12 +341,16 @@ class ChannelService:
         return ch
 
     async def list_channels(self, owner_id: uuid.UUID):
+        from sqlalchemy.orm import selectinload
         result = await self.db.execute(
             select(ChannelConnection)
             .where(ChannelConnection.owner_id == owner_id)
+            .options(selectinload(ChannelConnection.agent), selectinload(ChannelConnection.skill))
             .order_by(ChannelConnection.created_at.desc())
         )
-        channels = list(result.scalars().all())
+        channels = list(result.scalars().unique().all())
+
+        ch_ids = [ch.id for ch in channels]
 
         # Single batch query for today's stats (avoids N+1)
         today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -335,7 +361,7 @@ class ChannelService:
                 func.coalesce(func.sum(ChannelMessage.credits_charged), 0).label("credits_today"),
             )
             .where(ChannelMessage.created_at >= today)
-            .where(ChannelMessage.connection_id.in_([ch.id for ch in channels]))
+            .where(ChannelMessage.connection_id.in_(ch_ids))
             .group_by(ChannelMessage.connection_id)
         )
         stats_map = {
@@ -343,10 +369,42 @@ class ChannelService:
             for r in stats_result.all()
         }
 
+        # Lifetime totals
+        totals_result = await self.db.execute(
+            select(
+                ChannelMessage.connection_id,
+                func.count().label("total_messages"),
+                func.coalesce(func.sum(ChannelMessage.credits_charged), 0).label("total_credits"),
+            )
+            .where(ChannelMessage.connection_id.in_(ch_ids))
+            .group_by(ChannelMessage.connection_id)
+        )
+        totals_map = {
+            str(r.connection_id): {"total_messages": r.total_messages, "total_credits": float(r.total_credits)}
+            for r in totals_result.all()
+        }
+
+        # Resolve workflow names
+        wf_ids = [ch.workflow_id for ch in channels if ch.workflow_id]
+        wf_name_map = {}
+        if wf_ids:
+            from src.models.workflow import Workflow
+            wf_result = await self.db.execute(
+                select(Workflow.id, Workflow.name).where(Workflow.id.in_(wf_ids))
+            )
+            wf_name_map = {str(r[0]): r[1] for r in wf_result.all()}
+
         enriched = []
         for ch in channels:
             stats = stats_map.get(str(ch.id), {"messages_today": 0, "credits_today": 0.0})
-            enriched.append((ch, stats))
+            totals = totals_map.get(str(ch.id), {"total_messages": 0, "total_credits": 0.0})
+            extra = {
+                **stats,
+                **totals,
+                "agent_name": ch.agent.name if ch.agent else None,
+                "workflow_name": wf_name_map.get(str(ch.workflow_id)) if ch.workflow_id else None,
+            }
+            enriched.append((ch, extra))
         return enriched, len(channels)
 
     async def _get_today_stats(self, channel_id: uuid.UUID):
@@ -377,6 +435,8 @@ class ChannelService:
             "bot_name",
             "agent_id",
             "skill_id",
+            "workflow_id",
+            "workflow_mappings",
             "daily_credit_limit",
             "low_balance_threshold",
             "pause_on_limit",
