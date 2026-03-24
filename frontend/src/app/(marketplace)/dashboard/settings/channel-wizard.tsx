@@ -63,7 +63,7 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
 const SETUP_TIMES: Record<string, { time: string; difficulty: string; color: string }> = {
   telegram: { time: "~2 min", difficulty: "Easiest", color: "text-green-500" },
   slack: { time: "~10 min", difficulty: "Moderate", color: "text-yellow-500" },
-  discord: { time: "~5 min", difficulty: "Moderate", color: "text-yellow-500" },
+  discord: { time: "~3 min", difficulty: "Easy", color: "text-green-500" },
   teams: { time: "~15 min", difficulty: "Advanced", color: "text-orange-500" },
   whatsapp: { time: "~30 min", difficulty: "Advanced", color: "text-orange-500" },
 };
@@ -144,6 +144,18 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
   const [pauseOnLimit, setPauseOnLimit] = useState(true);
   const [privacyUrl, setPrivacyUrl] = useState("");
 
+  // Discord auto-setup state
+  const [discordSetup, setDiscordSetup] = useState<{
+    verified: boolean;
+    loading: boolean;
+    error: string | null;
+    botUsername: string | null;
+    applicationId: string | null;
+    publicKey: string | null;
+    inviteUrl: string | null;
+    invited: boolean;
+  }>({ verified: false, loading: false, error: null, botUsername: null, applicationId: null, publicKey: null, inviteUrl: null, invited: false });
+
   // Fetch user's agents for step 3
   const { data: agentsData } = useAgents({
     owner_id: user?.id,
@@ -167,6 +179,7 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
     setLowBalance(20);
     setPauseOnLimit(true);
     setPrivacyUrl("");
+    setDiscordSetup({ verified: false, loading: false, error: null, botUsername: null, applicationId: null, publicKey: null, inviteUrl: null, invited: false });
   }
 
   function handleClose(open: boolean) {
@@ -176,6 +189,47 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
 
   const guide = platform ? PLATFORM_GUIDES[platform] : null;
 
+  // Discord: auto-setup from bot token
+  async function handleDiscordVerify() {
+    const token = credentials.bot_token?.trim();
+    if (!token) return;
+    setDiscordSetup((s) => ({ ...s, loading: true, error: null }));
+    try {
+      const gatewayBase = process.env.NEXT_PUBLIC_GATEWAY_URL || "https://crewhub-gateway.aidigitalcrew.com";
+      const resp = await fetch(`${gatewayBase}/auto-setup-discord`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bot_token: token }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.ok) {
+        setDiscordSetup((s) => ({ ...s, loading: false, error: data.error || "Verification failed" }));
+        return;
+      }
+      // Auto-populate credentials so they're sent to the backend
+      setCredentials((prev) => ({
+        ...prev,
+        application_id: data.application_id,
+        public_key: data.public_key,
+      }));
+      setDiscordSetup({
+        verified: true,
+        loading: false,
+        error: null,
+        botUsername: data.bot_username,
+        applicationId: data.application_id,
+        publicKey: data.public_key,
+        inviteUrl: data.invite_url,
+        invited: false,
+      });
+      if (!botName.trim()) {
+        setBotName(data.bot_username || "Discord Bot");
+      }
+    } catch {
+      setDiscordSetup((s) => ({ ...s, loading: false, error: "Network error — check your connection" }));
+    }
+  }
+
   // Validation per step
   function canProceed(): boolean {
     if (step === 0) return platform !== null;
@@ -184,6 +238,8 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
       if (!botName.trim()) return false;
       const allFilled = guide.credentials.every((c) => credentials[c.key]?.trim());
       if (!allFilled) return false;
+      // Discord: must verify token + confirm bot invited
+      if (platform === "discord" && (!discordSetup.verified || !discordSetup.invited)) return false;
       if (platform === "whatsapp" && !whatsappAck) return false;
       if (!privacyUrl.trim() || !privacyUrl.startsWith("http")) return false;
       return true;
@@ -232,7 +288,7 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
       }
 
       // Discord: register /ask slash command via CF Worker
-      if (platform === "discord" && credentials.bot_token && credentials.application_id && channel.webhook_url) {
+      if (platform === "discord" && credentials.bot_token && channel.webhook_url) {
         try {
           const gatewayUrl = channel.webhook_url.split("/webhook/")[0];
           const resp = await fetch(`${gatewayUrl}/auto-register-discord`, {
@@ -240,7 +296,6 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               bot_token: credentials.bot_token,
-              application_id: credentials.application_id,
               connection_id: channel.id,
             }),
           });
@@ -399,9 +454,13 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
                           }
                           placeholder={cred.placeholder}
                           value={credentials[cred.key] ?? ""}
-                          onChange={(e) =>
-                            setCredentials((prev) => ({ ...prev, [cred.key]: e.target.value }))
-                          }
+                          onChange={(e) => {
+                            setCredentials((prev) => ({ ...prev, [cred.key]: e.target.value }));
+                            // Reset Discord verification when token changes
+                            if (platform === "discord" && cred.key === "bot_token" && discordSetup.verified) {
+                              setDiscordSetup({ verified: false, loading: false, error: null, botUsername: null, applicationId: null, publicKey: null, inviteUrl: null, invited: false });
+                            }
+                          }}
                         />
                         {cred.type === "password" && (
                           <Button
@@ -446,6 +505,75 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
                 );
               })}
             </TooltipProvider>
+
+            {/* Discord: Verify + Invite flow */}
+            {platform === "discord" && (
+              <div className="space-y-3">
+                {!discordSetup.verified ? (
+                  <>
+                    <Button
+                      onClick={handleDiscordVerify}
+                      disabled={!credentials.bot_token?.trim() || credentials.bot_token.length < 50 || discordSetup.loading}
+                      className="w-full"
+                    >
+                      {discordSetup.loading ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : null}
+                      {discordSetup.loading ? "Verifying..." : "Verify Token"}
+                    </Button>
+                    {discordSetup.error && (
+                      <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3">
+                        <p className="text-xs text-red-600 dark:text-red-400">{discordSetup.error}</p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="space-y-3">
+                    {/* Verified success */}
+                    <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        <span className="text-sm font-medium">Token verified — bot: {discordSetup.botUsername}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        App ID and Public Key auto-detected.
+                      </p>
+                    </div>
+
+                    {/* Invite button */}
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Invite bot to your server</p>
+                      <Button variant="outline" className="w-full" asChild>
+                        <a
+                          href={discordSetup.inviteUrl!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => setDiscordSetup((s) => ({ ...s, invited: true }))}
+                          className="inline-flex items-center gap-2"
+                        >
+                          <Gamepad2 className="h-4 w-4" />
+                          Add Bot to Server
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      </Button>
+                      {discordSetup.invited && (
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                          <span className="text-xs text-green-600 dark:text-green-400">
+                            Bot invited — you can proceed
+                          </span>
+                        </div>
+                      )}
+                      {!discordSetup.invited && (
+                        <p className="text-xs text-muted-foreground">
+                          Click above to invite the bot, then come back here.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Privacy Notice URL */}
             <div className="space-y-2">
@@ -584,8 +712,75 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
         {/* Step 4: Post-creation success screen */}
         {step === 3 && createdChannel && guide && (
           <div className="space-y-5">
-            {guide.webhookManagement === "automatic" ? (
-              /* Auto-managed (Telegram, Discord) */
+            {guide.webhookManagement === "discord" ? (
+              /* Discord: almost done — just need to set Interactions Endpoint URL */
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-6 w-6 text-green-500" />
+                  <span className="text-base font-semibold">
+                    Almost done — one last step!
+                  </span>
+                </div>
+                <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Bot: <span className="font-medium text-foreground">{createdChannel.bot_name}</span>
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    The <code className="rounded bg-muted px-1 py-0.5 text-xs">/ask</code> slash command has been registered automatically.
+                  </p>
+                </div>
+
+                {/* Interactions Endpoint URL */}
+                {createdChannel.webhook_url && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">
+                      Paste this URL as your Interactions Endpoint URL:
+                    </p>
+                    <div className="flex items-center gap-2 rounded-lg border bg-muted/30 p-3">
+                      <code className="flex-1 truncate text-xs">{createdChannel.webhook_url}</code>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0"
+                        onClick={() => {
+                          navigator.clipboard.writeText(createdChannel.webhook_url!);
+                          toast.success("URL copied to clipboard");
+                        }}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    <ol className="list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
+                      <li>Open your app in the Discord Developer Portal</li>
+                      <li>Go to <span className="font-medium text-foreground">General Information</span></li>
+                      <li>Paste the URL above into <span className="font-medium text-foreground">Interactions Endpoint URL</span></li>
+                      <li>Click <span className="font-medium text-foreground">Save Changes</span></li>
+                    </ol>
+                  </div>
+                )}
+
+                <Button variant="outline" size="sm" asChild>
+                  <a
+                    href={discordSetup.applicationId
+                      ? `https://discord.com/developers/applications/${discordSetup.applicationId}/information`
+                      : "https://discord.com/developers/applications"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2"
+                  >
+                    Open App Settings
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </Button>
+
+                <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-3">
+                  <p className="text-xs text-blue-700 dark:text-blue-400">
+                    After saving, use <code className="rounded bg-blue-500/10 px-1 py-0.5">/ask</code> in any channel where the bot is present. The slash command may take up to 1 hour to appear globally.
+                  </p>
+                </div>
+              </div>
+            ) : guide.webhookManagement === "automatic" ? (
+              /* Auto-managed (Telegram) */
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-6 w-6 text-green-500" />

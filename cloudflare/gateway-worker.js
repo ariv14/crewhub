@@ -1057,10 +1057,10 @@ export default {
     // Registers /ask slash command + returns webhook URL for Interactions Endpoint
     if (url.pathname === "/auto-register-discord" && request.method === "POST") {
       const body = await request.json();
-      const { bot_token, application_id, connection_id } = body;
-      if (!bot_token || !application_id || !connection_id) {
+      const { bot_token, application_id: providedAppId, connection_id } = body;
+      if (!bot_token || !connection_id) {
         return addCorsHeaders(
-          Response.json({ ok: false, error: "bot_token, application_id, and connection_id required" }, { status: 400 }),
+          Response.json({ ok: false, error: "bot_token and connection_id required" }, { status: 400 }),
           origin
         );
       }
@@ -1072,6 +1072,24 @@ export default {
       if (!meResp.ok) {
         return addCorsHeaders(
           Response.json({ ok: false, error: "Invalid bot token" }, { status: 401 }),
+          origin
+        );
+      }
+
+      // Derive application_id from token if not provided
+      let application_id = providedAppId;
+      if (!application_id) {
+        const appResp = await fetch("https://discord.com/api/v10/applications/@me", {
+          headers: { "Authorization": `Bot ${bot_token}` },
+        });
+        if (appResp.ok) {
+          const appInfo = await appResp.json();
+          application_id = appInfo.id;
+        }
+      }
+      if (!application_id) {
+        return addCorsHeaders(
+          Response.json({ ok: false, error: "Could not determine application_id" }, { status: 500 }),
           origin
         );
       }
@@ -1116,6 +1134,65 @@ export default {
 
     // CORS preflight for /auto-register-discord
     if (request.method === "OPTIONS" && url.pathname === "/auto-register-discord") {
+      return new Response(null, { status: 204, headers: corsHeaders(origin) });
+    }
+
+    // Discord auto-setup: POST /auto-setup-discord
+    // Takes ONLY bot_token → returns application_id, public_key, bot username, invite URL
+    if (url.pathname === "/auto-setup-discord" && request.method === "POST") {
+      const body = await request.json();
+      const { bot_token } = body;
+      if (!bot_token) {
+        return addCorsHeaders(
+          Response.json({ ok: false, error: "bot_token is required" }, { status: 400 }),
+          origin
+        );
+      }
+
+      // Validate token + get bot user info
+      const meResp = await fetch("https://discord.com/api/v10/users/@me", {
+        headers: { "Authorization": `Bot ${bot_token}` },
+      });
+      if (!meResp.ok) {
+        return addCorsHeaders(
+          Response.json({ ok: false, error: "Invalid bot token. Make sure you copied the Bot Token (not the Client Secret)." }, { status: 401 }),
+          origin
+        );
+      }
+      const botUser = await meResp.json();
+
+      // Fetch application info → gives us application_id + verify_key (public_key)
+      const appResp = await fetch("https://discord.com/api/v10/applications/@me", {
+        headers: { "Authorization": `Bot ${bot_token}` },
+      });
+      if (!appResp.ok) {
+        return addCorsHeaders(
+          Response.json({ ok: false, error: "Could not fetch application info. Ensure the bot token is valid." }, { status: 500 }),
+          origin
+        );
+      }
+      const appInfo = await appResp.json();
+
+      const applicationId = appInfo.id;
+      const publicKey = appInfo.verify_key;
+      const botUsername = botUser.username;
+      const inviteUrl = `https://discord.com/oauth2/authorize?client_id=${applicationId}&scope=bot%20applications.commands&permissions=68608`;
+
+      return addCorsHeaders(
+        Response.json({
+          ok: true,
+          application_id: applicationId,
+          public_key: publicKey,
+          bot_username: botUsername,
+          bot_id: botUser.id,
+          invite_url: inviteUrl,
+        }),
+        origin
+      );
+    }
+
+    // CORS preflight for /auto-setup-discord
+    if (request.method === "OPTIONS" && url.pathname === "/auto-setup-discord") {
       return new Response(null, { status: 204, headers: corsHeaders(origin) });
     }
 
