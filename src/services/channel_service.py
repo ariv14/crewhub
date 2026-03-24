@@ -199,6 +199,26 @@ class ChannelService:
             if not skill or skill.agent_id != data.agent_id:
                 raise BadRequestError("Skill not found on this agent")
 
+        # Validate workflow if provided
+        if getattr(data, "workflow_id", None):
+            from src.models.workflow import Workflow
+            wf = await self.db.get(Workflow, data.workflow_id)
+            if not wf:
+                raise BadRequestError("Workflow not found")
+            if wf.user_id != owner_id and not wf.is_public:
+                raise BadRequestError("Workflow not found or not accessible")
+
+        if getattr(data, "workflow_mappings", None):
+            from src.models.workflow import Workflow
+            for key, mapping in data.workflow_mappings.items():
+                wf_id = mapping if isinstance(mapping, uuid.UUID) else mapping.get("workflow_id") if isinstance(mapping, dict) else None
+                if wf_id:
+                    wf = await self.db.get(Workflow, wf_id)
+                    if not wf:
+                        raise BadRequestError(f"Workflow {wf_id} in mappings not found")
+                    if wf.user_id != owner_id and not wf.is_public:
+                        raise BadRequestError(f"Workflow {wf_id} in mappings not accessible")
+
         # Encrypt bot token from credentials
         credentials = data.credentials
         bot_token = credentials.get("bot_token") or credentials.get("access_token", "")
@@ -231,6 +251,8 @@ class ChannelService:
                  if k not in ("bot_token", "access_token", "signing_secret", "verify_token")}
             ),
             privacy_notice_url=getattr(data, "privacy_notice_url", None),
+            workflow_id=getattr(data, "workflow_id", None),
+            workflow_mappings=getattr(data, "workflow_mappings", None),
         )
         self.db.add(ch)
         await self.db.flush()
