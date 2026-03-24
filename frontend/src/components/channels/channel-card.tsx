@@ -36,9 +36,11 @@ interface ChannelCardProps {
 
 export function ChannelCard({ channel, actions }: ChannelCardProps) {
   const statusInfo = STATUS_BADGE[channel.status];
-  const agentDisplay = channel.agent_id.length > 12
-    ? channel.agent_id.slice(0, 8) + "..."
-    : channel.agent_id;
+  const agentDisplay = channel.agent_name
+    ? channel.agent_name
+    : channel.agent_id.length > 12
+      ? channel.agent_id.slice(0, 8) + "..."
+      : channel.agent_id;
 
   return (
     <Card className="transition-all duration-200 hover:border-primary/50 hover:shadow-md">
@@ -58,8 +60,15 @@ export function ChannelCard({ channel, actions }: ChannelCardProps) {
           </Badge>
         </div>
 
-        <div className="mt-3 text-xs text-muted-foreground">
-          Agent: <span className="font-mono">{agentDisplay}</span>
+        <div className="mt-3 space-y-0.5">
+          <p className="text-xs text-muted-foreground">
+            Agent: <span className={channel.agent_name ? "text-foreground" : "font-mono"}>{agentDisplay}</span>
+          </p>
+          {channel.workflow_name && (
+            <p className="text-xs text-muted-foreground">
+              Workflow: <span className="text-foreground">{channel.workflow_name}</span>
+            </p>
+          )}
         </div>
 
         <div className="mt-3 flex items-center gap-4 text-sm">
@@ -72,6 +81,13 @@ export function ChannelCard({ channel, actions }: ChannelCardProps) {
             <span>{formatCredits(channel.credits_used_today)} credits</span>
           </div>
         </div>
+
+        {(channel.total_messages !== undefined || channel.total_credits !== undefined) && (
+          <div className="mt-1 flex gap-3 text-xs text-muted-foreground">
+            <span>{channel.total_messages ?? 0} total</span>
+            <span>{channel.total_credits ?? "0"} credits total</span>
+          </div>
+        )}
 
         {channel.last_active_at && (
           <p className="mt-2 text-xs text-muted-foreground">

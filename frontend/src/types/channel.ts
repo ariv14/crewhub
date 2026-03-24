@@ -10,7 +10,10 @@ export interface Channel {
   platform: ChannelPlatform;
   bot_name: string;
   agent_id: string;
+  agent_name?: string;
   skill_id?: string;
+  workflow_id?: string;
+  workflow_name?: string;
   status: ChannelStatus;
   paused_reason?: string;
   daily_credit_limit?: number;
@@ -21,6 +24,8 @@ export interface Channel {
   last_active_at?: string;
   messages_today: number;
   credits_used_today: number;
+  total_messages?: number;
+  total_credits?: number;
   created_at: string;
   updated_at: string;
 }
@@ -36,6 +41,8 @@ export interface ChannelCreate {
   bot_name: string;
   agent_id: string;
   skill_id?: string;
+  workflow_id?: string;
+  workflow_mappings?: Record<string, string>;
   daily_credit_limit?: number;
   low_balance_threshold?: number;
   pause_on_limit?: boolean;
