@@ -205,7 +205,7 @@ class ChannelService:
             wf = await self.db.get(Workflow, data.workflow_id)
             if not wf:
                 raise BadRequestError("Workflow not found")
-            if wf.user_id != owner_id and not wf.is_public:
+            if wf.owner_id != owner_id and not wf.is_public:
                 raise BadRequestError("Workflow not found or not accessible")
 
         if getattr(data, "workflow_mappings", None):
@@ -216,7 +216,7 @@ class ChannelService:
                     wf = await self.db.get(Workflow, wf_id)
                     if not wf:
                         raise BadRequestError(f"Workflow {wf_id} in mappings not found")
-                    if wf.user_id != owner_id and not wf.is_public:
+                    if wf.owner_id != owner_id and not wf.is_public:
                         raise BadRequestError(f"Workflow {wf_id} in mappings not accessible")
 
         # Encrypt bot token from credentials
