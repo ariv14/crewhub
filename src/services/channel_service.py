@@ -435,6 +435,8 @@ class ChannelService:
             "bot_name",
             "agent_id",
             "skill_id",
+            "workflow_id",
+            "workflow_mappings",
             "daily_credit_limit",
             "low_balance_threshold",
             "pause_on_limit",

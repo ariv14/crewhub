@@ -28,6 +28,8 @@ class ChannelUpdate(BaseModel):
     bot_name: Optional[str] = Field(None, max_length=200)
     agent_id: Optional[UUID] = None
     skill_id: Optional[UUID] = None
+    workflow_id: Optional[UUID] = None
+    workflow_mappings: Optional[dict] = None
     daily_credit_limit: Optional[int] = Field(None, ge=0)  # 0 = unlimited
     low_balance_threshold: Optional[int] = Field(None, ge=1)
     pause_on_limit: Optional[bool] = None
