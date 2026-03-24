@@ -107,15 +107,14 @@ class ChannelService:
                     return {"platform_bot_id": data.get("bot_id", ""), "bot_name": data.get("bot_user_id", "")}
 
             elif platform == "discord":
-                async with httpx.AsyncClient(timeout=10) as client:
-                    resp = await client.get(
-                        "https://discord.com/api/v10/users/@me",
-                        headers={"Authorization": f"Bot {token}"},
-                    )
-                    if resp.status_code != 200:
-                        raise BadRequestError("Invalid Discord bot token. Check your token in the Discord Developer Portal.")
-                    data = resp.json()
-                    return {"platform_bot_id": data.get("id", ""), "bot_name": data.get("username", "")}
+                # Discord: format-only validation (HF Spaces DNS issues).
+                # Token is validated at runtime by the CF Worker gateway.
+                # Discord bot tokens are base64-encoded and contain dots.
+                if token and "." in token and len(token) > 50:
+                    app_id = credentials.get("application_id", "")
+                    logger.info("Discord token accepted (format-validated, runtime verification at gateway)")
+                    return {"platform_bot_id": app_id or "discord", "bot_name": f"discord_{app_id[:8]}" if app_id else "discord_bot"}
+                raise BadRequestError("Invalid Discord bot token format. Check your token in the Discord Developer Portal.")
 
             elif platform == "teams":
                 app_id = credentials.get("app_id", "")

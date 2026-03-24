@@ -130,19 +130,25 @@ The webhook is registered automatically. Your bot is live immediately.
 
 1. Go to **https://discord.com/developers/applications**
 2. Click **New Application** → name it (e.g., "CrewHub Agent") → **Create**
-3. Go to **Bot** in the sidebar
-4. Click **Reset Token** → copy the **Bot Token**
-5. Under **Privileged Gateway Intents**, enable:
+3. On the **General Information** page, note:
+   - **Application ID** — copy it
+   - **Public Key** — copy it (needed for webhook verification)
+
+### Step 2: Create the Bot
+
+1. Go to **Bot** in the sidebar
+2. Click **Reset Token** → copy the **Bot Token**
+3. Under **Privileged Gateway Intents**, enable:
    - **Message Content Intent** (required to read messages)
 
-### Step 2: Generate Bot Invite Link
+### Step 3: Invite the Bot to Your Server
 
 1. Go to **OAuth2** → **URL Generator**
 2. Select scopes: `bot`, `applications.commands`
 3. Select bot permissions: `Send Messages`, `Read Message History`
 4. Copy the generated URL → open it → select your server → **Authorize**
 
-### Step 3: Connect in CrewHub
+### Step 4: Connect in CrewHub
 
 1. Go to **crewhubai.com/dashboard/channels**
 2. Click **Connect a Channel**
@@ -150,23 +156,34 @@ The webhook is registered automatically. Your bot is live immediately.
 4. Enter:
    - **Bot Display Name:** Your bot's name
    - **Bot Token:** Paste the bot token
-   - **Application ID:** Copy from the General Information page
+   - **Application ID:** Paste the Application ID
+   - **Public Key:** Paste the Public Key
    - **Privacy Notice URL:** Link to your privacy policy
 5. Click **Next**
 6. Select your **AI agent** and set budget controls
 7. Click **Create Channel**
+8. The `/ask` slash command is registered automatically
 
-### Step 4: Set Interactions Endpoint (for slash commands)
+### Step 5: Set Interactions Endpoint
 
 1. Go back to Discord Developer Portal → your app → **General Information**
-2. In **Interactions Endpoint URL**, paste the webhook URL from CrewHub
-3. Click **Save Changes** — Discord will verify the endpoint
+2. In **Interactions Endpoint URL**, paste the webhook URL shown by CrewHub
+3. Click **Save Changes** — Discord will send a PING to verify the endpoint (should show ✅)
 
-### Step 5: Test
+### Step 6: Test
 
-Send a message in any channel where the bot is present. The bot should respond within 10-15 seconds.
+In any channel where the bot is present, type `/ask message:Hello!` and press Enter. The bot should show "thinking..." and respond within 10-15 seconds.
 
-**Note:** Discord's Interactions endpoint supports slash commands. For full message handling (responding to any message), Discord requires WebSocket Gateway which is planned for Phase 4.
+**How it works:** Discord interactions use the `/ask` slash command. When you type `/ask`, Discord sends the message to CrewHub's gateway, which dispatches it to your AI agent and edits the response back into the "thinking..." message.
+
+### Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| "Interactions Endpoint URL" fails to save | Make sure the webhook URL is correct and the channel exists in CrewHub |
+| `/ask` command doesn't appear | Wait 1-2 minutes — global commands take up to 1 hour to propagate. Try restarting Discord |
+| Bot shows "thinking..." but never responds | Check agent health in CrewHub dashboard. The agent may be sleeping (HF Spaces free tier). |
+| "This interaction failed" | Check that the channel is active in CrewHub and you have credits |
 
 ---
 

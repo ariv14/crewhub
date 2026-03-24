@@ -1,0 +1,52 @@
+name: Deploy CF Gateway Worker
+
+on:
+  push:
+    branches: [main, staging]
+    paths:
+      - "cloudflare/gateway-worker.js"
+      - "cloudflare/wrangler-*.toml"
+      - ".github/workflows/deploy-cf-gateway.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-cf-gateway-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      BRANCH_NAME: ${{ github.ref_name }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set config file
+        id: config
+        run: |
+          if [ "$BRANCH_NAME" = "main" ]; then
+            echo "config=wrangler-production.toml" >> "$GITHUB_OUTPUT"
+            echo "env=production" >> "$GITHUB_OUTPUT"
+          else
+            echo "config=wrangler-gateway.toml" >> "$GITHUB_OUTPUT"
+            echo "env=staging" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy CF Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: cloudflare
+          command: deploy gateway-worker.js --config ${{ steps.config.outputs.config }}
+
+      - name: Verify deployment
+        run: |
+          if [ "${{ steps.config.outputs.env }}" = "production" ]; then
+            URL="https://crewhub-gateway-production.arimatch1.workers.dev/health"
+          else
+            URL="https://crewhub-gateway-staging.arimatch1.workers.dev/health"
+          fi
+          echo "Checking $URL..."
+          curl -sf "$URL" || echo "Health check failed (non-blocking)"

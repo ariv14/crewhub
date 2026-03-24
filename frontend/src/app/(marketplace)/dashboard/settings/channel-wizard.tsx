@@ -63,7 +63,7 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
 const SETUP_TIMES: Record<string, { time: string; difficulty: string; color: string }> = {
   telegram: { time: "~2 min", difficulty: "Easiest", color: "text-green-500" },
   slack: { time: "~10 min", difficulty: "Moderate", color: "text-yellow-500" },
-  discord: { time: "~5 min", difficulty: "Moderate", color: "text-yellow-500" },
+  discord: { time: "~3 min", difficulty: "Easy", color: "text-green-500" },
   teams: { time: "~15 min", difficulty: "Advanced", color: "text-orange-500" },
   whatsapp: { time: "~30 min", difficulty: "Advanced", color: "text-orange-500" },
 };
@@ -144,6 +144,19 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
   const [pauseOnLimit, setPauseOnLimit] = useState(true);
   const [privacyUrl, setPrivacyUrl] = useState("");
 
+  // Discord auto-setup state
+  const [discordSetup, setDiscordSetup] = useState<{
+    verified: boolean;
+    loading: boolean;
+    error: string | null;
+    botUsername: string | null;
+    applicationId: string | null;
+    publicKey: string | null;
+    inviteUrl: string | null;
+    invited: boolean;
+    endpointSet: boolean;
+  }>({ verified: false, loading: false, error: null, botUsername: null, applicationId: null, publicKey: null, inviteUrl: null, invited: false, endpointSet: false });
+
   // Fetch user's agents for step 3
   const { data: agentsData } = useAgents({
     owner_id: user?.id,
@@ -167,6 +180,7 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
     setLowBalance(20);
     setPauseOnLimit(true);
     setPrivacyUrl("");
+    setDiscordSetup({ verified: false, loading: false, error: null, botUsername: null, applicationId: null, publicKey: null, inviteUrl: null, invited: false, endpointSet: false });
   }
 
   function handleClose(open: boolean) {
@@ -176,6 +190,50 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
 
   const guide = platform ? PLATFORM_GUIDES[platform] : null;
 
+  // Discord: auto-setup from bot token
+  async function handleDiscordVerify() {
+    const token = credentials.bot_token?.trim();
+    if (!token) return;
+    setDiscordSetup((s) => ({ ...s, loading: true, error: null }));
+    try {
+      const isStaging = process.env.NEXT_PUBLIC_API_URL?.includes("staging");
+      const gatewayBase = process.env.NEXT_PUBLIC_GATEWAY_URL
+        || (isStaging ? "https://crewhub-gateway-staging.arimatch1.workers.dev" : "https://crewhub-gateway-production.arimatch1.workers.dev");
+      const resp = await fetch(`${gatewayBase}/auto-setup-discord`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bot_token: token }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.ok) {
+        setDiscordSetup((s) => ({ ...s, loading: false, error: data.error || "Verification failed" }));
+        return;
+      }
+      // Auto-populate credentials so they're sent to the backend
+      setCredentials((prev) => ({
+        ...prev,
+        application_id: data.application_id,
+        public_key: data.public_key,
+      }));
+      setDiscordSetup({
+        verified: true,
+        loading: false,
+        error: null,
+        botUsername: data.bot_username,
+        applicationId: data.application_id,
+        publicKey: data.public_key,
+        inviteUrl: data.invite_url,
+        invited: false,
+        endpointSet: false,
+      });
+      if (!botName.trim()) {
+        setBotName(data.bot_username || "Discord Bot");
+      }
+    } catch {
+      setDiscordSetup((s) => ({ ...s, loading: false, error: "Network error — check your connection" }));
+    }
+  }
+
   // Validation per step
   function canProceed(): boolean {
     if (step === 0) return platform !== null;
@@ -184,6 +242,8 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
       if (!botName.trim()) return false;
       const allFilled = guide.credentials.every((c) => credentials[c.key]?.trim());
       if (!allFilled) return false;
+      // Discord: must verify token + confirm bot invited
+      if (platform === "discord" && (!discordSetup.verified || !discordSetup.invited)) return false;
       if (platform === "whatsapp" && !whatsappAck) return false;
       if (!privacyUrl.trim() || !privacyUrl.startsWith("http")) return false;
       return true;
@@ -208,7 +268,7 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
       });
       setCreatedChannel(channel);
 
-      // Auto-register Telegram webhook via CF Worker (browser has full DNS)
+      // Auto-register webhook via CF Worker (browser has full DNS)
       if (platform === "telegram" && credentials.bot_token && channel.webhook_url) {
         try {
           const gatewayUrl = channel.webhook_url.split("/webhook/")[0];
@@ -228,6 +288,33 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
           }
         } catch (e) {
           console.warn("Auto webhook registration failed (non-blocking):", e);
+        }
+      }
+
+      // Discord: register /ask slash command via CF Worker
+      if (platform === "discord" && credentials.bot_token && channel.webhook_url) {
+        try {
+          const gatewayUrl = channel.webhook_url.split("/webhook/")[0];
+          const resp = await fetch(`${gatewayUrl}/auto-register-discord`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              bot_token: credentials.bot_token,
+              connection_id: channel.id,
+            }),
+          });
+          const result = await resp.json();
+          if (result.ok) {
+            console.log("Discord slash command registered:", result.slash_command);
+            if (result.endpoint_set) {
+              console.log("Discord Interactions Endpoint URL set automatically");
+              setDiscordSetup((s) => ({ ...s, endpointSet: true }));
+            }
+          } else {
+            console.warn("Discord slash command registration failed:", result.error);
+          }
+        } catch (e) {
+          console.warn("Discord auto-register failed (non-blocking):", e);
         }
       }
 
@@ -324,26 +411,67 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
         {/* Step 2: Setup Instructions + Credentials */}
         {step === 1 && guide && platform && (
           <div className="space-y-5">
-            {/* Setup instructions — PRIMARY content */}
-            <div className="space-y-3">
-              <p className="text-sm font-medium">Setup Instructions</p>
-              <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
-                {guide.steps.map((s, i) => (
-                  <li key={i}>{s}</li>
-                ))}
-              </ol>
-              <Button variant="outline" size="sm" asChild>
-                <a
-                  href={guide.externalUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2"
-                >
-                  {guide.externalLabel}
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </a>
-              </Button>
-            </div>
+            {/* Setup instructions — platform-specific */}
+            {platform === "discord" ? (
+              /* Discord: rich guided setup */
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Create a Discord Bot</p>
+                  <Button variant="outline" size="sm" asChild>
+                    <a
+                      href="https://discord.com/developers/applications"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2"
+                    >
+                      Open Developer Portal
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {[
+                    { num: "1", text: 'Click "New Application" and give it a name', hint: 'e.g. "My Support Bot"' },
+                    { num: "2", text: 'Go to the Bot tab (left sidebar)', hint: null },
+                    { num: "3", text: 'Click "Reset Token" and copy it', hint: "Save it now — you can't see it again!" },
+                    { num: "4", text: 'Scroll down → enable "Message Content Intent"', hint: "Under Privileged Gateway Intents" },
+                    { num: "5", text: 'Go to Installation tab → Guild Install → add "bot" scope', hint: 'Must have both "bot" and "applications.commands"' },
+                  ].map((s) => (
+                    <div key={s.num} className="flex gap-3 items-start">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{s.num}</span>
+                      <div>
+                        <p className="text-sm text-foreground">{s.text}</p>
+                        {s.hint && <p className="text-xs text-muted-foreground">{s.hint}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-2 text-xs text-blue-700 dark:text-blue-400">
+                  Once you have the bot token, paste it below. We&apos;ll auto-detect your App ID, Public Key, and set up everything else.
+                </div>
+              </div>
+            ) : (
+              /* Other platforms: generic step list */
+              <div className="space-y-3">
+                <p className="text-sm font-medium">Setup Instructions</p>
+                <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
+                  {guide.steps.map((s, i) => (
+                    <li key={i}>{s}</li>
+                  ))}
+                </ol>
+                <Button variant="outline" size="sm" asChild>
+                  <a
+                    href={guide.externalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2"
+                  >
+                    {guide.externalLabel}
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </Button>
+              </div>
+            )}
 
             <div className="border-t" />
 
@@ -375,9 +503,13 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
                           }
                           placeholder={cred.placeholder}
                           value={credentials[cred.key] ?? ""}
-                          onChange={(e) =>
-                            setCredentials((prev) => ({ ...prev, [cred.key]: e.target.value }))
-                          }
+                          onChange={(e) => {
+                            setCredentials((prev) => ({ ...prev, [cred.key]: e.target.value }));
+                            // Reset Discord verification when token changes
+                            if (platform === "discord" && cred.key === "bot_token" && discordSetup.verified) {
+                              setDiscordSetup({ verified: false, loading: false, error: null, botUsername: null, applicationId: null, publicKey: null, inviteUrl: null, invited: false, endpointSet: false });
+                            }
+                          }}
                         />
                         {cred.type === "password" && (
                           <Button
@@ -422,6 +554,87 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
                 );
               })}
             </TooltipProvider>
+
+            {/* Discord: Verify + Invite flow */}
+            {platform === "discord" && (
+              <div className="space-y-3">
+                {!discordSetup.verified ? (
+                  <>
+                    <Button
+                      onClick={handleDiscordVerify}
+                      disabled={!credentials.bot_token?.trim() || credentials.bot_token.length < 50 || discordSetup.loading}
+                      className="w-full"
+                    >
+                      {discordSetup.loading ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : null}
+                      {discordSetup.loading ? "Verifying..." : "Verify Token"}
+                    </Button>
+                    {discordSetup.error && (
+                      <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3">
+                        <p className="text-xs text-red-600 dark:text-red-400">{discordSetup.error}</p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="space-y-3">
+                    {/* Verified success */}
+                    <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        <span className="text-sm font-medium">Token verified — bot: {discordSetup.botUsername}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        App ID and Public Key auto-detected.
+                      </p>
+                    </div>
+
+                    {/* Invite button */}
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Invite bot to your server</p>
+                      <Button variant="outline" className="w-full" asChild>
+                        <a
+                          href={discordSetup.inviteUrl!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => setDiscordSetup((s) => ({ ...s, invited: true }))}
+                          className="inline-flex items-center gap-2"
+                        >
+                          <Gamepad2 className="h-4 w-4" />
+                          Add Bot to Server
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      </Button>
+                      {discordSetup.invited && (
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                          <span className="text-xs text-green-600 dark:text-green-400">
+                            Bot invited — you can proceed
+                          </span>
+                        </div>
+                      )}
+                      {!discordSetup.invited && (
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground">
+                            Select a server you manage and click Authorize.
+                          </p>
+                          <details className="text-xs text-muted-foreground">
+                            <summary className="cursor-pointer font-medium text-amber-600 dark:text-amber-400 hover:underline">
+                              Getting &quot;Integration requires code grant&quot;?
+                            </summary>
+                            <div className="mt-2 space-y-1 pl-2 border-l-2 border-amber-500/30">
+                              <p>Go to Discord Developer Portal → your app → <span className="font-medium text-foreground">Installation</span> tab.</p>
+                              <p>Under <span className="font-medium text-foreground">Guild Install</span>, make sure both <code className="rounded bg-muted px-1">bot</code> and <code className="rounded bg-muted px-1">applications.commands</code> scopes are added.</p>
+                              <p>Save and try the invite link again.</p>
+                            </div>
+                          </details>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Privacy Notice URL */}
             <div className="space-y-2">
@@ -560,8 +773,91 @@ export function ChannelWizard({ open, onOpenChange, existingChannelCount = -1 }:
         {/* Step 4: Post-creation success screen */}
         {step === 3 && createdChannel && guide && (
           <div className="space-y-5">
-            {guide.webhookManagement === "automatic" ? (
-              /* Auto-managed (Telegram, Discord) */
+            {guide.webhookManagement === "discord" ? (
+              /* Discord: auto-setup or manual endpoint */
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-6 w-6 text-green-500" />
+                  <span className="text-base font-semibold">
+                    {discordSetup.endpointSet
+                      ? "Your Discord bot is live!"
+                      : "Almost done — one last step!"}
+                  </span>
+                </div>
+                <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Bot: <span className="font-medium text-foreground">{createdChannel.bot_name}</span>
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    The <code className="rounded bg-muted px-1 py-0.5 text-xs">/ask</code> slash command has been registered automatically.
+                  </p>
+                  {discordSetup.endpointSet && (
+                    <p className="text-sm text-muted-foreground">
+                      Interactions Endpoint URL configured automatically.
+                    </p>
+                  )}
+                </div>
+
+                {/* Manual fallback: show endpoint URL if auto-set failed */}
+                {!discordSetup.endpointSet && createdChannel.webhook_url && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">
+                      Paste this URL as your Interactions Endpoint URL:
+                    </p>
+                    <div className="flex items-center gap-2 rounded-lg border bg-muted/30 p-3">
+                      <code className="flex-1 truncate text-xs">{createdChannel.webhook_url}</code>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0"
+                        onClick={() => {
+                          navigator.clipboard.writeText(createdChannel.webhook_url!);
+                          toast.success("URL copied to clipboard");
+                        }}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    <ol className="list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
+                      <li>Open your app in the Discord Developer Portal</li>
+                      <li>Go to <span className="font-medium text-foreground">General Information</span></li>
+                      <li>Paste the URL above into <span className="font-medium text-foreground">Interactions Endpoint URL</span></li>
+                      <li>Click <span className="font-medium text-foreground">Save Changes</span></li>
+                    </ol>
+                    <Button variant="outline" size="sm" asChild>
+                      <a
+                        href={discordSetup.applicationId
+                          ? `https://discord.com/developers/applications/${discordSetup.applicationId}/information`
+                          : "https://discord.com/developers/applications"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2"
+                      >
+                        Open App Settings
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    </Button>
+                  </div>
+                )}
+
+                <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-3">
+                  <p className="text-xs text-blue-700 dark:text-blue-400">
+                    Use <code className="rounded bg-blue-500/10 px-1 py-0.5">/ask</code> in any channel where the bot is present. The slash command may take up to 1 hour to appear globally.
+                  </p>
+                </div>
+
+                {discordSetup.endpointSet && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
+                    </span>
+                    Waiting for first message...
+                  </div>
+                )}
+              </div>
+            ) : guide.webhookManagement === "automatic" ? (
+              /* Auto-managed (Telegram) */
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-6 w-6 text-green-500" />

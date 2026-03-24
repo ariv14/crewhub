@@ -1,0 +1,6 @@
+name = "crewhub-gateway-production"
+main = "gateway-worker.js"
+compatibility_date = "2024-01-01"
+
+[triggers]
+crons = ["* * * * *"]  # every minute
