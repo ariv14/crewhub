@@ -1120,13 +1120,36 @@ export default {
       const workerUrl = url.origin;
       const webhookUrl = `${workerUrl}/webhook/discord/${connection_id}`;
 
+      // Auto-set the Interactions Endpoint URL on the Discord application
+      let endpointSet = false;
+      let endpointError = null;
+      const patchResp = await fetch("https://discord.com/api/v10/applications/@me", {
+        method: "PATCH",
+        headers: {
+          "Authorization": `Bot ${bot_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          interactions_endpoint_url: webhookUrl,
+        }),
+      });
+      if (patchResp.ok) {
+        endpointSet = true;
+        console.log("Discord: Interactions Endpoint URL set automatically to", webhookUrl);
+      } else {
+        const errBody = await patchResp.text();
+        endpointError = `Failed to set Interactions Endpoint URL (${patchResp.status}): ${errBody}`;
+        console.error("Discord: Failed to set endpoint URL:", patchResp.status, errBody);
+      }
+
       return addCorsHeaders(
         Response.json({
           ok: cmdResp.ok,
           webhook_url: webhookUrl,
           slash_command: cmdResp.ok ? "/ask" : null,
+          endpoint_set: endpointSet,
           error: !cmdResp.ok ? `Failed to register slash command: ${cmdResp.status}` : null,
-          instructions: "Paste this webhook URL as the Interactions Endpoint URL in your Discord app's General Information page.",
+          endpoint_error: endpointError,
         }),
         origin
       );
