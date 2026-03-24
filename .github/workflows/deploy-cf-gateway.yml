@@ -44,7 +44,7 @@ jobs:
       - name: Verify deployment
         run: |
           if [ "${{ steps.config.outputs.env }}" = "production" ]; then
-            URL="https://crewhub-gateway.aidigitalcrew.com/health"
+            URL="https://crewhub-gateway-production.arimatch1.workers.dev/health"
           else
             URL="https://crewhub-gateway-staging.arimatch1.workers.dev/health"
           fi
