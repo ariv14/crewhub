@@ -189,12 +189,16 @@ async def charge_for_message(
         new_today_usage,
     )
 
-    # SOC 2 CC7.2: audit log for credit charges
-    await _audit_gateway(
-        db, "charge",
-        target_id=str(req.connection_id),
-        details=f"credits={req.credits} owner={owner_id} remaining={remaining:.2f}",
-    )
+    # SOC 2 CC7.2: audit log for credit charges (non-blocking)
+    try:
+        await _audit_gateway(
+            db, "charge",
+            target_id=str(req.connection_id),
+            new_value={"credits": req.credits, "owner": str(owner_id), "remaining": round(remaining, 2)},
+        )
+        await db.commit()
+    except Exception:
+        logger.warning("Audit log for charge failed (non-blocking)", exc_info=True)
 
     return GatewayChargeResponse(
         success=True,
