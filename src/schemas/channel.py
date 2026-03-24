@@ -51,8 +51,13 @@ class ChannelResponse(BaseModel):
     webhook_url: Optional[str] = None
     error_message: Optional[str] = None
     last_active_at: Optional[datetime] = None
+    workflow_id: Optional[UUID] = None
     messages_today: int = 0  # computed field
     credits_used_today: Decimal = Decimal("0")  # computed field
+    total_messages: int = 0  # lifetime total
+    total_credits: float = 0.0  # lifetime total
+    agent_name: Optional[str] = None  # resolved from agent relationship
+    workflow_name: Optional[str] = None  # resolved from workflow_id
     created_at: datetime
     updated_at: datetime
 
