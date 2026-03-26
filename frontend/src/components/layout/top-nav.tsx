@@ -8,11 +8,13 @@ import {
   BookOpen,
   Bot,
   Clock,
+  Compass,
   CreditCard,
   GitBranch,
   LayoutDashboard,
   ListTodo,
   LogOut,
+  Map,
   Menu,
   Radio,
   Search,
@@ -137,12 +139,19 @@ export function TopNav() {
                     </Button>
                   )}
                   <div className="my-2 border-t" />
-                  <Button variant="ghost" className="justify-start" asChild>
-                    <a href={ROUTES.docs} onClick={() => setMobileOpen(false)}>
-                      <BookOpen className="mr-2 h-4 w-4" />
-                      Docs
-                    </a>
-                  </Button>
+                  {[
+                    { href: ROUTES.docs, label: "Docs", icon: BookOpen },
+                    { href: "/guide", label: "Guide", icon: Map },
+                    { href: ROUTES.pricing, label: "Pricing", icon: CreditCard },
+                    { href: "/explore", label: "Explore", icon: Compass },
+                  ].map((item) => (
+                    <Button key={item.href} variant="ghost" className="justify-start" asChild>
+                      <a href={item.href} onClick={() => setMobileOpen(false)}>
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {item.label}
+                      </a>
+                    </Button>
+                  ))}
                 </>
               ) : (
                 <>
