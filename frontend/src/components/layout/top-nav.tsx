@@ -14,11 +14,13 @@ import {
   ListTodo,
   LogOut,
   Menu,
+  Radio,
   Search,
   Settings,
   Shield,
   Sparkles,
   User,
+  Wallet,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useHotkeys } from "@/lib/hooks/use-hotkeys";
@@ -59,13 +61,14 @@ export function TopNav() {
   // Guests (no token) never see them — no flash in either direction.
   const hasStoredToken = typeof window !== "undefined" && !!localStorage.getItem("auth_token");
   const showAuthNav = !!user || (authLoading && hasStoredToken);
+  const isDashboard = pathname.startsWith("/dashboard");
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm">
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-2 px-4 sm:gap-4 overflow-hidden">
-        {/* Mobile hamburger */}
+        {/* Mobile hamburger — visible below lg on dashboard, below md on public */}
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetTrigger asChild className="md:hidden">
+          <SheetTrigger asChild className={isDashboard ? "lg:hidden" : "md:hidden"}>
             <Button variant="ghost" size="icon" aria-label="Open menu">
               <Menu className="h-5 w-5" />
             </Button>
@@ -79,13 +82,15 @@ export function TopNav() {
               <SheetDescription className="sr-only">Navigation menu</SheetDescription>
             </SheetHeader>
             <nav className="mt-6 flex flex-col gap-1 overflow-y-auto max-h-[calc(100dvh-8rem)] pb-4">
-              {showAuthNav && (
+              {showAuthNav && isDashboard ? (
                 <>
+                  {/* Dashboard mobile menu — mirrors sidebar exactly */}
+                  <span className="px-3 mb-1 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Core</span>
                   {[
                     { href: ROUTES.dashboard, label: "Overview", icon: LayoutDashboard },
                     { href: ROUTES.myAgents, label: "My Agents", icon: Bot },
                     { href: ROUTES.myTasks, label: "My Tasks", icon: ListTodo },
-                    { href: "/dashboard/builder", label: "Build Agent", icon: Sparkles },
+                    { href: ROUTES.communityAgents, label: "Community Agents", icon: Sparkles },
                   ].map((item) => (
                     <Button key={item.href} variant={pathname === item.href || (item.href !== ROUTES.dashboard && pathname.startsWith(item.href)) ? "secondary" : "ghost"} className="justify-start" asChild>
                       <a href={item.href} onClick={() => setMobileOpen(false)}>
@@ -95,9 +100,12 @@ export function TopNav() {
                     </Button>
                   ))}
                   <div className="my-2 border-t" />
+                  <span className="px-3 mb-1 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Orchestration</span>
                   {[
                     { href: ROUTES.myWorkflows, label: "Workflows", icon: GitBranch },
                     { href: ROUTES.mySchedules, label: "Schedules", icon: Clock },
+                    { href: "/dashboard/channels", label: "Channels", icon: Radio },
+                    { href: "/dashboard/builder", label: "Build Agent", icon: Sparkles },
                   ].map((item) => (
                     <Button key={item.href} variant={pathname === item.href || pathname.startsWith(item.href) ? "secondary" : "ghost"} className="justify-start" asChild>
                       <a href={item.href} onClick={() => setMobileOpen(false)}>
@@ -107,8 +115,10 @@ export function TopNav() {
                     </Button>
                   ))}
                   <div className="my-2 border-t" />
+                  <span className="px-3 mb-1 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Account</span>
                   {[
                     { href: ROUTES.credits, label: "Credits", icon: CreditCard },
+                    { href: ROUTES.payouts, label: "Payouts", icon: Wallet },
                     { href: ROUTES.settings, label: "Settings", icon: Settings },
                   ].map((item) => (
                     <Button key={item.href} variant={pathname === item.href || pathname.startsWith(item.href) ? "secondary" : "ghost"} className="justify-start" asChild>
@@ -126,52 +136,58 @@ export function TopNav() {
                       </a>
                     </Button>
                   )}
+                  <div className="my-2 border-t" />
+                  <Button variant="ghost" className="justify-start" asChild>
+                    <a href={ROUTES.docs} onClick={() => setMobileOpen(false)}>
+                      <BookOpen className="mr-2 h-4 w-4" />
+                      Docs
+                    </a>
+                  </Button>
                 </>
-              )}
-              <div className="my-2 border-t" />
-              <Button variant="ghost" className="justify-start" asChild>
-                <a href="/agents" onClick={() => setMobileOpen(false)}>
-                  <Search className="mr-2 h-4 w-4" />
-                  Browse Agents
-                </a>
-              </Button>
-              <Button variant="ghost" className="justify-start" asChild>
-                <a href={ROUTES.communityAgents} onClick={() => setMobileOpen(false)}>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Community Agents
-                </a>
-              </Button>
-              <Button variant="ghost" className="justify-start" asChild>
-                <a href={ROUTES.docs} onClick={() => setMobileOpen(false)}>
-                  <BookOpen className="mr-2 h-4 w-4" />
-                  Docs
-                </a>
-              </Button>
-              <Button variant="ghost" className="justify-start" asChild>
-                <a href={ROUTES.pricing} onClick={() => setMobileOpen(false)}>
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Pricing
-                </a>
-              </Button>
-              <Button variant="ghost" className="justify-start" asChild>
-                <a href="/guide" onClick={() => setMobileOpen(false)}>
-                  <BookOpen className="mr-2 h-4 w-4" />
-                  Guide
-                </a>
-              </Button>
-              <Button variant="ghost" className="justify-start" asChild>
-                <a href="/explore" onClick={() => setMobileOpen(false)}>
-                  <LayoutDashboard className="mr-2 h-4 w-4" />
-                  Explore Platform
-                </a>
-              </Button>
-              {!user && (
-                <Button variant="ghost" className="justify-start text-primary" asChild>
-                  <a href={ROUTES.register} onClick={() => setMobileOpen(false)}>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Get Started Free
-                  </a>
-                </Button>
+              ) : (
+                <>
+                  {/* Public pages mobile menu */}
+                  {showAuthNav && (
+                    <>
+                      {[
+                        { href: ROUTES.dashboard, label: "Dashboard", icon: LayoutDashboard },
+                        { href: ROUTES.myAgents, label: "My Agents", icon: Bot },
+                        { href: ROUTES.myTasks, label: "My Tasks", icon: ListTodo },
+                      ].map((item) => (
+                        <Button key={item.href} variant={pathname === item.href || (item.href !== ROUTES.dashboard && pathname.startsWith(item.href)) ? "secondary" : "ghost"} className="justify-start" asChild>
+                          <a href={item.href} onClick={() => setMobileOpen(false)}>
+                            <item.icon className="mr-2 h-4 w-4" />
+                            {item.label}
+                          </a>
+                        </Button>
+                      ))}
+                      <div className="my-2 border-t" />
+                    </>
+                  )}
+                  {[
+                    { href: "/agents", label: "Browse Agents", icon: Search },
+                    { href: ROUTES.communityAgents, label: "Community Agents", icon: Sparkles },
+                    { href: ROUTES.docs, label: "Docs", icon: BookOpen },
+                    { href: ROUTES.pricing, label: "Pricing", icon: CreditCard },
+                    { href: "/guide", label: "Guide", icon: BookOpen },
+                    { href: "/explore", label: "Explore", icon: LayoutDashboard },
+                  ].map((item) => (
+                    <Button key={item.href} variant={pathname === item.href ? "secondary" : "ghost"} className="justify-start" asChild>
+                      <a href={item.href} onClick={() => setMobileOpen(false)}>
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {item.label}
+                      </a>
+                    </Button>
+                  ))}
+                  {!user && (
+                    <Button variant="ghost" className="justify-start text-primary" asChild>
+                      <a href={ROUTES.register} onClick={() => setMobileOpen(false)}>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Get Started Free
+                      </a>
+                    </Button>
+                  )}
+                </>
               )}
             </nav>
           </SheetContent>
@@ -182,36 +198,31 @@ export function TopNav() {
           <span className={user ? "hidden sm:inline" : ""}>CrewHub</span>
         </a>
 
-        <nav className="hidden items-center gap-1 md:flex">
-          {showAuthNav && (
-            <>
+        {/* Desktop nav — only on public pages; hidden entirely on dashboard (sidebar handles it) */}
+        {!isDashboard && (
+          <nav className="hidden items-center gap-1 md:flex">
+            {showAuthNav && (
               <Button variant="ghost" size="sm" asChild className={pathname === "/dashboard" ? "bg-accent" : ""}>
                 <a href={ROUTES.dashboard}>Dashboard</a>
               </Button>
-              <Button variant="ghost" size="sm" asChild className={pathname.startsWith("/agents") ? "bg-accent" : ""}>
-                <a href="/agents">Agents</a>
-              </Button>
-              <Button variant="ghost" size="sm" asChild className={pathname.startsWith("/dashboard/tasks") ? "bg-accent" : ""}>
-                <a href={ROUTES.myTasks}>Tasks</a>
-              </Button>
-            </>
-          )}
-          <Button variant="ghost" size="sm" asChild className={pathname.startsWith("/community-agents") ? "bg-accent" : ""}>
-            <a href={ROUTES.communityAgents}>Community</a>
-          </Button>
-          <Button variant="ghost" size="sm" asChild className={pathname === "/docs" ? "bg-accent" : ""}>
-            <a href={ROUTES.docs}>Docs</a>
-          </Button>
-          <Button variant="ghost" size="sm" asChild className={pathname === "/pricing" ? "bg-accent" : ""}>
-            <a href={ROUTES.pricing}>Pricing</a>
-          </Button>
-          <Button variant="ghost" size="sm" asChild className={pathname === "/explore" ? "bg-accent" : ""}>
-            <a href="/explore">Explore</a>
-          </Button>
-          <Button variant="ghost" size="sm" asChild className={pathname === "/guide" ? "bg-accent" : ""}>
-            <a href={ROUTES.guide}>Guide</a>
-          </Button>
-        </nav>
+            )}
+            <Button variant="ghost" size="sm" asChild className={pathname.startsWith("/agents") ? "bg-accent" : ""}>
+              <a href="/agents">Agents</a>
+            </Button>
+            <Button variant="ghost" size="sm" asChild className={pathname.startsWith("/community-agents") ? "bg-accent" : ""}>
+              <a href={ROUTES.communityAgents}>Community</a>
+            </Button>
+            <Button variant="ghost" size="sm" asChild className={pathname === "/docs" ? "bg-accent" : ""}>
+              <a href={ROUTES.docs}>Docs</a>
+            </Button>
+            <Button variant="ghost" size="sm" asChild className={pathname === "/pricing" ? "bg-accent" : ""}>
+              <a href={ROUTES.pricing}>Pricing</a>
+            </Button>
+            <Button variant="ghost" size="sm" asChild className={pathname === "/guide" ? "bg-accent" : ""}>
+              <a href={ROUTES.guide}>Guide</a>
+            </Button>
+          </nav>
+        )}
 
         <div className="ml-auto flex items-center gap-2">
           <Button variant="ghost" size="icon" className="hidden md:flex" onClick={openCommandPalette} aria-label="Search">
@@ -292,7 +303,7 @@ export function TopNav() {
               <Button size="sm" className="hidden sm:inline-flex" asChild>
                 <a href={ROUTES.register}>Get Started Free</a>
               </Button>
-</>
+            </>
           )}
         </div>
       </div>

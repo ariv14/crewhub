@@ -17,6 +17,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useBalance } from "@/lib/hooks/use-credits";
 import { useTasks } from "@/lib/hooks/use-tasks";
 import { useAgents } from "@/lib/hooks/use-agents";
+import { useMyWorkflows } from "@/lib/hooks/use-workflows";
 import { StatCard } from "@/components/shared/stat-card";
 import { ROUTES } from "@/lib/constants";
 import { formatCredits } from "@/lib/utils";
@@ -83,6 +84,7 @@ export default function DashboardPage() {
     user ? { owner_id: user.id } : undefined
   );
   const { data: allAgentsData } = useAgents({ per_page: 20 });
+  const { data: workflowsData } = useMyWorkflows();
 
   // Welcome state for new users
   if (user && !user.onboarding_completed) {
@@ -99,6 +101,11 @@ export default function DashboardPage() {
   const publicAgents = (allAgentsData?.agents ?? []).filter(
     (a) => !myAgentIds.has(a.id)
   );
+
+  // Show action cards only for users still getting started
+  const hasWorkflows = (workflowsData?.total ?? 0) > 0;
+  const hasAgents = myAgents.length > 0;
+  const showActionCards = !hasWorkflows || !hasAgents;
 
   return (
     <div className="space-y-8">
@@ -138,34 +145,36 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* Quick Action Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {ACTION_CARDS.map((card) => (
-          <a
-            key={card.href}
-            href={card.href}
-            onClick={() => trackCardClick(card.track)}
-            className={`group relative flex min-h-[140px] flex-col justify-between overflow-hidden rounded-xl p-5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${card.border} ${card.hover}`}
-          >
-            {card.gradient && (
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
-            )}
-            <div className="relative">
-              <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg ${card.iconBg}`}>
-                <card.icon className={`h-5 w-5 ${card.iconColor}`} />
+      {/* Quick Action Cards — shown only while getting started */}
+      {showActionCards && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {ACTION_CARDS.map((card) => (
+            <a
+              key={card.href}
+              href={card.href}
+              onClick={() => trackCardClick(card.track)}
+              className={`group relative flex min-h-[140px] flex-col justify-between overflow-hidden rounded-xl p-5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${card.border} ${card.hover}`}
+            >
+              {card.gradient && (
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
+              )}
+              <div className="relative">
+                <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg ${card.iconBg}`}>
+                  <card.icon className={`h-5 w-5 ${card.iconColor}`} />
+                </div>
+                <h3 className="font-semibold">{card.title}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {card.description}
+                </p>
               </div>
-              <h3 className="font-semibold">{card.title}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {card.description}
-              </p>
-            </div>
-            <div className={`relative mt-4 flex items-center gap-1.5 text-sm font-medium ${card.ctaColor}`}>
-              {card.cta}
-              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
-            </div>
-          </a>
-        ))}
-      </div>
+              <div className={`relative mt-4 flex items-center gap-1.5 text-sm font-medium ${card.ctaColor}`}>
+                {card.cta}
+                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <ActivityFeed />
