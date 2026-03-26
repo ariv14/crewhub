@@ -12,6 +12,8 @@ import {
   Settings,
   GitBranch,
   Clock,
+  Compass,
+  Map,
   MessageCircle,
   BookOpen,
   Sparkles,
@@ -93,13 +95,21 @@ export function UserSidebar() {
         ))}
       </nav>
       <div className="mt-auto border-t p-4">
-        <a
-          href={ROUTES.docs}
-          className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-        >
-          <BookOpen className="h-4 w-4" />
-          Docs
-        </a>
+        {[
+          { href: ROUTES.docs, label: "Docs", icon: BookOpen },
+          { href: ROUTES.guide, label: "Guide", icon: Map },
+          { href: ROUTES.pricing, label: "Pricing", icon: CreditCard },
+          { href: "/explore", label: "Explore", icon: Compass },
+        ].map((item) => (
+          <a
+            key={item.href}
+            href={item.href}
+            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+          >
+            <item.icon className="h-4 w-4" />
+            {item.label}
+          </a>
+        ))}
         <a
           href={DISCORD_URL}
           target="_blank"
