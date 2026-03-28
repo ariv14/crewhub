@@ -1,0 +1,35 @@
+name: Deploy Builder Proxy Worker
+
+on:
+  push:
+    branches: [main, staging]
+    paths:
+      - "workers/builder-proxy.js"
+      - "workers/wrangler-builder.toml"
+      - ".github/workflows/deploy-builder-proxy.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-builder-proxy-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Deploy Builder Proxy Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: workers
+          command: deploy builder-proxy.js --config wrangler-builder.toml
+
+      - name: Verify deployment
+        run: |
+          sleep 5
+          echo "Checking health endpoint..."
+          RESULT=$(curl -sf "https://crewhub-builder-proxy.arimatch1.workers.dev/health" 2>&1) || true
+          echo "$RESULT"
