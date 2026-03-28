@@ -2,8 +2,8 @@
 // Proprietary and confidential. See LICENSE for details.
 "use client";
 
-import { useState, useEffect } from "react";
-import { Loader2, Monitor, Send, ListTodo } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Loader2, Monitor, Send, ListTodo, RefreshCw, AlertTriangle } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
@@ -67,19 +67,30 @@ export default function BuilderPage() {
       return;
     }
 
+    let cancelled = false;
+
     async function getBuilderAccess() {
+      const url = "https://builder.crewhubai.com";
       try {
-        // Use builder.crewhubai.com proxy — same domain as parent,
-        // so cookies work in iframe (third-party cookies blocked cross-origin)
-        setBuilderUrl("https://builder.crewhubai.com");
+        // Pre-check: verify the builder proxy is reachable before loading iframe
+        const res = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(10000) });
+        if (cancelled) return;
+        if (res.status === 412 || res.status === 429 || res.status === 503) {
+          setError("Builder service is temporarily unavailable due to high demand. Please try again in a few minutes.");
+        } else {
+          setBuilderUrl(url);
+        }
       } catch {
-        setError("Failed to load builder. Please try again.");
+        if (cancelled) return;
+        // Network error or timeout — still try loading the iframe
+        setBuilderUrl(url);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
     getBuilderAccess();
+    return () => { cancelled = true; };
   }, [user]);
 
   if (isMobile) {
@@ -120,16 +131,36 @@ export default function BuilderPage() {
     );
   }
 
+  const handleRetry = useCallback(() => {
+    setError(null);
+    setLoading(true);
+    setBuilderUrl(null);
+    // Re-trigger the effect by toggling a state
+    const url = "https://builder.crewhubai.com";
+    fetch(url, { method: "HEAD", signal: AbortSignal.timeout(10000) })
+      .then((res) => {
+        if (res.status === 412 || res.status === 429 || res.status === 503) {
+          setError("Builder service is still unavailable. Please try again in a few minutes.");
+        } else {
+          setBuilderUrl(url);
+        }
+      })
+      .catch(() => setBuilderUrl(url))
+      .finally(() => setLoading(false));
+  }, []);
+
   if (error) {
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
-        <p className="text-destructive">{error}</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground"
-        >
-          Retry
-        </button>
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-4 text-center">
+        <AlertTriangle className="h-10 w-10 text-amber-500" />
+        <h2 className="text-lg font-semibold">Builder Temporarily Unavailable</h2>
+        <p className="max-w-md text-sm text-muted-foreground">
+          {error}
+        </p>
+        <Button onClick={handleRetry} variant="outline" className="gap-2">
+          <RefreshCw className="h-4 w-4" />
+          Try Again
+        </Button>
       </div>
     );
   }
