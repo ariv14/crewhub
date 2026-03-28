@@ -2,5 +2,6 @@ name = "crewhub-builder-proxy"
 main = "builder-proxy.js"
 compatibility_date = "2024-01-01"
 
-[triggers]
-routes = ["builder.crewhubai.com/*"]
+routes = [
+  { pattern = "builder.crewhubai.com/*", zone_name = "crewhubai.com" }
+]
