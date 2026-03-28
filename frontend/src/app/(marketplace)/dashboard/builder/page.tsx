@@ -2,7 +2,7 @@
 // Proprietary and confidential. See LICENSE for details.
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Loader2, Monitor, Send, ListTodo, RefreshCw, AlertTriangle } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
@@ -67,30 +67,10 @@ export default function BuilderPage() {
       return;
     }
 
-    let cancelled = false;
-
-    async function getBuilderAccess() {
-      const url = "https://builder.crewhubai.com";
-      try {
-        // Pre-check: verify the builder proxy is reachable before loading iframe
-        const res = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(10000) });
-        if (cancelled) return;
-        if (res.status === 412 || res.status === 429 || res.status === 503) {
-          setError("Builder service is temporarily unavailable due to high demand. Please try again in a few minutes.");
-        } else {
-          setBuilderUrl(url);
-        }
-      } catch {
-        if (cancelled) return;
-        // Network error or timeout — still try loading the iframe
-        setBuilderUrl(url);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    getBuilderAccess();
-    return () => { cancelled = true; };
+    // Use builder.crewhubai.com proxy — same domain as parent,
+    // so cookies work in iframe (third-party cookies blocked cross-origin)
+    setBuilderUrl("https://builder.crewhubai.com");
+    setLoading(false);
   }, [user]);
 
   if (isMobile) {
@@ -131,22 +111,38 @@ export default function BuilderPage() {
     );
   }
 
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const handleIframeLoad = useCallback(() => {
+    // Detect if iframe loaded an error response instead of Langflow
+    // Cross-origin iframes block content access, so we check via a timeout:
+    // if the iframe document title is empty or very short after load, it's likely an error
+    try {
+      const iframe = iframeRef.current;
+      if (!iframe) return;
+      // For same-origin (builder.crewhubai.com → crewhubai.com subdomain), try reading
+      const doc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (doc) {
+        const text = doc.body?.textContent?.trim() || "";
+        if (text.includes("Quota exceeded") || text.includes("RATE_LIMITED")) {
+          setBuilderUrl(null);
+          setError("Builder service is temporarily unavailable due to high demand. Please try again in a few minutes.");
+        }
+      }
+    } catch {
+      // Cross-origin — can't read iframe content, assume it loaded fine
+    }
+  }, []);
+
   const handleRetry = useCallback(() => {
     setError(null);
     setLoading(true);
     setBuilderUrl(null);
-    // Re-trigger the effect by toggling a state
-    const url = "https://builder.crewhubai.com";
-    fetch(url, { method: "HEAD", signal: AbortSignal.timeout(10000) })
-      .then((res) => {
-        if (res.status === 412 || res.status === 429 || res.status === 503) {
-          setError("Builder service is still unavailable. Please try again in a few minutes.");
-        } else {
-          setBuilderUrl(url);
-        }
-      })
-      .catch(() => setBuilderUrl(url))
-      .finally(() => setLoading(false));
+    // Small delay then reload
+    setTimeout(() => {
+      setBuilderUrl("https://builder.crewhubai.com");
+      setLoading(false);
+    }, 500);
   }, []);
 
   if (error) {
@@ -299,11 +295,13 @@ export default function BuilderPage() {
       {/* Langflow iframe */}
       {builderUrl && (
         <iframe
+          ref={iframeRef}
           src={builderUrl}
           className="flex-1 border-0"
           allow="clipboard-read; clipboard-write"
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
           title="CrewHub Agent Builder"
+          onLoad={handleIframeLoad}
         />
       )}
     </div>
