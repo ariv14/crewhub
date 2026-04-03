@@ -2,9 +2,13 @@
 # Proprietary and confidential. See LICENSE for details.
 """Task lifecycle endpoints: creation, messaging, cancellation, and rating."""
 
+import asyncio
+import json
+import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from decimal import Decimal
@@ -259,4 +263,202 @@ async def submit_x402_receipt(
         verified=True,
         tx_hash=receipt.tx_hash,
         task_status="submitted",
+    )
+
+
+# ---------------------------------------------------------------------------
+# AG-UI: Task streaming endpoint
+# ---------------------------------------------------------------------------
+
+_stream_logger = logging.getLogger(__name__ + ".stream")
+
+_STREAM_TERMINAL = {"completed", "failed", "canceled", "rejected"}
+_STREAM_POLL_INTERVAL = 2  # seconds — fallback poll interval
+_STREAM_MAX_DURATION = 300  # 5 minutes max
+
+
+@router.get("/{task_id}/stream")
+async def stream_task(
+    task_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    user_id: UUID = Depends(resolve_db_user_id),
+) -> StreamingResponse:
+    """Stream real-time task execution updates via Server-Sent Events.
+
+    If the provider agent supports AG-UI streaming (``capabilities.streaming``),
+    relays the agent's SSE stream directly to the client for token-by-token output.
+
+    Otherwise, falls back to polling the task status every 2 seconds and emitting
+    status/artifact/done events — same contract, just with latency.
+
+    Events emitted:
+      - ``status``   — task status change (includes ``final`` flag)
+      - ``text``     — partial text chunk from streaming agent
+      - ``thinking`` — agent reasoning (shown collapsed in UI)
+      - ``artifact`` — complete artifact
+      - ``done``     — final task state with all artifacts
+      - ``error``    — error message
+    """
+    # Validate ownership
+    service = TaskBrokerService(db)
+    task = await service.get_task(task_id=task_id, user_id=user_id)
+
+    # Check if provider agent supports streaming
+    agent_supports_streaming = False
+    agent_endpoint = None
+    skill_key = None
+    if task.provider_agent:
+        caps = task.provider_agent.capabilities or {}
+        agent_supports_streaming = caps.get("streaming", False)
+        agent_endpoint = task.provider_agent.endpoint
+    if task.skill:
+        skill_key = task.skill.skill_key
+
+    async def _relay_agent_stream():
+        """Connect to agent's SSE and relay chunks to the browser."""
+        import httpx
+
+        try:
+            payload = {
+                "jsonrpc": "2.0",
+                "id": str(task_id),
+                "method": "tasks/sendSubscribe",
+                "params": {
+                    "id": str(task_id),
+                    "skill_id": skill_key,
+                    "messages": task.messages or [],
+                },
+            }
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(connect=10.0, read=300.0, write=10.0, pool=10.0),
+            ) as client:
+                async with client.stream(
+                    "POST",
+                    agent_endpoint.rstrip("/") + "/",
+                    json=payload,
+                    headers={
+                        "Content-Type": "application/json",
+                        "Accept": "text/event-stream",
+                    },
+                ) as response:
+                    response.raise_for_status()
+                    async for line in response.aiter_lines():
+                        # Relay SSE lines directly to browser
+                        if line.startswith("event:") or line.startswith("data:"):
+                            yield line + "\n"
+                        elif line == "":
+                            yield "\n"
+
+                        # Parse done events to update task in DB
+                        if line.startswith("data:"):
+                            try:
+                                data = json.loads(line[5:].strip())
+                                if data.get("type") == "done":
+                                    artifacts = data.get("artifacts", [])
+                                    if artifacts:
+                                        await _finalize_task(task_id, artifacts)
+                            except (json.JSONDecodeError, KeyError):
+                                pass
+
+        except Exception as exc:
+            _stream_logger.warning("Agent stream relay failed for task %s: %s", task_id, exc)
+            yield f"event: error\ndata: {json.dumps({'type': 'error', 'content': 'Agent stream unavailable, falling back to polling'})}\n\n"
+            # Fall back to polling
+            async for event in _poll_task_status():
+                yield event
+
+    async def _poll_task_status():
+        """Fallback: poll task DB and emit SSE events."""
+        from src.database import async_session
+
+        last_status = None
+        last_artifact_count = 0
+        elapsed = 0
+
+        while elapsed < _STREAM_MAX_DURATION:
+            try:
+                async with async_session() as poll_db:
+                    broker = TaskBrokerService(poll_db)
+                    t = await broker.get_task(task_id)
+
+                    current_status = t.status.value if hasattr(t.status, "value") else t.status
+                    current_artifacts = t.artifacts or []
+
+                    if current_status != last_status:
+                        is_final = current_status in _STREAM_TERMINAL
+                        event_data = {
+                            "type": "status",
+                            "content": current_status,
+                            "metadata": {"final": is_final},
+                        }
+                        yield f"event: status\ndata: {json.dumps(event_data)}\n\n"
+                        last_status = current_status
+
+                        if is_final:
+                            done_data = {
+                                "type": "done",
+                                "artifacts": current_artifacts,
+                                "metadata": {
+                                    "credits_quoted": float(t.credits_quoted) if t.credits_quoted else 0,
+                                    "completed_at": t.completed_at.isoformat() if t.completed_at else None,
+                                },
+                            }
+                            yield f"event: done\ndata: {json.dumps(done_data)}\n\n"
+                            return
+
+                    if len(current_artifacts) > last_artifact_count:
+                        for artifact in current_artifacts[last_artifact_count:]:
+                            yield f"event: artifact\ndata: {json.dumps({'type': 'artifact', 'artifact': artifact})}\n\n"
+                        last_artifact_count = len(current_artifacts)
+
+            except Exception:
+                _stream_logger.exception("SSE poll error for task %s", task_id)
+                yield f"event: error\ndata: {json.dumps({'type': 'error', 'content': 'Internal error'})}\n\n"
+                return
+
+            await asyncio.sleep(_STREAM_POLL_INTERVAL)
+            elapsed += _STREAM_POLL_INTERVAL
+
+        yield f"event: error\ndata: {json.dumps({'type': 'error', 'content': 'Stream timeout'})}\n\n"
+
+    async def _finalize_task(tid: UUID, artifacts: list):
+        """Update task in DB when streaming completes."""
+        from src.database import async_session
+
+        try:
+            async with async_session() as fin_db:
+                broker = TaskBrokerService(fin_db)
+                await broker.update_task_status(tid, TaskStatusModel.COMPLETED, artifacts=artifacts)
+        except Exception:
+            _stream_logger.exception("Failed to finalize streaming task %s", tid)
+
+    # Choose streaming strategy
+    status_val = task.status.value if hasattr(task.status, "value") else task.status
+    if status_val in _STREAM_TERMINAL:
+        # Task already done — emit done event immediately
+        async def _done_immediately():
+            done_data = {
+                "type": "done",
+                "artifacts": task.artifacts or [],
+                "metadata": {
+                    "status": status_val,
+                    "credits_quoted": float(task.credits_quoted) if task.credits_quoted else 0,
+                },
+            }
+            yield f"event: done\ndata: {json.dumps(done_data)}\n\n"
+
+        generator = _done_immediately()
+    elif agent_supports_streaming and agent_endpoint:
+        generator = _relay_agent_stream()
+    else:
+        generator = _poll_task_status()
+
+    return StreamingResponse(
+        generator,
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )

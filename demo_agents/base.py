@@ -13,15 +13,16 @@ from __future__ import annotations
 import logging
 import os
 import uuid
+from dataclasses import dataclass, field
 
 # Ensure Ollama uses 127.0.0.1 to avoid DNS/async resolution issues with litellm
 if not os.environ.get("OLLAMA_API_BASE"):
     os.environ["OLLAMA_API_BASE"] = "http://127.0.0.1:11434"
 from datetime import datetime, timezone
-from typing import Any, Callable, Awaitable
+from typing import Any, AsyncGenerator, Callable, Awaitable
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 
 # ---------------------------------------------------------------------------
@@ -80,6 +81,50 @@ class Artifact:
 # Handler signature:
 #   async def handler(skill_id: str, messages: list[TaskMessage]) -> list[Artifact]
 HandlerFunc = Callable[[str, list[TaskMessage]], Awaitable[list[Artifact]]]
+
+
+# ---------------------------------------------------------------------------
+# AG-UI Streaming types
+# ---------------------------------------------------------------------------
+
+@dataclass
+class StreamChunk:
+    """A single chunk emitted by a streaming agent handler.
+
+    Types:
+      - "thinking"  — agent reasoning (shown collapsed in UI)
+      - "text"      — partial text output (appended progressively)
+      - "artifact"  — complete artifact (rendered when received)
+      - "status"    — status change (e.g. "working")
+      - "error"     — error message
+      - "done"      — final signal with optional artifact list
+    """
+    type: str  # thinking | text | artifact | status | error | done
+    content: str = ""
+    artifact: Artifact | None = None
+    artifacts: list[Artifact] | None = None  # used with "done" to send all final artifacts
+    metadata: dict = field(default_factory=dict)
+
+    def to_sse(self) -> str:
+        """Serialize to SSE event format."""
+        import json
+        data: dict[str, Any] = {"type": self.type}
+        if self.content:
+            data["content"] = self.content
+        if self.artifact:
+            data["artifact"] = self.artifact.to_dict()
+        if self.artifacts:
+            data["artifacts"] = [a.to_dict() for a in self.artifacts]
+        if self.metadata:
+            data["metadata"] = self.metadata
+        return f"event: {self.type}\ndata: {json.dumps(data)}\n\n"
+
+
+# Streaming handler signature — yields StreamChunks instead of returning artifacts
+StreamingHandlerFunc = Callable[
+    [str, list[TaskMessage]],
+    AsyncGenerator[StreamChunk, None],
+]
 
 logger = logging.getLogger(__name__)
 
@@ -210,6 +255,87 @@ async def llm_call(
     return f"[LLM unavailable — echoing input]\n\n{user_message}"
 
 
+async def llm_call_streaming(
+    system_prompt: str,
+    user_message: str,
+    model: str | None = None,
+) -> AsyncGenerator[str, None]:
+    """Streaming version of llm_call — yields text chunks as they arrive.
+
+    Falls back to non-streaming llm_call if streaming is unavailable.
+    """
+    global _router
+    explicit_model = model or os.environ.get("MODEL")
+
+    # Ollama: stream via httpx
+    if explicit_model and explicit_model.lower().startswith("ollama/"):
+        import httpx
+        base = os.environ.get("OLLAMA_API_BASE", "http://127.0.0.1:11434")
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_message},
+        ]
+        timeout = httpx.Timeout(connect=10.0, read=300.0, write=10.0, pool=10.0)
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            async with client.stream(
+                "POST",
+                f"{base}/api/chat",
+                json={"model": explicit_model.split("/", 1)[1], "messages": messages, "stream": True},
+            ) as resp:
+                resp.raise_for_status()
+                import json
+                async for line in resp.aiter_lines():
+                    if line.strip():
+                        try:
+                            chunk = json.loads(line)
+                            content = chunk.get("message", {}).get("content", "")
+                            if content:
+                                yield content
+                        except (ValueError, KeyError):
+                            pass
+        return
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_message},
+    ]
+
+    # Try Router streaming first
+    if _router is None:
+        _router = _build_router() or False
+    if _router:
+        try:
+            response = await _router.acompletion(
+                model="agent-llm", messages=messages, stream=True,
+            )
+            async for chunk in response:
+                delta = chunk.choices[0].delta
+                if delta and delta.content:
+                    yield delta.content
+            return
+        except Exception as exc:
+            logger.warning("Router streaming failed: %s: %s", type(exc).__name__, exc)
+
+    # Fallback: direct single-model streaming
+    if explicit_model:
+        try:
+            import litellm
+            response = await litellm.acompletion(
+                model=explicit_model, messages=messages, timeout=60, stream=True,
+            )
+            async for chunk in response:
+                delta = chunk.choices[0].delta
+                if delta and delta.content:
+                    yield delta.content
+            return
+        except Exception as exc:
+            logger.warning("Direct LLM streaming failed (%s): %s: %s", explicit_model, type(exc).__name__, exc)
+
+    # Last resort: yield the full non-streaming response as one chunk
+    result = await llm_call(system_prompt, user_message, model)
+    yield result
+
+
 # In-memory task store shared within one process
 _task_store: dict[str, dict] = {}
 
@@ -226,6 +352,7 @@ def create_a2a_app(
     handler_func: HandlerFunc,
     port: int,
     credits_per_task: float = 1,
+    streaming_handler_func: StreamingHandlerFunc | None = None,
 ) -> FastAPI:
     """Create a FastAPI app that speaks the A2A protocol.
 
@@ -245,8 +372,13 @@ def create_a2a_app(
         Port number the agent listens on (used for the agent card URL).
     credits_per_task:
         Credit cost advertised for every task handled by this agent.
+    streaming_handler_func:
+        Optional async generator ``(skill_id, messages) -> StreamChunk``.
+        When provided, the agent advertises ``streaming: true`` in its card
+        and supports the ``tasks/sendSubscribe`` SSE method.
     """
 
+    supports_streaming = streaming_handler_func is not None
     app = FastAPI(title=name, version=version)
 
     # -- Agent card -----------------------------------------------------------
@@ -260,7 +392,7 @@ def create_a2a_app(
         "url": base_url,
         "version": version,
         "capabilities": {
-            "streaming": False,
+            "streaming": supports_streaming,
             "pushNotifications": False,
             "stateTransitionHistory": False,
         },
@@ -295,6 +427,8 @@ def create_a2a_app(
             return await _handle_get(params, req_id, jsonrpc)
         elif method == "tasks/cancel":
             return await _handle_cancel(params, req_id, jsonrpc)
+        elif method == "tasks/sendSubscribe":
+            return await _handle_send_subscribe(params, req_id, jsonrpc)
         else:
             return _error_response(req_id, -32601, f"Method not found: {method}", jsonrpc)
 
@@ -338,6 +472,100 @@ def create_a2a_app(
             })
         except Exception as exc:
             return _error_response(req_id, -32000, str(exc), jsonrpc)
+
+    # -- tasks/sendSubscribe (AG-UI streaming) --------------------------------
+
+    async def _handle_send_subscribe(params: dict, req_id: Any, jsonrpc: str):
+        """Stream task execution via Server-Sent Events.
+
+        If a streaming_handler_func was provided, yields chunks in real-time.
+        Otherwise falls back to running handler_func and emitting the result
+        as a single artifact event.
+        """
+        import json as _json
+
+        task_id = params.get("id") or str(uuid.uuid4())
+        metadata = params.get("metadata", {})
+        skill_id = params.get("skill_id") or metadata.get("skill_id") or _default_skill_id()
+        raw_messages = params.get("message", params.get("messages", []))
+        if isinstance(raw_messages, dict):
+            raw_messages = [raw_messages]
+        messages = [TaskMessage.from_dict(m) for m in raw_messages]
+
+        async def _stream_generator():
+            # Emit initial status
+            yield StreamChunk(type="status", content="working").to_sse()
+
+            try:
+                if streaming_handler_func is not None:
+                    # True streaming — yield each chunk from the handler
+                    final_artifacts: list[Artifact] = []
+                    accumulated_text = ""
+
+                    async for chunk in streaming_handler_func(skill_id, messages):
+                        yield chunk.to_sse()
+
+                        # Track artifacts for final task store
+                        if chunk.type == "artifact" and chunk.artifact:
+                            final_artifacts.append(chunk.artifact)
+                        elif chunk.type == "text":
+                            accumulated_text += chunk.content
+                        elif chunk.type == "done" and chunk.artifacts:
+                            final_artifacts = chunk.artifacts
+
+                    # If no explicit artifacts were emitted, create one from accumulated text
+                    if not final_artifacts and accumulated_text:
+                        final_artifacts = [Artifact(
+                            name="response",
+                            parts=[MessagePart(type="text", content=accumulated_text)],
+                            metadata={"skill": skill_id, "streamed": True},
+                        )]
+
+                    # Emit done with final artifacts
+                    done_chunk = StreamChunk(
+                        type="done",
+                        artifacts=final_artifacts,
+                        metadata={"credits_charged": credits_per_task},
+                    )
+                    yield done_chunk.to_sse()
+
+                else:
+                    # Non-streaming fallback — run handler, emit result as single event
+                    artifacts = await handler_func(skill_id, messages)
+                    for artifact in artifacts:
+                        yield StreamChunk(type="artifact", artifact=artifact).to_sse()
+                    yield StreamChunk(
+                        type="done",
+                        artifacts=artifacts,
+                        metadata={"credits_charged": credits_per_task},
+                    ).to_sse()
+
+            except Exception as exc:
+                logger.exception("Streaming handler error")
+                yield StreamChunk(type="error", content=str(exc)).to_sse()
+
+            # Store final task
+            task = {
+                "id": task_id,
+                "status": {"state": "completed"},
+                "messages": [m.to_dict() for m in messages],
+                "artifacts": [a.to_dict() for a in (final_artifacts if streaming_handler_func else artifacts)],
+                "metadata": {
+                    "credits_charged": credits_per_task,
+                    "completed_at": datetime.now(timezone.utc).isoformat(),
+                },
+            }
+            _task_store[task_id] = task
+
+        return StreamingResponse(
+            _stream_generator(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
 
     # -- tasks/get ------------------------------------------------------------
 

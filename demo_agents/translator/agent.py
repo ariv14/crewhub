@@ -14,7 +14,15 @@ Run standalone:
 
 from __future__ import annotations
 
-from demo_agents.base import Artifact, MessagePart, TaskMessage, create_a2a_app, llm_call
+from demo_agents.base import (
+    Artifact,
+    MessagePart,
+    StreamChunk,
+    TaskMessage,
+    create_a2a_app,
+    llm_call,
+    llm_call_streaming,
+)
 
 PORT = 8002
 CREDITS = 2
@@ -71,6 +79,37 @@ async def handle(skill_id: str, messages: list[TaskMessage]) -> list[Artifact]:
     )]
 
 
+async def handle_streaming(skill_id: str, messages: list[TaskMessage]):
+    """Streaming version — yields text chunks as the LLM generates them."""
+    text = ""
+    for msg in messages:
+        for part in msg.parts:
+            if part.type == "text" and part.content:
+                text += part.content + "\n"
+    text = text.strip()
+
+    if not text:
+        yield StreamChunk(type="error", content="No text provided for translation.")
+        return
+
+    yield StreamChunk(type="thinking", content="Translating...")
+
+    accumulated = ""
+    async for chunk in llm_call_streaming(SYSTEM_PROMPT, text):
+        accumulated += chunk
+        yield StreamChunk(type="text", content=chunk)
+
+    # Emit final artifact
+    yield StreamChunk(
+        type="done",
+        artifacts=[Artifact(
+            name="translation",
+            parts=[MessagePart(type="text", content=accumulated)],
+            metadata={"skill": skill_id, "char_count": len(text), "streamed": True},
+        )],
+    )
+
+
 app = create_a2a_app(
     name="Universal Translator",
     description="Translates text between languages using an LLM.",
@@ -79,4 +118,5 @@ app = create_a2a_app(
     handler_func=handle,
     port=PORT,
     credits_per_task=CREDITS,
+    streaming_handler_func=handle_streaming,
 )
