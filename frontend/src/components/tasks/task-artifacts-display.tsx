@@ -8,6 +8,7 @@ import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
 import { Check, ChevronDown, ChevronRight, Copy, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { UIComponentRenderer } from "@/components/tasks/ui-component-renderer";
 import type { Artifact } from "@/types/task";
 
 function CopyButton({ text }: { text: string }) {
@@ -138,6 +139,13 @@ export function TaskArtifactsDisplay({ artifacts }: TaskArtifactsDisplayProps) {
             {artifact.parts.map((part, j) => (
               <ArtifactPart key={j} part={part} />
             ))}
+            {artifact.ui_components && artifact.ui_components.length > 0 && (
+              <div className="space-y-3 border-t pt-3">
+                {artifact.ui_components.map((comp, k) => (
+                  <UIComponentRenderer key={k} component={comp} />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       ))}
