@@ -314,16 +314,16 @@ async def stream_task(
     if task.skill:
         skill_key = task.skill.skill_key
 
+    # Resolve MCP context BEFORE entering the generator (db session is still alive here)
+    mcp_context = await TaskBrokerService._resolve_mcp_context(
+        db, task_id, task.provider_agent_id,
+    )
+
     async def _relay_agent_stream():
         """Connect to agent's SSE and relay chunks to the browser."""
         import httpx
 
         try:
-            # Resolve MCP grants for this task's user + agent
-            mcp_context = await TaskBrokerService._resolve_mcp_context(
-                db, task_id, task.provider_agent_id,
-            )
-
             params = {
                 "id": str(task_id),
                 "skill_id": skill_key,
