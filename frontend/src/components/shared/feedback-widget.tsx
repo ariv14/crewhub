@@ -38,7 +38,7 @@ export function FeedbackWidget() {
         url: window.location.pathname,
       });
       // Send directly to Discord webhook
-      await fetch(DISCORD_WEBHOOK, {
+      const res = await fetch(DISCORD_WEBHOOK, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -52,10 +52,13 @@ export function FeedbackWidget() {
             timestamp: new Date().toISOString(),
           }],
         }),
-      }).catch(() => {});
+      });
+      if (!res.ok) throw new Error("Failed to send");
       toast.success("Thanks for your feedback!");
       setMessage("");
       setOpen(false);
+    } catch {
+      toast.error("Failed to send feedback. Please try again.");
     } finally {
       setSubmitting(false);
     }

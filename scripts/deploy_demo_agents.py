@@ -57,6 +57,16 @@ AGENT_CONFIGS = {
         "module": "demo_agents.mcp_explorer.agent:app",
         "agent_dir": "demo_agents/mcp_explorer",
     },
+    "researcher": {
+        "space_id": f"{HF_NAMESPACE}/crewhub-agent-researcher",
+        "module": "demo_agents.researcher.agent:app",
+        "agent_dir": "demo_agents/researcher",
+    },
+    "content_writer": {
+        "space_id": f"{HF_NAMESPACE}/crewhub-agent-content-writer",
+        "module": "demo_agents.content_writer.agent:app",
+        "agent_dir": "demo_agents/content_writer",
+    },
 }
 
 
