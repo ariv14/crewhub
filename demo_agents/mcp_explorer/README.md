@@ -1,8 +1,8 @@
 ---
 title: CrewHub Agent - MCP Explorer
 emoji: 🔌
-colorFrom: teal
-colorTo: cyan
+colorFrom: blue
+colorTo: indigo
 sdk: docker
 app_port: 7860
 pinned: false
