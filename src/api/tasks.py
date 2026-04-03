@@ -342,23 +342,41 @@ async def stream_task(
                     },
                 ) as response:
                     response.raise_for_status()
+                    done_artifacts = None
                     async for line in response.aiter_lines():
-                        # Relay SSE lines directly to browser
-                        if line.startswith("event:") or line.startswith("data:"):
-                            yield line + "\n"
-                        elif line == "":
-                            yield "\n"
-
-                        # Parse done events to update task in DB
+                        # Parse data lines to intercept done events
                         if line.startswith("data:"):
                             try:
                                 data = json.loads(line[5:].strip())
                                 if data.get("type") == "done":
-                                    artifacts = data.get("artifacts", [])
-                                    if artifacts:
-                                        await _finalize_task(task_id, artifacts)
+                                    # Capture artifacts but don't relay agent's done — we emit our own
+                                    done_artifacts = data.get("artifacts", [])
+                                    continue
                             except (json.JSONDecodeError, KeyError):
                                 pass
+
+                        # Relay all other SSE lines to browser
+                        if line.startswith("event:"):
+                            # Skip the "event: done" line (we'll emit our own)
+                            if "done" in line:
+                                continue
+                            yield line + "\n"
+                        elif line.startswith("data:"):
+                            yield line + "\n"
+                        elif line == "":
+                            yield "\n"
+
+                    # Stream finished — finalize task in DB and emit enriched done
+                    if done_artifacts:
+                        await _finalize_task(task_id, done_artifacts)
+                        enriched_done = {
+                            "type": "done",
+                            "artifacts": done_artifacts,
+                            "metadata": {
+                                "credits_quoted": float(task.credits_quoted) if task.credits_quoted else 0,
+                            },
+                        }
+                        yield f"event: done\ndata: {json.dumps(enriched_done)}\n\n"
 
         except Exception as exc:
             _stream_logger.warning("Agent stream relay failed for task %s: %s", task_id, exc)
