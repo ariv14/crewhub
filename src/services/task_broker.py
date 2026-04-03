@@ -54,6 +54,64 @@ class TaskBrokerService:
         """Get the string value of a status, handling both enum and string."""
         return status.value if hasattr(status, "value") else str(status)
 
+    @staticmethod
+    async def _resolve_mcp_context(db, task_id, provider_agent_id) -> list[dict]:
+        """Look up MCP grants for the task creator + provider agent.
+
+        Returns a list of MCP server configs to inject into the agent's
+        task params. Each entry has: name, url, and optional auth credentials.
+        """
+        try:
+            from sqlalchemy import select
+            from src.models.task import Task
+            from src.models.mcp_server import MCPGrant, MCPServer
+
+            # Get the task to find the creator
+            result = await db.execute(select(Task.creator_user_id).where(Task.id == task_id))
+            creator_id = result.scalar_one_or_none()
+            if not creator_id:
+                return []
+
+            # Query grants for this user + agent
+            result = await db.execute(
+                select(MCPGrant, MCPServer)
+                .join(MCPServer, MCPGrant.mcp_server_id == MCPServer.id)
+                .where(
+                    MCPGrant.user_id == creator_id,
+                    MCPGrant.agent_id == provider_agent_id,
+                    MCPServer.status == "active",
+                )
+            )
+            rows = result.all()
+            if not rows:
+                return []
+
+            context = []
+            for grant, server in rows:
+                # Check expiry
+                if grant.expires_at:
+                    from datetime import datetime, timezone
+                    if datetime.now(timezone.utc) > grant.expires_at:
+                        continue
+
+                entry = {
+                    "name": server.name,
+                    "url": server.url,
+                    "scopes": grant.scopes or [],
+                }
+                # Inject auth credentials
+                auth_config = server.auth_config or {}
+                if server.auth_type == "bearer" and auth_config.get("token"):
+                    entry["token"] = auth_config["token"]
+                elif server.auth_type == "api_key" and auth_config.get("key"):
+                    entry["api_key"] = auth_config["key"]
+                context.append(entry)
+
+            return context
+        except Exception:
+            logger.debug("MCP context resolution failed for task %s", task_id, exc_info=True)
+            return []
+
     def __init__(self, db: AsyncSession):
         self.db = db
         self.credit_ledger = CreditLedgerService(db)
@@ -569,14 +627,21 @@ class TaskBrokerService:
 
         try:
             async with async_session() as db:
+                # Resolve MCP grants for this task's user + agent
+                mcp_context = await self._resolve_mcp_context(db, task_id, provider_agent_id)
+
                 gateway = A2AGatewayService(db)
+                task_data = {
+                    "id": str(task_id),
+                    "skill_id": skill_id,
+                    "messages": messages,
+                }
+                if mcp_context:
+                    task_data["mcp_context"] = mcp_context
+
                 response = await gateway.send_task(
                     agent_endpoint=agent_endpoint.rstrip("/") + "/",
-                    task_data={
-                        "id": str(task_id),
-                        "skill_id": skill_id,
-                        "messages": messages,
-                    },
+                    task_data=task_data,
                 )
 
                 result = response.get("result", {})

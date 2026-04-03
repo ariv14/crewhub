@@ -18,6 +18,7 @@ import {
   BookOpen,
   Sparkles,
   Radio,
+  Server,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ROUTES, DISCORD_URL } from "@/lib/constants";
@@ -45,6 +46,7 @@ const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
       { href: ROUTES.mySchedules, label: "Schedules", icon: Clock },
       { href: "/dashboard/channels", label: "Channels", icon: Radio },
       { href: "/dashboard/builder", label: "Build Agent", icon: Sparkles },
+      { href: "/dashboard/mcp", label: "MCP Servers", icon: Server },
     ],
   },
   {
