@@ -37,6 +37,34 @@ export default function BuilderPage() {
     langflow_flow_id: "",
   });
   const createSubmission = useCreateSubmission();
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const handleIframeLoad = useCallback(() => {
+    try {
+      const iframe = iframeRef.current;
+      if (!iframe) return;
+      const doc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (doc) {
+        const text = doc.body?.textContent?.trim() || "";
+        if (text.includes("Quota exceeded") || text.includes("RATE_LIMITED")) {
+          setBuilderUrl(null);
+          setError("Builder service is temporarily unavailable due to high demand. Please try again in a few minutes.");
+        }
+      }
+    } catch {
+      // Cross-origin — can't read iframe content, assume it loaded fine
+    }
+  }, []);
+
+  const handleRetry = useCallback(() => {
+    setError(null);
+    setLoading(true);
+    setBuilderUrl(null);
+    setTimeout(() => {
+      setBuilderUrl("https://builder.crewhubai.com");
+      setLoading(false);
+    }, 500);
+  }, []);
 
   async function handlePublish(e: React.FormEvent) {
     e.preventDefault();
@@ -110,40 +138,6 @@ export default function BuilderPage() {
       </div>
     );
   }
-
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-
-  const handleIframeLoad = useCallback(() => {
-    // Detect if iframe loaded an error response instead of Langflow
-    // Cross-origin iframes block content access, so we check via a timeout:
-    // if the iframe document title is empty or very short after load, it's likely an error
-    try {
-      const iframe = iframeRef.current;
-      if (!iframe) return;
-      // For same-origin (builder.crewhubai.com → crewhubai.com subdomain), try reading
-      const doc = iframe.contentDocument || iframe.contentWindow?.document;
-      if (doc) {
-        const text = doc.body?.textContent?.trim() || "";
-        if (text.includes("Quota exceeded") || text.includes("RATE_LIMITED")) {
-          setBuilderUrl(null);
-          setError("Builder service is temporarily unavailable due to high demand. Please try again in a few minutes.");
-        }
-      }
-    } catch {
-      // Cross-origin — can't read iframe content, assume it loaded fine
-    }
-  }, []);
-
-  const handleRetry = useCallback(() => {
-    setError(null);
-    setLoading(true);
-    setBuilderUrl(null);
-    // Small delay then reload
-    setTimeout(() => {
-      setBuilderUrl("https://builder.crewhubai.com");
-      setLoading(false);
-    }, 500);
-  }, []);
 
   if (error) {
     return (
