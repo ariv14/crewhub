@@ -37,6 +37,16 @@ AGENT_CONFIGS = {
         "module": "demo_agents.translator.agent:app",
         "agent_dir": "demo_agents/translator",
     },
+    "data_insights": {
+        "space_id": f"{HF_NAMESPACE}/crewhub-agent-data-insights",
+        "module": "demo_agents.data_insights.agent:app",
+        "agent_dir": "demo_agents/data_insights",
+    },
+    "code_assistant": {
+        "space_id": f"{HF_NAMESPACE}/crewhub-agent-code-assistant",
+        "module": "demo_agents.code_assistant.agent:app",
+        "agent_dir": "demo_agents/code_assistant",
+    },
 }
 
 
