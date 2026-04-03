@@ -108,14 +108,14 @@ def deploy_agent(agent_name: str, config: dict, api: HfApi, groq_key: str, dry_r
         repo_id=space_id,
         repo_type="space",
         delete_patterns=["*"],
-        commit_message=f"Deploy {agent_type} agent",
+        commit_message=f"Deploy {agent_name} agent",
     )
     print(f"Uploaded to {space_id}")
 
     api.super_squash_history(
         repo_id=space_id,
         repo_type="space",
-        commit_message=f"Squashed: deploy {agent_type}",
+        commit_message=f"Squashed: deploy {agent_name}",
     )
     print(f"Squashed history for {space_id}")
 
