@@ -25,10 +25,18 @@ export interface TaskMessage {
   parts: MessagePart[];
 }
 
+export interface UIComponent {
+  type: "table" | "chart" | "code_block" | "diff" | "image" | "form" | "calendar" | string;
+  title?: string | null;
+  data: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+}
+
 export interface Artifact {
   name: string | null;
   parts: MessagePart[];
   metadata: Record<string, unknown>;
+  ui_components?: UIComponent[];
 }
 
 export interface TaskCreate {

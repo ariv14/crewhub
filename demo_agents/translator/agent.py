@@ -20,6 +20,7 @@ from demo_agents.base import (
     StreamChunk,
     TaskMessage,
     create_a2a_app,
+    emit_table,
     llm_call,
     llm_call_streaming,
 )
@@ -99,13 +100,25 @@ async def handle_streaming(skill_id: str, messages: list[TaskMessage]):
         accumulated += chunk
         yield StreamChunk(type="text", content=chunk)
 
-    # Emit final artifact
+    # Emit final artifact with A2UI table showing translation stats
     yield StreamChunk(
         type="done",
         artifacts=[Artifact(
             name="translation",
             parts=[MessagePart(type="text", content=accumulated)],
             metadata={"skill": skill_id, "char_count": len(text), "streamed": True},
+            ui_components=[
+                emit_table(
+                    "Translation Details",
+                    ["Metric", "Value"],
+                    [
+                        ["Input Characters", str(len(text))],
+                        ["Output Characters", str(len(accumulated))],
+                        ["Ratio", f"{len(accumulated)/max(len(text),1):.2f}x"],
+                        ["Streaming", "Yes"],
+                    ],
+                ),
+            ],
         )],
     )
 

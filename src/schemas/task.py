@@ -47,10 +47,22 @@ class TaskMessage(BaseModel):
     parts: list[MessagePart] = Field(max_length=100)
 
 
+class UIComponent(BaseModel):
+    """A2UI rich component — rendered by the frontend instead of plain markdown.
+
+    Supported types: table, chart, code_block, diff, image, form, calendar.
+    """
+    type: str = Field(max_length=50)  # table, chart, code_block, diff, image, form, calendar
+    title: Optional[str] = Field(None, max_length=255)
+    data: dict = Field(default_factory=dict)
+    metadata: dict = Field(default_factory=dict)
+
+
 class Artifact(BaseModel):
     name: Optional[str] = Field(None, max_length=255)
     parts: list[MessagePart] = Field(max_length=100)
     metadata: dict = Field(default_factory=dict, max_length=50)
+    ui_components: list[UIComponent] = Field(default_factory=list, max_length=20)
 
 
 class TaskCreate(BaseModel):

@@ -65,17 +65,52 @@ class TaskMessage:
 
 
 class Artifact:
-    def __init__(self, name: str | None = None, parts: list[MessagePart] | None = None, metadata: dict | None = None):
+    def __init__(
+        self,
+        name: str | None = None,
+        parts: list[MessagePart] | None = None,
+        metadata: dict | None = None,
+        ui_components: list[dict] | None = None,
+    ):
         self.name = name
         self.parts = parts or []
         self.metadata = metadata or {}
+        self.ui_components = ui_components or []
 
     def to_dict(self) -> dict:
-        return {
+        d = {
             "name": self.name,
             "parts": [p.to_dict() for p in self.parts],
             "metadata": self.metadata,
         }
+        if self.ui_components:
+            d["ui_components"] = self.ui_components
+        return d
+
+
+# ---------------------------------------------------------------------------
+# A2UI helpers — create structured UI components for rich rendering
+# ---------------------------------------------------------------------------
+
+def emit_table(title: str, headers: list[str], rows: list[list], caption: str | None = None) -> dict:
+    """Create a table UI component."""
+    return {"type": "table", "title": title, "data": {"headers": headers, "rows": rows, "caption": caption}, "metadata": {}}
+
+def emit_chart(title: str, chart_type: str, labels: list[str], datasets: list[dict]) -> dict:
+    """Create a chart UI component (bar, line, pie, area)."""
+    return {"type": "chart", "title": title, "data": {"chart_type": chart_type, "labels": labels, "datasets": datasets}, "metadata": {}}
+
+def emit_code(code: str, language: str, filename: str | None = None, title: str | None = None) -> dict:
+    """Create a syntax-highlighted code block UI component."""
+    return {"type": "code_block", "title": title or filename, "data": {"code": code, "language": language, "filename": filename}, "metadata": {}}
+
+def emit_diff(before: str, after: str, language: str | None = None, title: str | None = None) -> dict:
+    """Create a side-by-side diff UI component."""
+    return {"type": "diff", "title": title, "data": {"before": before, "after": after, "language": language}, "metadata": {}}
+
+def emit_image(url: str, alt: str | None = None, title: str | None = None) -> dict:
+    """Create an image UI component."""
+    return {"type": "image", "title": title, "data": {"url": url, "alt": alt}, "metadata": {}}
 
 
 # Handler signature:
