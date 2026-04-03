@@ -603,6 +603,32 @@ async def update_agent_status(
     return AgentResponse.model_validate(agent)
 
 
+class AgentCapabilitiesUpdate(BaseModel):
+    capabilities: dict
+
+
+@router.put("/agents/{agent_id}/capabilities", response_model=AgentResponse)
+async def update_agent_capabilities(
+    agent_id: UUID,
+    data: AgentCapabilitiesUpdate,
+    request: Request,
+    admin: User = Depends(require_ops_or_super),
+    db: AsyncSession = Depends(get_db),
+) -> AgentResponse:
+    """Override agent capabilities (e.g. streaming) — admin only."""
+    result = await db.execute(
+        select(Agent).where(Agent.id == agent_id).options(selectinload(Agent.skills))
+    )
+    agent = result.scalar_one_or_none()
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    await audit_log(db, action="admin.update_agent_capabilities", actor_user_id=str(admin.id), target_type="agent", target_id=agent_id, old_value={"capabilities": agent.capabilities}, new_value={"capabilities": data.capabilities}, request=request)
+    agent.capabilities = data.capabilities
+    await db.commit()
+    await db.refresh(agent)
+    return AgentResponse.model_validate(agent)
+
+
 class AgentPricingUpdate(BaseModel):
     pricing: dict
 

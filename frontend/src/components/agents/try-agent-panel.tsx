@@ -19,8 +19,10 @@ import {
 import { TaskMessageThread } from "@/components/tasks/task-message-thread";
 import { TaskArtifactsDisplay } from "@/components/tasks/task-artifacts-display";
 import { TaskProgressStepper } from "@/components/tasks/task-progress-stepper";
+import { StreamingMessage } from "@/components/tasks/streaming-message";
 import { useCreateTask } from "@/lib/hooks/use-tasks";
 import { useTask } from "@/lib/hooks/use-tasks";
+import { useTaskStream } from "@/lib/hooks/use-task-stream";
 import { useAuth } from "@/lib/auth-context";
 import { useBalance } from "@/lib/hooks/use-credits";
 import { cn } from "@/lib/utils";
@@ -51,17 +53,24 @@ export function TryAgentPanel({ agent, initialMessage }: TryAgentPanelProps) {
   } | null>(null);
   const createTask = useCreateTask();
   const { data: balance } = useBalance();
-  const { data: task } = useTask(taskId ?? "");
+  const agentSupportsStreaming = Boolean(agent.capabilities?.streaming);
+  const { data: task } = useTask(
+    // When agent supports streaming, don't poll — the stream handles updates
+    agentSupportsStreaming ? "" : (taskId ?? ""),
+  );
+  const stream = useTaskStream(agentSupportsStreaming ? taskId : null);
 
   const hasUsedGuestTrial =
     typeof window !== "undefined" &&
     localStorage.getItem("guest_trial_used") === "true";
 
-  const isWorking =
-    task && ["submitted", "working", "input_required"].includes(task.status);
-  const isDone =
-    task &&
-    ["completed", "failed", "canceled", "rejected"].includes(task.status);
+  const isWorking = agentSupportsStreaming
+    ? stream.isStreaming
+    : task && ["submitted", "working", "input_required"].includes(task.status);
+  const isDone = agentSupportsStreaming
+    ? stream.isDone
+    : task &&
+      ["completed", "failed", "canceled", "rejected"].includes(task.status);
 
   async function handleSend() {
     if (!input.trim() || !selectedSkill) return;
@@ -168,8 +177,27 @@ export function TryAgentPanel({ agent, initialMessage }: TryAgentPanelProps) {
         </div>
       )}
 
-      {/* Authenticated task results */}
-      {task && (
+      {/* Authenticated task results — streaming mode */}
+      {taskId && agentSupportsStreaming && (
+        <div className="rounded-lg border p-4 space-y-4">
+          <StreamingMessage
+            streamedText={stream.streamedText}
+            thinkingText={stream.thinkingText}
+            isStreaming={stream.isStreaming}
+          />
+          {stream.isDone && stream.artifacts.length > 0 && (
+            <TaskArtifactsDisplay artifacts={stream.artifacts} />
+          )}
+          {stream.error && (
+            <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+              {stream.error}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Authenticated task results — polling mode (non-streaming agents) */}
+      {task && !agentSupportsStreaming && (
         <div className="rounded-lg border p-4 space-y-4">
           <TaskMessageThread messages={task.messages} />
           {isWorking && task && (
