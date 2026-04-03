@@ -113,6 +113,85 @@ def emit_image(url: str, alt: str | None = None, title: str | None = None) -> di
     return {"type": "image", "title": title, "data": {"url": url, "alt": alt}, "metadata": {}}
 
 
+# ---------------------------------------------------------------------------
+# MCP Toolkit — allows agents to call external tools via MCP protocol
+# ---------------------------------------------------------------------------
+
+class MCPToolkit:
+    """Client for accessing MCP servers granted to this agent at dispatch time.
+
+    Initialized from ``mcp_context`` injected into the task params by the
+    platform. Each server entry has: name, url, and optional auth headers.
+
+    Usage in handler::
+
+        async def handle(skill_id, messages, mcp=None):
+            if mcp:
+                tools = await mcp.list_tools("github")
+                result = await mcp.call_tool("github", "search_code", {"query": "auth"})
+    """
+
+    def __init__(self, servers: list[dict]):
+        import httpx
+        self._servers: dict[str, dict] = {}
+        self._clients: dict[str, httpx.AsyncClient] = {}
+        for s in servers:
+            name = s["name"]
+            self._servers[name] = s
+            headers = {"Content-Type": "application/json"}
+            if s.get("token"):
+                headers["Authorization"] = f"Bearer {s['token']}"
+            elif s.get("api_key"):
+                headers["X-API-Key"] = s["api_key"]
+            self._clients[name] = httpx.AsyncClient(
+                timeout=30, headers=headers,
+            )
+
+    @property
+    def server_names(self) -> list[str]:
+        return list(self._servers.keys())
+
+    async def list_tools(self, server_name: str) -> list[dict]:
+        """List available tools on a named MCP server."""
+        client = self._clients.get(server_name)
+        url = self._servers.get(server_name, {}).get("url")
+        if not client or not url:
+            return []
+        try:
+            resp = await client.post(url, json={
+                "jsonrpc": "2.0", "method": "tools/list", "id": 1,
+            })
+            resp.raise_for_status()
+            return resp.json().get("result", {}).get("tools", [])
+        except Exception as e:
+            logger.warning("MCP list_tools failed for %s: %s", server_name, e)
+            return []
+
+    async def call_tool(self, server_name: str, tool_name: str, arguments: dict | None = None) -> dict:
+        """Call a tool on a named MCP server."""
+        client = self._clients.get(server_name)
+        url = self._servers.get(server_name, {}).get("url")
+        if not client or not url:
+            return {"error": f"MCP server '{server_name}' not available"}
+        try:
+            resp = await client.post(url, json={
+                "jsonrpc": "2.0", "method": "tools/call", "id": 2,
+                "params": {"name": tool_name, "arguments": arguments or {}},
+            })
+            resp.raise_for_status()
+            data = resp.json()
+            if data.get("error"):
+                return {"error": data["error"]}
+            return data.get("result", {})
+        except Exception as e:
+            logger.warning("MCP call_tool '%s' on %s failed: %s", tool_name, server_name, e)
+            return {"error": str(e)}
+
+    async def close(self):
+        for client in self._clients.values():
+            await client.aclose()
+
+
 # Handler signature:
 #   async def handler(skill_id: str, messages: list[TaskMessage]) -> list[Artifact]
 HandlerFunc = Callable[[str, list[TaskMessage]], Awaitable[list[Artifact]]]
@@ -374,6 +453,22 @@ async def llm_call_streaming(
 # In-memory task store shared within one process
 _task_store: dict[str, dict] = {}
 
+# Per-request MCP toolkit (set before handler call, cleared after)
+_current_mcp: MCPToolkit | None = None
+
+
+def get_mcp() -> MCPToolkit | None:
+    """Get the MCP toolkit for the current request, if any.
+
+    Usage in handler::
+
+        from demo_agents.base import get_mcp
+        mcp = get_mcp()
+        if mcp:
+            result = await mcp.call_tool("github", "search_code", {"query": "auth"})
+    """
+    return _current_mcp
+
 
 # ---------------------------------------------------------------------------
 # Factory
@@ -470,6 +565,7 @@ def create_a2a_app(
     # -- tasks/send -----------------------------------------------------------
 
     async def _handle_send(params: dict, req_id: Any, jsonrpc: str):
+        global _current_mcp
         try:
             task_id = params.get("id") or str(uuid.uuid4())
             metadata = params.get("metadata", {})
@@ -485,8 +581,20 @@ def create_a2a_app(
             if not skill_id:
                 skill_id = _default_skill_id()
 
+            # Initialize MCP toolkit if platform injected mcp_context
+            mcp_context = params.get("mcp_context", [])
+            if mcp_context:
+                _current_mcp = MCPToolkit(mcp_context)
+            else:
+                _current_mcp = None
+
             # Execute
-            artifacts = await handler_func(skill_id, messages)
+            try:
+                artifacts = await handler_func(skill_id, messages)
+            finally:
+                if _current_mcp:
+                    await _current_mcp.close()
+                    _current_mcp = None
 
             task = {
                 "id": task_id,

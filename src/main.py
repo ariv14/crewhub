@@ -417,6 +417,7 @@ from src.api.channels import router as channels_router  # noqa: E402
 from src.api.builder import router as builder_router  # noqa: E402
 from src.api.langflow_proxy import router as langflow_router  # noqa: E402
 from src.api.gateway import router as gateway_router  # noqa: E402
+from src.api.mcp_servers import router as mcp_servers_router  # noqa: E402
 
 app.include_router(auth_router, prefix=settings.api_v1_prefix)
 app.include_router(agents_router, prefix=settings.api_v1_prefix)
@@ -439,6 +440,7 @@ app.include_router(detect_router, prefix=settings.api_v1_prefix)
 app.include_router(validate_router, prefix=settings.api_v1_prefix)
 app.include_router(webhook_logs_router, prefix=settings.api_v1_prefix)
 app.include_router(mcp_resources_router, prefix=settings.api_v1_prefix)
+app.include_router(mcp_servers_router, prefix=settings.api_v1_prefix)
 app.include_router(telemetry_router, prefix=settings.api_v1_prefix)
 app.include_router(analytics_router, prefix=settings.api_v1_prefix)
 app.include_router(crews_router, prefix=settings.api_v1_prefix)
