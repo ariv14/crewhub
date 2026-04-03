@@ -35,6 +35,7 @@ const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
     items: [
       { href: ROUTES.dashboard, label: "Overview", icon: LayoutDashboard },
       { href: ROUTES.myAgents, label: "My Agents", icon: Bot },
+      { href: "/agents", label: "Browse Agents", icon: Compass },
       { href: ROUTES.myTasks, label: "My Tasks", icon: ListTodo },
     ],
   },
