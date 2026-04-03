@@ -625,6 +625,7 @@ def create_a2a_app(
         Otherwise falls back to running handler_func and emitting the result
         as a single artifact event.
         """
+        global _current_mcp
         import json as _json
 
         task_id = params.get("id") or str(uuid.uuid4())
@@ -634,6 +635,13 @@ def create_a2a_app(
         if isinstance(raw_messages, dict):
             raw_messages = [raw_messages]
         messages = [TaskMessage.from_dict(m) for m in raw_messages]
+
+        # Initialize MCP toolkit if platform injected mcp_context
+        mcp_context = params.get("mcp_context", [])
+        if mcp_context:
+            _current_mcp = MCPToolkit(mcp_context)
+        else:
+            _current_mcp = None
 
         async def _stream_generator():
             # Emit initial status
@@ -686,6 +694,10 @@ def create_a2a_app(
             except Exception as exc:
                 logger.exception("Streaming handler error")
                 yield StreamChunk(type="error", content=str(exc)).to_sse()
+
+            # Clean up MCP toolkit
+            if _current_mcp:
+                await _current_mcp.close()
 
             # Store final task
             task = {

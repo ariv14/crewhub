@@ -47,19 +47,27 @@ AGENT_CONFIGS = {
         "module": "demo_agents.code_assistant.agent:app",
         "agent_dir": "demo_agents/code_assistant",
     },
+    "mcp_toolserver": {
+        "space_id": f"{HF_NAMESPACE}/crewhub-mcp-toolserver",
+        "module": "demo_agents.mcp_toolserver.server:app",
+        "agent_dir": "demo_agents/mcp_toolserver",
+    },
+    "mcp_explorer": {
+        "space_id": f"{HF_NAMESPACE}/crewhub-agent-mcp-explorer",
+        "module": "demo_agents.mcp_explorer.agent:app",
+        "agent_dir": "demo_agents/mcp_explorer",
+    },
 }
 
 
 def _prepare_upload_dir(agent_name: str, config: dict) -> Path:
     """Create a temp directory with the right structure for HF upload.
 
-    HF Spaces builds from the repo root, so we need:
-      Dockerfile          (from demo_agents/<agent>/Dockerfile)
-      README.md           (from demo_agents/<agent>/README.md)
-      demo_agents/__init__.py
-      demo_agents/base.py
-      demo_agents/<agent>/__init__.py
-      demo_agents/<agent>/agent.py
+    For standard agents (with agent.py):
+      Dockerfile, README.md, demo_agents/{__init__,base}.py, demo_agents/<agent>/{__init__,agent}.py
+
+    For standalone services (e.g. mcp_toolserver with server.py):
+      Dockerfile, README.md, demo_agents/<agent>/server.py (Dockerfile handles paths)
     """
     tmp = Path(tempfile.mkdtemp(prefix=f"crewhub-{agent_name}-"))
 
@@ -69,16 +77,27 @@ def _prepare_upload_dir(agent_name: str, config: dict) -> Path:
     shutil.copy2(agent_dir / "Dockerfile", tmp / "Dockerfile")
     shutil.copy2(agent_dir / "README.md", tmp / "README.md")
 
-    # Module structure
+    # Check if this is a standalone service (has server.py but no agent.py)
+    has_agent_py = (agent_dir / "agent.py").exists()
+    has_server_py = (agent_dir / "server.py").exists()
+
     da = tmp / "demo_agents"
     da.mkdir()
-    shutil.copy2(REPO_ROOT / "demo_agents" / "__init__.py", da / "__init__.py")
-    shutil.copy2(REPO_ROOT / "demo_agents" / "base.py", da / "base.py")
 
-    agent_mod = da / agent_name
-    agent_mod.mkdir()
-    shutil.copy2(agent_dir / "__init__.py", agent_mod / "__init__.py")
-    shutil.copy2(agent_dir / "agent.py", agent_mod / "agent.py")
+    if has_agent_py:
+        # Standard agent — needs base.py and module structure
+        shutil.copy2(REPO_ROOT / "demo_agents" / "__init__.py", da / "__init__.py")
+        shutil.copy2(REPO_ROOT / "demo_agents" / "base.py", da / "base.py")
+
+        agent_mod = da / agent_name
+        agent_mod.mkdir()
+        shutil.copy2(agent_dir / "__init__.py", agent_mod / "__init__.py")
+        shutil.copy2(agent_dir / "agent.py", agent_mod / "agent.py")
+    elif has_server_py:
+        # Standalone service — just copy server.py at root (Dockerfile handles it)
+        shutil.copy2(agent_dir / "server.py", da / agent_name / "server.py") if False else None
+        # Actually just copy server.py to root since Dockerfile COPYs it there
+        shutil.copy2(agent_dir / "server.py", tmp / "server.py")
 
     return tmp
 
