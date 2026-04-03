@@ -628,7 +628,7 @@ class TaskBrokerService:
         try:
             async with async_session() as db:
                 # Resolve MCP grants for this task's user + agent
-                mcp_context = await self._resolve_mcp_context(db, task_id, provider_agent_id)
+                mcp_context = await TaskBrokerService._resolve_mcp_context(db, task_id, provider_agent_id)
 
                 gateway = A2AGatewayService(db)
                 task_data = {
