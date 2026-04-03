@@ -58,13 +58,7 @@ SPACES = [
     ("crewhub-agent-translator", "/.well-known/agent-card.json"),
     # Promptfoo agent
     ("crewhub-agent-promptfoo", "/.well-known/agent-card.json"),
-    # Marketing specialists
-    ("crewhub-marketing-cro", "/.well-known/agent-card.json"),
-    ("crewhub-marketing-copywriter", "/.well-known/agent-card.json"),
-    ("crewhub-marketing-seo", "/.well-known/agent-card.json"),
-    ("crewhub-marketing-launch", "/.well-known/agent-card.json"),
-    ("crewhub-marketing-email", "/.well-known/agent-card.json"),
-    ("crewhub-marketing-pricing", "/.well-known/agent-card.json"),
+    # Marketing specialists — removed (spaces stopped/deleted)
     # Langflow builder pool (pool-01 deleted — HF Space quota limit)
     ("crewhub-langflow-pool-02", "/health"),
     ("crewhub-langflow-pool-03", "/health"),
