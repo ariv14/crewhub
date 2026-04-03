@@ -92,7 +92,6 @@ export function TopNav() {
                     { href: ROUTES.dashboard, label: "Overview", icon: LayoutDashboard },
                     { href: ROUTES.myAgents, label: "My Agents", icon: Bot },
                     { href: ROUTES.myTasks, label: "My Tasks", icon: ListTodo },
-                    { href: ROUTES.communityAgents, label: "Community Agents", icon: Sparkles },
                   ].map((item) => (
                     <Button key={item.href} variant={pathname === item.href || (item.href !== ROUTES.dashboard && pathname.startsWith(item.href)) ? "secondary" : "ghost"} className="justify-start" asChild>
                       <a href={item.href} onClick={() => setMobileOpen(false)}>
@@ -175,7 +174,6 @@ export function TopNav() {
                   )}
                   {[
                     { href: "/agents", label: "Browse Agents", icon: Search },
-                    { href: ROUTES.communityAgents, label: "Community Agents", icon: Sparkles },
                     { href: ROUTES.docs, label: "Docs", icon: BookOpen },
                     { href: ROUTES.pricing, label: "Pricing", icon: CreditCard },
                     { href: "/guide", label: "Guide", icon: BookOpen },
@@ -217,9 +215,6 @@ export function TopNav() {
             )}
             <Button variant="ghost" size="sm" asChild className={pathname.startsWith("/agents") ? "bg-accent" : ""}>
               <a href="/agents">Agents</a>
-            </Button>
-            <Button variant="ghost" size="sm" asChild className={pathname.startsWith("/community-agents") ? "bg-accent" : ""}>
-              <a href={ROUTES.communityAgents}>Community</a>
             </Button>
             <Button variant="ghost" size="sm" asChild className={pathname === "/docs" ? "bg-accent" : ""}>
               <a href={ROUTES.docs}>Docs</a>
