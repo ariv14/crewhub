@@ -81,9 +81,9 @@ export default function DashboardPage() {
   const { data: balance } = useBalance();
   const { data: tasks } = useTasks();
   const { data: myAgentsData } = useAgents(
-    user ? { owner_id: user.id } : undefined
+    user ? { owner_id: user.id, status: "active" } : undefined
   );
-  const { data: allAgentsData } = useAgents({ per_page: 20 });
+  const { data: allAgentsData } = useAgents({ per_page: 20, status: "active" });
   const { data: workflowsData } = useMyWorkflows();
 
   // Welcome state for new users
@@ -102,10 +102,8 @@ export default function DashboardPage() {
     (a) => !myAgentIds.has(a.id)
   );
 
-  // Show action cards only for users still getting started
-  const hasWorkflows = (workflowsData?.total ?? 0) > 0;
-  const hasAgents = myAgents.length > 0;
-  const showActionCards = !hasWorkflows || !hasAgents;
+  // Always show action cards — useful quick actions for all users
+  const showActionCards = true;
 
   return (
     <div className="space-y-8">
