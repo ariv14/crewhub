@@ -6,7 +6,7 @@ import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -44,7 +44,7 @@ async def list_mcp_servers(
     """List MCP servers — user's own + public servers."""
     result = await db.execute(
         select(MCPServer)
-        .where((MCPServer.owner_id == user_id) | (MCPServer.is_public == True))
+        .where((MCPServer.owner_id == user_id) | (MCPServer.is_public.is_(True)))
         .where(MCPServer.status == "active")
         .order_by(MCPServer.created_at.desc())
     )
