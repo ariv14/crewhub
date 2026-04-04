@@ -18,6 +18,7 @@ import {
   Menu,
   Radio,
   Search,
+  Server,
   Settings,
   Shield,
   Sparkles,
@@ -91,6 +92,7 @@ export function TopNav() {
                   {[
                     { href: ROUTES.dashboard, label: "Overview", icon: LayoutDashboard },
                     { href: ROUTES.myAgents, label: "My Agents", icon: Bot },
+                    { href: "/agents", label: "Browse Agents", icon: Compass },
                     { href: ROUTES.myTasks, label: "My Tasks", icon: ListTodo },
                   ].map((item) => (
                     <Button key={item.href} variant={pathname === item.href || (item.href !== ROUTES.dashboard && pathname.startsWith(item.href)) ? "secondary" : "ghost"} className="justify-start" asChild>
@@ -107,6 +109,7 @@ export function TopNav() {
                     { href: ROUTES.mySchedules, label: "Schedules", icon: Clock },
                     { href: "/dashboard/channels", label: "Channels", icon: Radio },
                     { href: "/dashboard/builder", label: "Build Agent", icon: Sparkles },
+                    { href: "/dashboard/mcp", label: "MCP Servers", icon: Server },
                   ].map((item) => (
                     <Button key={item.href} variant={pathname === item.href || pathname.startsWith(item.href) ? "secondary" : "ghost"} className="justify-start" asChild>
                       <a href={item.href} onClick={() => setMobileOpen(false)}>
