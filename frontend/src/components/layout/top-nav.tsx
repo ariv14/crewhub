@@ -85,9 +85,9 @@ export function TopNav() {
               <SheetDescription className="sr-only">Navigation menu</SheetDescription>
             </SheetHeader>
             <nav className="mt-6 flex flex-col gap-1 overflow-y-auto max-h-[calc(100dvh-8rem)] pb-4">
-              {showAuthNav && isDashboard ? (
+              {showAuthNav ? (
                 <>
-                  {/* Dashboard mobile menu — mirrors sidebar exactly */}
+                  {/* Authenticated mobile menu — mirrors sidebar exactly */}
                   <span className="px-3 mb-1 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Core</span>
                   {[
                     { href: ROUTES.dashboard, label: "Overview", icon: LayoutDashboard },
@@ -157,24 +157,7 @@ export function TopNav() {
                 </>
               ) : (
                 <>
-                  {/* Public pages mobile menu */}
-                  {showAuthNav && (
-                    <>
-                      {[
-                        { href: ROUTES.dashboard, label: "Dashboard", icon: LayoutDashboard },
-                        { href: ROUTES.myAgents, label: "My Agents", icon: Bot },
-                        { href: ROUTES.myTasks, label: "My Tasks", icon: ListTodo },
-                      ].map((item) => (
-                        <Button key={item.href} variant={pathname === item.href || (item.href !== ROUTES.dashboard && pathname.startsWith(item.href)) ? "secondary" : "ghost"} className="justify-start" asChild>
-                          <a href={item.href} onClick={() => setMobileOpen(false)}>
-                            <item.icon className="mr-2 h-4 w-4" />
-                            {item.label}
-                          </a>
-                        </Button>
-                      ))}
-                      <div className="my-2 border-t" />
-                    </>
-                  )}
+                  {/* Public pages mobile menu (unauthenticated) */}
                   {[
                     { href: "/agents", label: "Browse Agents", icon: Search },
                     { href: ROUTES.docs, label: "Docs", icon: BookOpen },
